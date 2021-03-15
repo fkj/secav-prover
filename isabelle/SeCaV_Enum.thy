@@ -323,9 +323,4 @@ interpretation PersistentRuleSystem \<open>\<lambda> r s ss. eff' r s = Some ss\
 definition \<open>rho \<equiv> i.fenum rules\<close>
 definition \<open>secavTree \<equiv> i.mkTree eff' rho\<close>
 
-definition \<open>thm1 \<equiv> [Imp (Pre 0 []) (Pre 0 [])]\<close>
-definition \<open>thm2 \<equiv> [Dis (Pre 0 [Fun 0 [], Fun 1 []]) (Neg (Pre 0 [Fun 0 [], Fun 1 []]))]\<close>
-definition \<open>thm3 \<equiv> [Imp (Uni (Uni (Pre 0 [Var 1, Var 0]))) (Pre 0 [Fun 0 [], Fun 0 []])]\<close>
-definition \<open>thm4 \<equiv> [Imp (Uni (Imp (Pre 0 [Var 0]) (Pre 1 [Var 0]))) (Imp (Exi (Pre 0 [Var 0])) (Exi (Pre 1 [Var 0])))]\<close>
-
 end
