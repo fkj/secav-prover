@@ -1,0 +1,12 @@
+chapter SeCaV
+
+session SeCaV_Coinductive (FKJ) = "HOL-Library" +
+  options [timeout = 300]
+  sessions
+    Collections
+  theories
+    Abstract_Completeness
+    Finite_Proof_Soundness
+    SeCaV
+    SeCaV_Enum
+    Export
