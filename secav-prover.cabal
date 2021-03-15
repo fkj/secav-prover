@@ -30,8 +30,16 @@ library export
                      
 library
   exposed-modules:     Instances
+                     , AST
+                     , Lexer
+                     , Parser
+                     , SeCaVGenerator
+                     , ProofExtractor
   build-depends:       base ^>=4.13.0.0
                      , export
+                     , parsec
+                     , bimap
+                     , mtl
   hs-source-dirs:      haskell/lib
   default-language:    Haskell2010
   

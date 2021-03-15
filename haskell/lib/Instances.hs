@@ -10,7 +10,8 @@ import Abstract_Completeness(Tree(..))
 import Set(Set(..))
 import FSet(Fset(..))
 
-deriving instance Show Nat
+instance Show Nat where
+  show (Nat x) = show x
 
 instance Show Tm where
   show (Fun n ts) = "F" <> show n <> " " <> show ts
