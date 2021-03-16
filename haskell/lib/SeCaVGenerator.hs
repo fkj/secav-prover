@@ -18,8 +18,7 @@ genInit fs =
   in runState (genSequent fs) initState
 
 genSequent :: [Formula] -> NameGen [Fm]
-genSequent [] = pure []
-genSequent (x:xs) = liftM2 (:) (genFormula x) (genSequent xs)
+genSequent = foldr (liftM2 (:) . genFormula) (pure [])
 
 genFormula :: Formula -> NameGen Fm
 genFormula (AST.Pre n l) = do
