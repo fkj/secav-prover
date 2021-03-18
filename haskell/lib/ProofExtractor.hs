@@ -11,29 +11,78 @@ import Instances
 import qualified Data.Bimap as Map
 import Data.List
 
-dropEnd :: Int -> String -> String
-dropEnd n = reverse . drop n . reverse
+extract :: NameState -> Tree ([Fm], Rule) -> String
+extract names (Node (sequent, rule) (Abs_fset (Set []))) =
+  extractSequent names sequent <>
+  "\n\n" <>
+  extractRule names rule <>
+  "\n"
+extract names (Node (sequent, rule) (Abs_fset (Set [current]))) =
+  extractSequent names sequent <>
+  "\n\n" <>
+  extractRule names rule <>
+  "\n" <>
+  extract' names [] current
+extract names (Node (sequent, rule) (Abs_fset (Set [current, next]))) =
+  extractSequent names sequent <>
+  "\n\n" <>
+  extractRule names rule <>
+  "\n" <>
+  extract' names (extractNextSequent next) current <>
+  extract' names [] next
+extract _ _ =
+  error "By the pricking of my thumbs, something wicked this way comes..."
 
-extract :: NameState -> Abstract_Completeness.Tree ([Fm], Rule) -> String
-extract names (Node (sequent, rule) (Abs_fset (Set rest))) =
-  extractSequent names sequent <> "\n" <> extractRule names rule <> "\n" <> intercalate "+\n" (map (extract' names) rest)
+extract' :: NameState -> [Fm] -> Tree ([Fm], Rule) -> String
+extract' names other (Node (sequent, rule) (Abs_fset (Set []))) =
+  extractSequent' names sequent <>
+  (if null other then "" else "\n+\n" <> extractOtherSequents names other) <>
+  "\n" <>
+  extractRule names rule <>
+  "\n"
+extract' names other (Node (sequent, rule) (Abs_fset (Set [current]))) =
+  extractSequent' names sequent <>
+  (if null other then "" else "\n+\n" <> extractOtherSequents names other) <>
+  "\n" <>
+  extractRule names rule <>
+  "\n" <>
+  extract' names other current
+extract' names other (Node (sequent, rule) (Abs_fset (Set [current, next]))) =
+  extractSequent' names sequent <>
+  (if null other then "" else "\n+\n" <> extractOtherSequents names other) <>
+  "\n" <>
+  extractRule names rule <>
+  "\n" <>
+  extract' names (extractNextSequent next ++ other) current <>
+  extract' names other next
+extract' _ _ _ =
+  error "By the pricking of my thumbs, something wicked this way comes..."
 
-extract' :: NameState -> Abstract_Completeness.Tree ([Fm], Rule) -> String
-extract' names (Node (sequent, rule) (Abs_fset (Set rest))) =
-  extractSequent' names sequent <> extractRule names rule <> "\n" <> intercalate "+\n" (map (extract' names) rest)
+extractNextSequent :: Tree ([Fm], Rule) -> [Fm]
+extractNextSequent (Node (sequent, _) _) = sequent
+
+extractOtherSequents :: NameState -> [Fm] -> String
+extractOtherSequents _ [] = ""
+extractOtherSequents names [x] = "  " <> extractFormula names x
+extractOtherSequents names (x:xs) = "  " <> extractFormula names x <> "\n+\n" <> extractOtherSequents names xs
 
 extractSequent :: NameState -> [Fm] -> String
 extractSequent _ [] = ""
+extractSequent names [x] = extractFormula names x
 extractSequent names (x:xs) = extractFormula names x <> "\n" <> extractSequent names xs
 
 extractSequent' :: NameState -> [Fm] -> String
 extractSequent' _ [] = ""
+extractSequent' names [x] = "  " <> extractFormula names x
 extractSequent' names (x:xs) = "  " <> extractFormula names x <> "\n" <> extractSequent' names xs
 
 extractTerm :: NameState -> Tm -> String
 extractTerm names (SeCaV.Fun (Nat n) []) = existingFuns names Map.!> n
 extractTerm names (SeCaV.Fun (Nat n) ts) = existingFuns names Map.!> n <> "[" <> intercalate ", " (map (extractTerm names) ts) <> "]"
 extractTerm _ (SeCaV.Var n) = "Var " <> show n
+
+dropEnd :: Int -> String -> String
+dropEnd n = reverse . drop n . reverse
 
 extractFormula :: NameState -> Fm -> String
 extractFormula names (SeCaV.Pre (Nat n) []) = existingPres names Map.!> n
