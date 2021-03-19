@@ -28,7 +28,7 @@ library export
   hs-source-dirs:     haskell/export
   default-language:   Haskell2010
                      
-library
+library interface
   exposed-modules:     Instances
                      , AST
                      , Lexer
@@ -45,11 +45,24 @@ library
                      , mtl
   hs-source-dirs:      haskell/lib
   default-language:    Haskell2010
-  
+
+test-suite test-prover
+  type:                detailed-0.9
+  test-module:         Runner
+  build-depends:       base ^>=4.13.0.0
+                     , Cabal >= 1.9.2
+                     , process
+                     , directory
+                     , mtl
+                     , export
+                     , interface
+  hs-source-dirs:      test
+  default-language:    Haskell2010
+
 executable secav-prover
   main-is:             Main.hs
   build-depends:       base ^>=4.13.0.0
                      , export
-                     , secav-prover
+                     , interface
   hs-source-dirs:      haskell/app
   default-language:    Haskell2010
