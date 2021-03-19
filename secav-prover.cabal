@@ -35,6 +35,9 @@ library
                      , Parser
                      , SeCaVGenerator
                      , ProofExtractor
+                     , ProofLexer
+                     , ProofParser
+                     , IsabelleGenerator
   build-depends:       base ^>=4.13.0.0
                      , export
                      , parsec

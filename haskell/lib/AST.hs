@@ -21,6 +21,38 @@ data Formula
   | Neg Formula
   deriving (Show)
 
+data PRule
+  = PBasic
+  | PAlphaDis
+  | PAlphaImp
+  | PAlphaCon
+  | PBetaCon
+  | PBetaImp
+  | PBetaDis
+  | PGammaExi (Maybe Term)
+  | PGammaUni (Maybe Term)
+  | PDeltaUni
+  | PDeltaExi
+  | PNeg
+  | PExt
+  deriving (Show)
+
+data Application
+  = Application PRule [[Formula]]
+  deriving (Show)
+
+data Intertext
+  = Section (Maybe String)
+  | Text (Maybe String)
+  deriving (Show)
+
+data Proof
+  = Proof [Intertext] Formula [Application]
+  deriving (Show)
+
+data Program = Program [Proof] [Intertext]
+  deriving (Show)
+
 data NameState = NameState
   { preCount :: Integer
   , funCount :: Integer
