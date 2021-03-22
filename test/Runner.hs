@@ -19,9 +19,7 @@ import System.Directory
   )
 import System.Exit (ExitCode (ExitFailure, ExitSuccess))
 import System.Process (readProcessWithExitCode)
-
-testcases :: [(String, String)]
-testcases = [("imp", "Imp a a")]
+import Tests (testcases)
 
 tests :: IO [Test]
 tests = do

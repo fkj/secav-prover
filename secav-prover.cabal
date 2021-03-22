@@ -49,6 +49,7 @@ library interface
 test-suite test-prover
   type:                detailed-0.9
   test-module:         Runner
+  other-modules:       Tests
   build-depends:       base ^>=4.13.0.0
                      , Cabal >= 1.9.2
                      , process
