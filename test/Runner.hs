@@ -1,13 +1,12 @@
 module Runner (tests) where
 
-import AST (Program)
 import Distribution.TestSuite
   ( Progress (Finished),
     Result (Fail, Pass),
     Test (Test),
     TestInstance (TestInstance, name, options, run, setOption, tags),
   )
-import IsabelleGenerator (genProgram)
+import IsabelleGenerator (genFile)
 import Parser (parser)
 import ProofExtractor (extract)
 import ProofParser (parser)
@@ -68,15 +67,9 @@ performTest testDir f = do
       case proofParse of
         Left e -> pure $ Fail $ show e
         Right proofAst -> do
-          let isabelleProof = genTestFile proofAst
+          let isabelleProof = genFile "Test" proofAst
           writeFile (testDir <> "/Test.thy") isabelleProof
           (exit, _, error) <- readProcessWithExitCode "isabelle" ["build", "-D", testDir] []
           case exit of
             ExitFailure _ -> pure $ Fail error
             ExitSuccess -> pure Pass
-
-genTestFile :: Program -> String
-genTestFile p =
-  "theory Test imports SeCaV begin\n\n"
-    <> genProgram p
-    <> "\n\nend"

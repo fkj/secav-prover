@@ -264,3 +264,9 @@ genPreName n = do
                                , existingPres = Map.insert n (preCount s) (existingPres s)
                                })
       pure $ show (preCount s)
+
+genFile :: String -> Program -> String
+genFile name p =
+  "theory " <> name <> " imports SeCaV begin\n\n"
+    <> genProgram p
+    <> "\n\nend"
