@@ -34,6 +34,7 @@ languageDef = emptyDef
                     , "DeltaUni"
                     , "DeltaExi"
                     , "Ext"
+                    , "DoubleNeg"
                     ]
   , reservedOpNames = ["+", "-", "#"]
   , caseSensitive = True

@@ -135,7 +135,7 @@ ext = do
 
 neg :: SParser PRule
 neg = do
-  m_reserved "Neg"
+  m_reserved "DoubleNeg"
   pure PNeg
 
 rule :: SParser PRule
