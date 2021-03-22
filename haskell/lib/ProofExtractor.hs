@@ -28,12 +28,12 @@ extract names (Node (sequent, rule) (Abs_fset (Set [current, next]))) =
   "\n\n" <>
   extractRule names rule <>
   "\n" <>
-  extract' names (extractNextSequent next) current <>
+  extract' names [extractNextSequent next] current <>
   extract' names [] next
 extract _ _ =
   error "By the pricking of my thumbs, something wicked this way comes..."
 
-extract' :: NameState -> [Fm] -> Tree ([Fm], Rule) -> String
+extract' :: NameState -> [[Fm]] -> Tree ([Fm], Rule) -> String
 extract' names other (Node (sequent, rule) (Abs_fset (Set []))) =
   extractSequent' names sequent <>
   (if null other then "" else "\n+\n" <> extractOtherSequents names other) <>
@@ -53,7 +53,7 @@ extract' names other (Node (sequent, rule) (Abs_fset (Set [current, next]))) =
   "\n" <>
   extractRule names rule <>
   "\n" <>
-  extract' names (extractNextSequent next ++ other) current <>
+  extract' names (extractNextSequent next : other) current <>
   extract' names other next
 extract' _ _ _ =
   error "By the pricking of my thumbs, something wicked this way comes..."
@@ -61,10 +61,10 @@ extract' _ _ _ =
 extractNextSequent :: Tree ([Fm], Rule) -> [Fm]
 extractNextSequent (Node (sequent, _) _) = sequent
 
-extractOtherSequents :: NameState -> [Fm] -> String
+extractOtherSequents :: NameState -> [[Fm]] -> String
 extractOtherSequents _ [] = ""
-extractOtherSequents names [x] = "  " <> extractFormula names x
-extractOtherSequents names (x:xs) = "  " <> extractFormula names x <> "\n+\n" <> extractOtherSequents names xs
+extractOtherSequents names [x] = extractSequent' names x
+extractOtherSequents names (x:xs) = extractSequent' names x <> "\n+\n" <> extractOtherSequents names xs
 
 extractSequent :: NameState -> [Fm] -> String
 extractSequent _ [] = ""
