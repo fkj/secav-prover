@@ -154,17 +154,8 @@ instance fm :: countable
 text \<open>
 Encoding formulas using a product/tag for each connective does not work, since not all numbers
 correspond to a formula, e.g. 1597 does not.
-
-What can we do instead?
-Lots of nested sum encodings is one option:
-
-Left n => Pre
-Right (Left n) => Imp
-Right (Right (Left n)) => Dis
-Right (Right (Right (Left n))) => Con
-Right (Right (Right (Right (Left n)))) => Exi
-Right (Right (Right (Right (Right (Left n))))) => Uni
-Right (Right (Right (Right (Right (Right n))))) => Neg
+We use a number of sum encodings instead.
+This means that any number will hit one of the "sides" of each sum.
 \<close>
 
 fun formula_encode where
@@ -198,35 +189,15 @@ function formula_decode where
   )\<close>
   by auto
 termination
-  apply (relation "measure size", auto)
-  sorry
-
-(*
-fun formula_encode where
-\<open>formula_encode (Pre n ts) = sum_encode (Inl (prod_encode (n, list_encode (map term_encode ts))))\<close>
-| \<open>formula_encode (Imp f1 f2) = sum_encode (Inr (prod_encode (0, (prod_encode (formula_encode f1, formula_encode f2)))))\<close>
-| \<open>formula_encode (Dis f1 f2) = sum_encode (Inr (prod_encode (1, (prod_encode (formula_encode f1, formula_encode f2)))))\<close>
-| \<open>formula_encode (Con f1 f2) = sum_encode (Inr (prod_encode (2, (prod_encode (formula_encode f1, formula_encode f2)))))\<close>
-| \<open>formula_encode (Exi f) = sum_encode (Inr (prod_encode (3, formula_encode f)))\<close>
-| \<open>formula_encode (Uni f) = sum_encode (Inr (prod_encode (4, formula_encode f)))\<close>
-| \<open>formula_encode (Neg f) = sum_encode (Inr (prod_encode (5, formula_encode f)))\<close>
-
-function formula_decode where
-  \<open>formula_decode x = (case sum_decode x of
-    Inl y \<Rightarrow> (case prod_decode y of (n, ts) \<Rightarrow> Pre n (map term_decode (list_decode ts)))
-  | Inr y \<Rightarrow> (case prod_decode y of
-                (0, fs) \<Rightarrow> (case prod_decode fs of (f1, f2) \<Rightarrow> Imp (formula_decode f1) (formula_decode f2))
-              | (Suc 0, fs) \<Rightarrow> (case prod_decode fs of (f1, f2) \<Rightarrow> Dis (formula_decode f1) (formula_decode f2))
-              | (Suc (Suc 0), fs) \<Rightarrow> (case prod_decode fs of (f1, f2) \<Rightarrow> Con (formula_decode f1) (formula_decode f2))
-              | (Suc (Suc (Suc 0)), f) \<Rightarrow> Exi (formula_decode f)
-              | (Suc (Suc (Suc (Suc 0))), f) \<Rightarrow> Uni (formula_decode f)
-              | (Suc (Suc (Suc (Suc (Suc 0)))), f) \<Rightarrow> Neg (formula_decode f)
-))\<close>
-  by auto
-termination
-  by (relation "measure size", auto; metis le_less_trans le_prod_encode_1 le_prod_encode_2 prod_decode_inverse sum_decode_le)
-
-*)
+proof (relation "measure size"; simp+)
+  fix p b a n ts
+  assume a: \<open>sum_decode p = Inr b\<close>
+  assume b: \<open>sum_decode b = Inl a\<close>
+  assume c: \<open>(n,ts) = prod_decode a\<close>
+  show \<open>n < p\<close>
+    text \<open>This seems to be impossible to prove...\<close>
+    sorry
+  oops
 
 definition formulas: \<open>formulas \<equiv> smap (map formula_decode \<circ> list_decode) nats\<close>
 
@@ -234,7 +205,7 @@ lemma formulas_UNIV: "sset formulas = (UNIV :: fm list set)"
 proof (intro equalityI subsetI UNIV_I)
   fix f
   assume \<open>f \<in> (UNIV :: fm list set)\<close>
-  show \<open>f \<in> sset formulas\<close>
+  show \<open>f \<in> sset formulas\<close> unfolding formulas
     sorry
 qed
 
