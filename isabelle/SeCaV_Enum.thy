@@ -312,8 +312,8 @@ definition rules where
             sconst ExtRotate
            ] (sconst Basic)\<close>
 
-text \<open>We need to prove thatthe prover will try every possible rule application\<close>
-text \<open>This seems to actually be unprovable right now...\<close>
+text \<open>We need to prove that the prover will try every possible rule application\<close>
+text \<open>This is actually unprovable right now... (see above)\<close>
 lemma rules_UNIV: \<open>sset rules = (UNIV :: rule set)\<close>
   unfolding rules_def
   sorry
