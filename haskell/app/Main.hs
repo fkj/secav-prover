@@ -44,7 +44,7 @@ run (Arguments formula isabelle) =
               Just file ->
                 let parse = ProofParser.parser short in
                   case parse of
-                    Left e -> print $ show e
+                    Left e -> print e
                     Right ast ->
                       let isabelleProof = genFile (takeBaseName file) ast in
                         writeFile file isabelleProof
