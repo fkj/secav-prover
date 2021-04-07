@@ -135,7 +135,7 @@ ext = do
 
 neg :: SParser PRule
 neg = do
-  m_reserved "DoubleNeg"
+  m_reserved "NegNeg"
   pure PNeg
 
 rule :: SParser PRule
@@ -161,6 +161,7 @@ rule = fix allRules
 application :: SParser Application
 application = do
   r <- rule
+  m_reservedOp ":"
   l <- many formula `sepBy` m_reservedOp "+"
   pure $ Application r l
 

@@ -13,8 +13,8 @@ languageDef = emptyDef
   , nestedComments = False
   , identStart = letter
   , identLetter = alphaNum <|> oneOf ['_', '\'']
-  , opStart = oneOf ['+', '-', '#']
-  , opLetter = oneOf ['+', '-', '#']
+  , opStart = oneOf ['+', '-', '#', ':']
+  , opLetter = oneOf ['+', '-', '#', ':']
   , reservedNames = [ "Var"
                     , "Imp"
                     , "Dis"
@@ -33,10 +33,10 @@ languageDef = emptyDef
                     , "GammaUni"
                     , "DeltaUni"
                     , "DeltaExi"
+                    , "NegNeg"
                     , "Ext"
-                    , "DoubleNeg"
                     ]
-  , reservedOpNames = ["+", "-", "#"]
+  , reservedOpNames = ["+", "-", "#", ":"]
   , caseSensitive = True
   }
 
