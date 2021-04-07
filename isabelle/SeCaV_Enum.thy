@@ -106,6 +106,16 @@ numbers to the stream of lists of terms
 \<close>
 definition single_terms: \<open>single_terms \<equiv> smap term_decode nats\<close>
 
+lemma UNIV_single_terms: \<open>sset single_terms = (UNIV :: tm set)\<close>
+proof (intro equalityI subsetI UNIV_I)
+  fix t
+  assume t: \<open>t \<in> (UNIV :: tm set)\<close>
+  show \<open>t \<in> sset single_terms\<close>
+    unfolding single_terms
+    using bij_term_decode
+    sorry
+qed
+
 definition terms: \<open>terms \<equiv> smap (map term_decode \<circ> list_decode) nats\<close>
 
 text \<open>We now need to prove that this stream actually contains every possible list of terms\<close>
