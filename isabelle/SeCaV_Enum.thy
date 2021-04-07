@@ -318,14 +318,22 @@ lemma rules_UNIV: \<open>sset rules = (UNIV :: rule set)\<close>
   unfolding rules_def
   sorry
 
-
 interpretation RuleSystem \<open>\<lambda>r s ss. eff' r s = Some ss\<close> rules UNIV
+  unfolding rules_def RuleSystem_def
   sorry
 
 interpretation PersistentRuleSystem \<open>\<lambda> r s ss. eff' r s = Some ss\<close> rules UNIV
+  unfolding rules_def PersistentRuleSystem_def RuleSystem_def PersistentRuleSystem_axioms_def
   sorry
 
 definition \<open>rho \<equiv> i.fenum rules\<close>
 definition \<open>secavTree \<equiv> i.mkTree eff' rho\<close>
+
+theorem completeness:
+  assumes \<open>s \<in> (UNIV :: fm list set)\<close>
+  shows
+    \<open>(\<exists> t. fst (root t) = s \<and> wf t \<and> tfinite t)\<or>
+      (\<exists> steps. fst (shd steps) = s \<and> epath steps \<and> Saturated steps)\<close>
+  by (simp add: epath_completeness_Saturated)
 
 end
