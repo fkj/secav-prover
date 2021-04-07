@@ -146,69 +146,6 @@ prove UNIV list_decode
 
 \<close>
 
-section \<open>Formulas\<close>
-
-instance fm :: countable
-  by countable_datatype
-
-text \<open>
-Encoding formulas using a product/tag for each connective does not work, since not all numbers
-correspond to a formula, e.g. 1597 does not.
-We use a number of sum encodings instead.
-This means that any number will hit one of the "sides" of each sum.
-\<close>
-
-fun formula_encode where
-\<open>formula_encode (Pre n ts) = sum_encode (Inl (prod_encode (n, list_encode (map term_encode ts))))\<close>
-| \<open>formula_encode (Imp f1 f2) = sum_encode (Inr (sum_encode (Inl (prod_encode (formula_encode f1, formula_encode f2)))))\<close>
-| \<open>formula_encode (Dis f1 f2) = sum_encode (Inr (sum_encode (Inr (sum_encode (Inl (prod_encode (formula_encode f1, formula_encode f2)))))))\<close>
-| \<open>formula_encode (Con f1 f2) = sum_encode (Inr (sum_encode (Inr (sum_encode (Inr (sum_encode (Inl (prod_encode (formula_encode f1, formula_encode f2)))))))))\<close>
-| \<open>formula_encode (Exi f) = sum_encode (Inr (sum_encode (Inr (sum_encode (Inr (sum_encode (Inr (sum_encode (Inl (formula_encode f))))))))))\<close>
-| \<open>formula_encode (Uni f) = sum_encode (Inr (sum_encode (Inr (sum_encode (Inr (sum_encode (Inr (sum_encode (Inr (sum_encode (Inl (formula_encode f))))))))))))\<close>
-| \<open>formula_encode (Neg f) = sum_encode (Inr (sum_encode (Inr (sum_encode (Inr (sum_encode (Inr (sum_encode (Inr (sum_encode (Inr (sum_encode (Inl (formula_encode f))))))))))))))\<close>
-
-function formula_decode where
-  \<open>formula_decode s1 = (case sum_decode s1 of
-    Inl p \<Rightarrow> (case prod_decode p of (n, ts) \<Rightarrow> Pre n (map term_decode (list_decode ts)))
-  | Inr s2 \<Rightarrow> (case sum_decode s2 of
-                Inl fs \<Rightarrow> (case prod_decode fs of (f1, f2) \<Rightarrow> Imp (formula_decode f1) (formula_decode f2))
-              | Inr s3 \<Rightarrow> (case sum_decode s3 of
-                            Inl fs \<Rightarrow> (case prod_decode fs of (f1, f2) \<Rightarrow> Dis (formula_decode f1) (formula_decode f2))
-                          | Inr s4 \<Rightarrow> (case sum_decode s4 of
-                                        Inl fs \<Rightarrow> (case prod_decode fs of (f1, f2) \<Rightarrow> Con (formula_decode f1) (formula_decode f2))
-                                      | Inr s5 \<Rightarrow> (case sum_decode s5 of
-                                                    Inl f \<Rightarrow> Exi (formula_decode f)
-                                                  | Inr s6 \<Rightarrow> (case sum_decode s6 of
-                                                                Inl f \<Rightarrow> Uni (formula_decode f)
-                                                              | Inr f \<Rightarrow> Neg (formula_decode f)
-                                                              )
-                                                  )
-                                      )
-                          )
-              )
-  )\<close>
-  by auto
-termination
-proof (relation "measure size"; simp+)
-  fix p b a n ts
-  assume a: \<open>sum_decode p = Inr b\<close>
-  assume b: \<open>sum_decode b = Inl a\<close>
-  assume c: \<open>(n,ts) = prod_decode a\<close>
-  show \<open>n < p\<close>
-    text \<open>This seems to be impossible to prove...\<close>
-    sorry
-  oops
-
-definition formulas: \<open>formulas \<equiv> smap (map formula_decode \<circ> list_decode) nats\<close>
-
-lemma formulas_UNIV: "sset formulas = (UNIV :: fm list set)"
-proof (intro equalityI subsetI UNIV_I)
-  fix f
-  assume \<open>f \<in> (UNIV :: fm list set)\<close>
-  show \<open>f \<in> sset formulas\<close> unfolding formulas
-    sorry
-qed
-
 section \<open>Rules\<close>
 
 text \<open>A proof state in SeCaV is a list of formulas (a sequent)\<close>
