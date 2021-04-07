@@ -52,7 +52,13 @@ proof (induct ts rule: list_decode.induct)
 next
   case (2 n)
   then show ?case
-    sorry
+  proof -
+    assume l1:  \<open>\<And>x y . (x, y) = prod_decode n \<Longrightarrow> l \<in> set (list_decode y) \<Longrightarrow> l \<le> y\<close>
+    assume l2: \<open>l \<in> set (list_decode (Suc n))\<close>
+    note \<open>\<And>x . (x, Suc n) = prod_decode n \<Longrightarrow> l \<in> set (list_decode (Suc n)) \<Longrightarrow> l \<le> Suc n\<close>
+    show \<open>l \<le> Suc n\<close>
+      sorry
+  qed
 qed
 
 termination
@@ -67,19 +73,32 @@ proof (relation "measure size", auto)
 qed
 
 text \<open>
-This decoding is the inverse of the encoding, which means that the decoding function is injective
+This decoding is the inverse of the encoding, and vice versa
 \<close>
 
 lemma term_encode_inverse [simp]: \<open>term_decode (term_encode t) = t\<close>
-  apply (induct t rule: term_encode.induct)
-   apply simp
-  sorry
+proof (induct t rule: term_encode.induct)
+  case (1 n)
+  then show ?case
+    by simp
+next
+  case (2 n ts)
+  then show ?case
+    sorry
+qed
 
 lemma term_decode_inverse [simp]: \<open>term_encode (term_decode x) = x\<close>
-  sorry
+proof (induct x rule: term_decode.induct)
+  case (1 m)
+  then show ?case
+    sorry
+qed
 
-lemma inj_term_decode: \<open>inj_on term_decode A\<close>
-  by (rule inj_on_inverseI) (rule term_decode_inverse)
+text \<open>
+  Which gives rise to a bijection between nat and tm
+\<close>
+lemma bij_term_decode: \<open>bij term_decode\<close>
+  by (metis bijI' term_decode_inverse term_encode_inverse)
 
 text \<open>
 We then define a stream of all possible terms as the mapping of the stream of all natural
@@ -95,6 +114,11 @@ lemma UNIV_term_decode: \<open>t \<in> (UNIV :: tm set) \<Longrightarrow> \<exis
 
 lemma UNIV_list_decode: \<open>l \<in> (UNIV :: nat list set) \<Longrightarrow> \<exists>x . list_decode x = l\<close>
   using list_encode_inverse by blast
+
+lemma UNIV_list_term_decode: \<open>l \<in> (UNIV :: tm list set) \<Longrightarrow> \<exists>x . (map term_decode \<circ> list_decode) x = l\<close>
+  sorry
+
+lemma countable_terms: \<open>countable (sset terms)\<close> ..
 
 lemma UNIV_terms: "sset terms = (UNIV :: tm list set)"
 proof (intro equalityI subsetI UNIV_I)
