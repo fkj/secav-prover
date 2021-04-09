@@ -2,6 +2,7 @@ theory SeCaV_Enum
   imports SeCaV
           "HOL-Library.Stream"
           Abstract_Completeness
+          Finite_Proof_Soundness
           "HOL-Library.Countable"
           "HOL-Library.Code_Lazy"
 begin
@@ -255,6 +256,8 @@ lemma rules_UNIV: \<open>sset rules = (UNIV :: rule set)\<close>
   unfolding rules_def
   sorry
 
+section \<open>Completeness\<close>
+
 interpretation RuleSystem \<open>\<lambda>r s ss. eff' r s = Some ss\<close> rules UNIV
   unfolding rules_def RuleSystem_def
   sorry
@@ -272,5 +275,23 @@ theorem completeness:
     \<open>(\<exists> t. fst (root t) = s \<and> wf t \<and> tfinite t)\<or>
       (\<exists> steps. fst (shd steps) = s \<and> epath steps \<and> Saturated steps)\<close>
   by (simp add: epath_completeness_Saturated)
+
+(*
+section \<open>Soundness\<close>
+
+fun ssemantics :: \<open>(nat \<Rightarrow> 'a) \<times> (nat \<Rightarrow> 'a list \<Rightarrow> 'a) \<times> (nat \<Rightarrow> 'a list \<Rightarrow> bool) \<Rightarrow> sequent \<Rightarrow> bool\<close>
+  where
+  \<open>ssemantics (e,f,g) [] = False\<close>
+| \<open>ssemantics (e,f,g) (p # z) = semantics e f g p \<or> ssemantics (e,f,g) z\<close>
+
+interpretation Soundness \<open>\<lambda>r s ss. eff' r s = Some ss\<close> rules UNIV ssemantics
+  unfolding rules_def Soundness_def RuleSystem_def
+  sorry
+
+theorem soundness:
+  assumes f: "tfinite t" and w: "wf t"
+  shows "ssat (fst (root t))"
+
+*)
 
 end
