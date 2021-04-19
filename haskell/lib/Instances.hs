@@ -5,7 +5,7 @@ module Instances where
 
 import Arith(Nat(..))
 import SeCaV(Tm(..), Fm(..))
-import SeCaV_Enum(Rule(..))
+import SeCaV_Enum(Mrule(..))
 import Abstract_Completeness(Tree(..))
 import Set(Set(..))
 import FSet(Fset(..))
@@ -26,21 +26,21 @@ instance Show Fm where
   show (Uni f) = "∀(" <> show f <> ")"
   show (Neg f) = "¬(" <> show f <> ")"
 
-deriving instance Show Rule
+deriving instance Show Mrule
 
 instance Show (Set [Fm]) where
   show (Set s) = show s
   show (Coset s) = show s
 
-instance Show (Set (Tree ([Fm], Rule))) where
+instance Show (Set (Tree ([Fm], Mrule))) where
   show (Set s) = show s
   show (Coset s) = show s
 
 instance Show (Fset [Fm]) where
   show (Abs_fset s) = show s
 
-instance Show (Fset (Tree ([Fm], Rule))) where
+instance Show (Fset (Tree ([Fm], Mrule))) where
   show (Abs_fset s) = show s
 
-instance Show (Tree ([Fm], Rule)) where
+instance Show (Tree ([Fm], Mrule)) where
   show (Node (fs, r) t) = show fs <> " " <> show r <> "\n" <> show t

@@ -212,25 +212,29 @@ fun eff' :: \<open>rule \<Rightarrow> sequent \<Rightarrow> sequent fset option\
 | \<open>eff' ExtRotate _ = None\<close>
 
 text \<open>It should be enough to instantiate gamma rules with existing terms, so we need to extract those\<close>
-fun subterm_tm :: \<open>tm \<Rightarrow> tm set\<close> where
-  \<open>subterm_tm (Fun n ts) = insert (Fun n ts) (\<Union> (set (map subterm_tm ts)))\<close>
-| \<open>subterm_tm (Var n) = {Var n}\<close>
+primrec flatten :: \<open>'a list list \<Rightarrow> 'a list\<close> where
+  \<open>flatten [] = []\<close>
+| \<open>flatten (l # ls) = l @ flatten ls\<close>
 
-fun subterm_fm :: \<open>fm \<Rightarrow> tm set\<close> where
-  \<open>subterm_fm (Pre _ ts) = \<Union> (set (map subterm_tm ts))\<close>
-| \<open>subterm_fm (Imp f1 f2) = subterm_fm f1 \<union> subterm_fm f2\<close>
-| \<open>subterm_fm (Dis f1 f2) = subterm_fm f1 \<union> subterm_fm f2\<close>
-| \<open>subterm_fm (Con f1 f2) = subterm_fm f1 \<union> subterm_fm f2\<close>
+fun subterm_tm :: \<open>tm \<Rightarrow> tm list\<close> where
+  \<open>subterm_tm (Fun n ts) = (Fun n ts) # (remdups (flatten (map subterm_tm ts)))\<close>
+| \<open>subterm_tm (Var n) = [Var n]\<close>
+
+fun subterm_fm :: \<open>fm \<Rightarrow> tm list\<close> where
+  \<open>subterm_fm (Pre _ ts) = remdups (flatten (map subterm_tm ts))\<close>
+| \<open>subterm_fm (Imp f1 f2) = remdups (subterm_fm f1 @ subterm_fm f2)\<close>
+| \<open>subterm_fm (Dis f1 f2) = remdups (subterm_fm f1 @ subterm_fm f2)\<close>
+| \<open>subterm_fm (Con f1 f2) = remdups (subterm_fm f1 @ subterm_fm f2)\<close>
 | \<open>subterm_fm (Exi f) = subterm_fm f\<close>
 | \<open>subterm_fm (Uni f) = subterm_fm f\<close>
 | \<open>subterm_fm (Neg f) = subterm_fm f\<close>
 
-fun subterms :: \<open>sequent \<Rightarrow> tm set\<close> where
-\<open>subterms s = \<Union> (set (map subterm_fm s))\<close>
+fun subterms :: \<open>sequent \<Rightarrow> tm list\<close> where
+\<open>subterms s = remdups (flatten (map subterm_fm s))\<close>
 
 text \<open>mkGamma maps a (Gamma) rule over all possible terms\<close>
 abbreviation \<open>mkGamma f \<equiv> smap f single_terms\<close>
-
+(*
 text \<open>
 We will now define a stream containing the rules that the prover
 will attempt to apply.
@@ -249,25 +253,261 @@ definition rules where
             sconst NegNeg,
             sconst ExtRotate
            ] (sconst Basic)\<close>
+*)
+
+(*
+
+Algorithm 7.40 adapted for SeCaV:
+
+A proof tree is a tree where each node is labeled by a sequent consisting of a list of formulas.
+
+Initially, the proof tree consists of a single node, the root, labeled with the formula we wish to prove.
+
+The proof tree is built by repeatedly selecting the left-most open branch of the tree, labeled with
+the list of formulas \<Gamma>, and applying the first applicable rule in the following list:
+
+* If \<Gamma> contains a complementary pair, use the Basic rule to close the branch
+* If \<Gamma> is not a set of literals, choose the first formula A in \<Gamma>
+  - If A is an \<alpha>-formula, create a new node l' on the branch and label it with
+         (\<Gamma> - A) \<union> {\<alpha>\<^sub>1, \<alpha>\<^sub>2}
+    (we treat the Neg rule as an \<alpha>-rule with no \<alpha>\<^sub>2)
+
+  - If A is a \<beta>-formula, create two new nodes l' and l'' on the branch and label them with
+     \<Gamma>' = (\<Gamma> - A) \<union> {\<beta>\<^sub>1}
+    \<Gamma>'' = (\<Gamma> - A) \<union> {\<beta>\<^sub>2}
+
+  - If A is a \<delta>-formula, create a new node l' on the branch and label it with
+         \<Gamma>' = (\<Gamma> - A) \<union> {sub 0 a' A}
+    where a' is some constant that does not appear in \<Gamma> 
+
+  - Let {\<gamma>\<^sub>1, ..., \<gamma>\<^sub>m} \<in> \<Gamma> be all of the \<gamma>-formulas in \<Gamma>.
+    Let {c\<^sub>1, ..., c\<^sub>k} be all of the constants appearing in \<Gamma>.
+    Create a new node l' on the branch and label it with
+         \<Gamma>' = \<Gamma> \<union> {\<Union>\<^sub>i\<^sub>=\<^sub>1\<^sup>m \<Union>\<^sub>j\<^sub>=\<^sub>1\<^sup>k sub 0 c\<^sub>j \<gamma>\<^sub>i}
+    However, if \<Gamma> consists only of literals and \<gamma>-formulas and if \<Gamma>' as constructed would be the
+    same as \<Gamma>, do not create node l', and instead mark the branch as open.
+
+Using meta-rules:
+
+- Basic:
+  - Applies Basic, ExtRotate until we have applied Basic to every formula in the sequent
+  - After this we know that no Basic rules can be applied to any formula
+
+- ABD:
+  - For each formula in the sequent:
+     - While any Alpha, Beta or Delta rule can be applied:
+        - Tries to apply an Alpha rule - if this succeeds, it also applies a MBasic rule
+        - Tries to apply a Beta rule - if this succeeds, it also applies a MBasic rule
+        - Tries to apply a Delta rule - if this succeeds, it also applies a MBasic rule
+  - After this we know that no Basic, Alpha, Beta or Delta rules can be applied to any formula
+
+- Gamma:
+  - For each formula in the sequent:
+     - For each term in the sequent:
+        - Tries to apply a Gamma rule instantiated with the current term
+
+Then the rule stream goes: Basic, ABD, Gamma, \<dots>
+
+*)
+
+datatype mrule = MBasic | MABD | MGamma
+
+text \<open>The effect of applying the Basic rule once\<close>
+text \<open>We use option a bit weirdly here, since None means success while Some means failure\<close>
+fun effBasic :: \<open>sequent \<Rightarrow> sequent option\<close> where
+  \<open>effBasic (p # z) = (if Neg p \<in> set z then None else Some (p # z))\<close>
+| \<open>effBasic [] = Some []\<close>
+
+text \<open>The effect of applying the Ext rule to rotate the first formula to the end, with no restrictions on use\<close>
+fun effRotate :: \<open>sequent \<Rightarrow> sequent\<close> where
+  \<open>effRotate (p # z) = z @ [p]\<close>
+| \<open>effRotate [] = []\<close>
+
+text \<open>The effect of applying a single step of the MBasic rule\<close>
+text \<open>Note that returning None means success, i.e. the sequent is proven\<close>
+fun effMBasic :: \<open>sequent \<Rightarrow> sequent option\<close> where
+  \<open>effMBasic s = (case effBasic s of
+                    None \<Rightarrow> None
+                  | Some p \<Rightarrow> Some (effRotate p))\<close>
+
+text \<open>Applying a rule a number of times, stopping if we encounter a None, i.e. a success\<close>
+fun iterate :: \<open>nat \<Rightarrow> (sequent \<Rightarrow> sequent option) \<Rightarrow> sequent \<Rightarrow> sequent option\<close> where
+  \<open>iterate 0 _ s = Some s\<close>
+| \<open>iterate (Suc n) f s = (case f s of
+                            None \<Rightarrow> None
+                          | Some p \<Rightarrow> iterate n f p)\<close>
+
+text \<open>The effect of applying the alpha, beta, and gamma rules once\<close>
+text \<open>Here, Some means success and None means failure to apply the rule\<close>
+fun effAlphaDis :: \<open>sequent \<Rightarrow> sequent option\<close> where
+  \<open>effAlphaDis (Dis p q # z) = Some (p # q # z)\<close>
+| \<open>effAlphaDis _ = None\<close>
+
+fun effAlphaImp :: \<open>sequent \<Rightarrow> sequent option\<close> where
+  \<open>effAlphaImp (Imp p q # z) = Some (Neg p # q # z)\<close>
+| \<open>effAlphaImp _ = None\<close>
+
+fun effAlphaCon :: \<open>sequent \<Rightarrow> sequent option\<close> where
+  \<open>effAlphaCon (Neg (Con p q) # z) = Some (Neg p # Neg q # z)\<close>
+| \<open>effAlphaCon _ = None\<close>
+
+fun effNegNeg :: \<open>sequent \<Rightarrow> sequent option\<close> where
+  \<open>effNegNeg (Neg (Neg p) # z) = Some (p # z)\<close>
+| \<open>effNegNeg _ = None\<close>
+
+fun effBetaCon :: \<open>sequent \<Rightarrow> (sequent \<times> sequent) option\<close> where
+  \<open>effBetaCon (Con p q # z) = Some (p # z, q # z)\<close>
+| \<open>effBetaCon _ = None\<close>
+
+fun effBetaImp :: \<open>sequent \<Rightarrow> (sequent \<times> sequent) option\<close> where
+  \<open>effBetaImp (Neg (Imp p q) # z) = Some (p # z, Neg q # z)\<close>
+| \<open>effBetaImp _ = None\<close>
+
+fun effBetaDis :: \<open>sequent \<Rightarrow> (sequent \<times> sequent) option\<close> where
+  \<open>effBetaDis (Neg (Dis p q) # z) = Some (Neg p # z, Neg q # z)\<close>
+| \<open>effBetaDis _ = None\<close>
+
+fun effDeltaUni :: \<open>sequent \<Rightarrow> sequent option\<close> where
+  \<open>effDeltaUni (Uni p # z) = Some (sub 0 (Fun (generate_new p z) []) p # z)\<close>
+| \<open>effDeltaUni _ = None\<close>
+
+fun effDeltaExi :: \<open>sequent \<Rightarrow> sequent option\<close> where
+  \<open>effDeltaExi (Neg (Exi p) # z) = Some (Neg (sub 0 (Fun (generate_new p z) []) p) # z)\<close>
+| \<open>effDeltaExi _ = None\<close>
+
+text \<open>A successful rule application must be followed by a closability check via MBasic\<close>
+fun effPlusBasic :: \<open>(sequent \<Rightarrow> sequent option) \<Rightarrow> sequent \<Rightarrow> sequent option\<close> where
+  \<open>effPlusBasic f s = (case f s of
+                          None \<Rightarrow> Some s
+                        | Some p \<Rightarrow> iterate (length p) effMBasic p)\<close>
+
+fun effPlusBasicB :: \<open>(sequent \<Rightarrow> (sequent \<times> sequent) option) \<Rightarrow> sequent \<Rightarrow> (sequent option \<times> sequent option)\<close> where
+  \<open>effPlusBasicB f s = (case f s of
+                          None \<Rightarrow> (Some s, None)
+                        | Some (p, r) \<Rightarrow> (iterate (length p) effMBasic p, Some r))\<close>
+
+text \<open>We need to be able to detect when no further ABD-rules can be applied\<close>
+fun abdDone :: \<open>sequent \<Rightarrow> bool\<close> where
+  \<open>abdDone (Dis _ _ # _) = False\<close>
+| \<open>abdDone (Imp _ _ # _) = False\<close>
+| \<open>abdDone (Neg (Con _ _) # _) = False\<close>
+| \<open>abdDone (Con _ _ # _) = False\<close>
+| \<open>abdDone (Neg (Imp _ _) # _) = False\<close>
+| \<open>abdDone (Neg (Dis _ _) # _) = False\<close>
+| \<open>abdDone (Neg (Neg _) # _) = False\<close>
+| \<open>abdDone (Uni _ # _) = False\<close>
+| \<open>abdDone (Neg (Exi _) # _) = False\<close>
+| \<open>abdDone (_ # z) = abdDone z\<close>
+| \<open>abdDone [] = True\<close>
+
+text \<open>Attempting to apply an Alpha rule (or Neg). Here, Some means partial success or failure, and None means closing of the branch\<close>
+fun effAlpha :: \<open>sequent \<Rightarrow> sequent option\<close> where
+  \<open>effAlpha s = (case effPlusBasic effAlphaDis s of
+                  None \<Rightarrow> None
+                | Some p \<Rightarrow> (case effPlusBasic effAlphaImp p of
+                              None \<Rightarrow> None
+                            | Some q \<Rightarrow> (case effPlusBasic effAlphaCon q of
+                                          None \<Rightarrow> None
+                                        | Some r \<Rightarrow> effPlusBasic effNegNeg r)))\<close>
+
+text \<open>
+  Attempting to apply a Beta rule.
+  This may generate additional proof branches, which we collect in a finite set for later use.
+  Again, None means the current branch has closed, but we still need to pass along the other branches.
+\<close>
+
+fun mergeBranch :: \<open>(sequent option \<times> sequent option) \<Rightarrow> sequent fset \<Rightarrow> sequent option \<times> sequent fset\<close> where
+  \<open>mergeBranch s prev = (case s of
+                      (None, None) \<Rightarrow> (None, prev)
+                    | (None, Some r) \<Rightarrow> (None, prev |\<union>| {| r |})
+                    | (Some p, None) \<Rightarrow> (Some p, prev)
+                    | (Some p, Some r) \<Rightarrow> (Some p, prev |\<union>| {| r |}))\<close>
+
+fun effBeta :: \<open>sequent \<Rightarrow> sequent option \<times> sequent fset\<close> where
+  \<open>effBeta s = (case mergeBranch (effPlusBasicB effBetaCon s) {||} of
+                  (None, rest) \<Rightarrow> (None, rest)
+                | (Some p, rest) \<Rightarrow> (case mergeBranch (effPlusBasicB effBetaImp p) rest of
+                                      (None, rest2) \<Rightarrow> (None, rest2)
+                                    | (Some q, rest2) \<Rightarrow> mergeBranch (effPlusBasicB effBetaDis q) rest2))\<close>
+
+text \<open>Attempting to apply a Delta rule. Again, None means the branch has been closed.\<close>
+fun effDelta :: \<open>sequent \<Rightarrow> sequent option\<close> where
+  \<open>effDelta s = (case effPlusBasic effDeltaUni s of
+                  None \<Rightarrow> None
+                | Some p \<Rightarrow> effPlusBasic effDeltaExi p)\<close>
+
+text \<open>Applying an ABD-rule until we obtain a success or no more rules can be applied\<close>
+function iterateABD :: \<open>sequent \<Rightarrow> sequent fset \<Rightarrow> sequent option \<times> sequent fset\<close> where
+  \<open>iterateABD s prev = (if abdDone s then (Some s, prev) else
+                               (case effAlpha s of
+                                  None \<Rightarrow> (None, prev)
+                                | Some p \<Rightarrow> (case effDelta p of
+                                              None \<Rightarrow> (None, prev)
+                                            | Some q \<Rightarrow> (case effBeta q of
+                                                          (None, rest) \<Rightarrow> (None, prev |\<union>| rest)
+                                                        | (Some r, rest) \<Rightarrow> iterateABD (effRotate r) (prev |\<union>| rest)))))\<close>
+  by (meson surj_pair, simp)
+termination
+  apply (relation "measure size", auto)
+  sorry
+
+fun effGammaExi :: \<open>tm \<Rightarrow> fm \<Rightarrow> fm option\<close> where
+  \<open>effGammaExi t (Exi p) = (if t \<noteq> Var 0 then Some (sub 0 t p) else None)\<close>
+| \<open>effGammaExi t _ = None\<close>
+
+fun effGammaUni :: \<open>tm \<Rightarrow> fm \<Rightarrow> fm option\<close> where
+  \<open>effGammaUni t (Neg (Uni p)) = (if t \<noteq> Var 0 then Some (Neg (sub 0 t p)) else None)\<close>
+| \<open>effGammaUni t _ = None\<close>
+
+text \<open>This function returns a list of all substitutions that can be performed on f\<close>
+text \<open>This list does not include the original formula f\<close>
+fun subAllTerms :: \<open>fm \<Rightarrow> tm list \<Rightarrow> fm list\<close> where
+  \<open>subAllTerms f (t # ts) = (case effGammaExi t f of
+                              None \<Rightarrow> (case effGammaUni t f of
+                                        None \<Rightarrow> subAllTerms f ts
+                                      | Some g \<Rightarrow> g # (subAllTerms f ts))
+                            | Some g \<Rightarrow> (case effGammaUni t f of
+                                        None \<Rightarrow> g # (subAllTerms f ts)
+                                      | Some h \<Rightarrow> g # h # (subAllTerms f ts)))\<close>
+| \<open>subAllTerms _ [] = []\<close>
+
+fun effGamma :: \<open>sequent \<Rightarrow> tm list \<Rightarrow> sequent\<close> where
+  \<open>effGamma [] _ = []\<close>
+| \<open>effGamma (p # z) t = p # (effGamma z t) @ (subAllTerms p t)\<close>
+
+text \<open>Note that from now on, None means failure to apply the rule, while Some means success\<close>
+text \<open>This is opposite to the usage above, which may be a bit confusing...\<close>
+text \<open>Both usages of option make sense in their contexts in the sense that computation stops when we encounter a None\<close>
+fun meff :: \<open>mrule \<Rightarrow> sequent \<Rightarrow> sequent fset option\<close> where
+  \<open>meff MBasic s = (case iterate (length s) effMBasic s of
+                    None \<Rightarrow> Some {||}
+                  | Some p \<Rightarrow> None)\<close>
+| \<open>meff MABD s = (case iterateABD s {||} of
+                    (None, r) \<Rightarrow> Some r
+                  | (Some p, r) \<Rightarrow> Some ({| p |} |\<union>| r))\<close>
+| \<open>meff MGamma s = Some {| effGamma s (subterms s) |}\<close>
+
+definition rules where
+  \<open>rules = cycle [MBasic, MABD, MGamma]\<close>
 
 text \<open>We need to prove that the prover will try every possible rule application\<close>
 text \<open>This is actually unprovable right now... (see above)\<close>
-lemma rules_UNIV: \<open>sset rules = (UNIV :: rule set)\<close>
+lemma mrules_UNIV: \<open>sset mrules = (UNIV :: mrule set)\<close>
   unfolding rules_def
   sorry
 
 section \<open>Completeness\<close>
 
-interpretation RuleSystem \<open>\<lambda>r s ss. eff' r s = Some ss\<close> rules UNIV
+interpretation RuleSystem \<open>\<lambda>r s ss. meff r s = Some ss\<close> rules UNIV
   unfolding rules_def RuleSystem_def
   sorry
 
-interpretation PersistentRuleSystem \<open>\<lambda> r s ss. eff' r s = Some ss\<close> rules UNIV
+interpretation PersistentRuleSystem \<open>\<lambda> r s ss. meff r s = Some ss\<close> rules UNIV
   unfolding rules_def PersistentRuleSystem_def RuleSystem_def PersistentRuleSystem_axioms_def
   sorry
 
 definition \<open>rho \<equiv> i.fenum rules\<close>
-definition \<open>secavTree \<equiv> i.mkTree eff' rho\<close>
+definition \<open>secavTree \<equiv> i.mkTree meff rho\<close>
 
 theorem completeness:
   assumes \<open>s \<in> (UNIV :: fm list set)\<close>

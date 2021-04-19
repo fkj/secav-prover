@@ -18,8 +18,7 @@ library export
                     , Set
   other-modules:      Lazy
                     , Product_Type
-                    , Nat_Bijection
-                    , Sum_Type
+                    , Option
                     , Orderings
                     , List
                     , Stream
