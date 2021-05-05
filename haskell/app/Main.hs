@@ -18,7 +18,7 @@ data Arguments = Arguments
 arguments :: Parser Arguments
 arguments = Arguments
             <$> argument str (metavar "FORMULA" <> help "Formula to attempt to prove")
-            <*> (optional $ strOption
+            <*> optional (strOption
                   $ long "isabelle"
                     <> short 'i'
                     <> metavar "FILENAME"
@@ -38,8 +38,8 @@ run (Arguments formula isabelle) =
     Left error -> print error
     Right sequent ->
       let (formulas, names) = genInit sequent in
-        let proof = secavTree formulas in
-          let short = extract names proof in
+        let proof = secavProver formulas in
+          let short = extract names (gammaSurgery proof) in
             case isabelle of
               Just file ->
                 let parse = ProofParser.parser short in

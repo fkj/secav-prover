@@ -8,10 +8,10 @@ import Distribution.TestSuite
   )
 import IsabelleGenerator (genFile)
 import Parser (parser)
-import ProofExtractor (extract)
+import ProofExtractor (extract, gammaSurgery)
 import ProofParser (parser)
 import SeCaVGenerator (genInit)
-import SeCaV_Enum (secavTree)
+import SeCaV_Enum (secavProver)
 import System.Directory
   ( copyFile,
     createDirectoryIfMissing,
@@ -59,8 +59,8 @@ performTest testDir f = do
     Left e -> pure $ Fail $ show e
     Right fm -> do
       let (formula, names) = genInit fm
-      let proofTree = secavTree formula
-      let shortProof = extract names proofTree
+      let proofTree = secavProver formula
+      let shortProof = extract names (gammaSurgery proofTree)
       let proofParse = ProofParser.parser shortProof
       case proofParse of
         Left e -> pure $ Fail $ show e

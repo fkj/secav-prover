@@ -24,6 +24,6 @@ code_printing code_module "MaybeExt" \<rightharpoonup> (Haskell)
   \<open>module MaybeExt(fromJust, isNothing) where
      import Data.Maybe(fromJust, isNothing);\<close>
 
-export_code open secavTree in Haskell
+export_code open secavProver in Haskell
 
 end
