@@ -1,5 +1,5 @@
 theory Export
-  imports SeCaV_Enum
+  imports Prover
 begin
 
 code_lazy_type stream

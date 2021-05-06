@@ -4,9 +4,11 @@ session SeCaV_Coinductive (FKJ) = "HOL-Library" +
   options [timeout = 100000]
   sessions
     Collections
-  theories
     Abstract_Completeness
-    Finite_Proof_Soundness
+    Abstract_Soundness
+  theories
+    Abstract_Completeness.Abstract_Completeness
+    Abstract_Soundness.Finite_Proof_Soundness
     SeCaV
-    SeCaV_Enum
+    Prover
     Export

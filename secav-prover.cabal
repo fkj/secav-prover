@@ -10,7 +10,7 @@ category:            Math
 description:         A proof search implementation for the SeCaV system of first-order logic.
 
 library export
-  exposed-modules:    SeCaV_Enum
+  exposed-modules:    Prover
                     , Abstract_Completeness
                     , FSet
                     , Arith
@@ -44,6 +44,7 @@ library interface
                      , mtl
   hs-source-dirs:      haskell/lib
   default-language:    Haskell2010
+  ghc-options:         -Wall -Werror
 
 test-suite test-prover
   type:                detailed-0.9
@@ -68,3 +69,4 @@ executable secav-prover
                      , optparse-applicative
   hs-source-dirs:      haskell/app
   default-language:    Haskell2010
+  ghc-options:         -Wall -Werror

@@ -1,8 +1,8 @@
-theory SeCaV_Enum
+theory Prover
   imports SeCaV
           "HOL-Library.Stream"
-          Abstract_Completeness
-          Finite_Proof_Soundness
+          Abstract_Completeness.Abstract_Completeness
+          Abstract_Soundness.Finite_Proof_Soundness
           "HOL-Library.Countable"
           "HOL-Library.Code_Lazy"
 begin
@@ -453,32 +453,31 @@ lemma tree_completeness:
   shows
     \<open>(\<exists> t. fst (fst (root t)) = s \<and> wf t \<and> tfinite t) \<or>
       (\<exists> steps. fst (fst (shd steps)) = s \<and> epath steps \<and> Saturated steps)\<close>
-  sorry
+  using epath_completeness_Saturated fstI by fastforce
 
-(*
+
 section \<open>Soundness\<close>
 
-fun ssemantics :: \<open>(nat \<Rightarrow> 'a) \<times> (nat \<Rightarrow> 'a list \<Rightarrow> 'a) \<times> (nat \<Rightarrow> 'a list \<Rightarrow> bool) \<Rightarrow> sequent \<Rightarrow> bool\<close>
+fun ssemantics :: \<open>(nat \<Rightarrow> 'a) \<times> (nat \<Rightarrow> 'a list \<Rightarrow> 'a) \<times> (nat \<Rightarrow> 'a list \<Rightarrow> bool) \<Rightarrow> psequent \<Rightarrow> bool\<close>
   where
-  \<open>ssemantics (e,f,g) [] = False\<close>
-| \<open>ssemantics (e,f,g) (p # z) = semantics e f g p \<or> ssemantics (e,f,g) z\<close>
+  \<open>ssemantics (e,f,g) ([],_) = False\<close>
+| \<open>ssemantics (e,f,g) ((p # z),phase) = (semantics e f g p \<or> ssemantics (e,f,g) (z,phase))\<close>
 
 interpretation Soundness \<open>\<lambda>r s ss. peff' r s = Some ss\<close> rules UNIV ssemantics
   unfolding rules_def Soundness_def RuleSystem_def
   sorry
 
-theorem soundness:
-  assumes f: "tfinite t" and w: "wf t"
-  shows "ssat (fst (root t))"
-*)
 (*
 
 From here, we proceed to our main result which states that any provable formula in SeCaV
 gives rise to a finite proof tree which will be found by the prover.
 
 *)
-(*
+
 theorem completeness:
-  \<open>\<tturnstile> [p] \<Longrightarrow> \<exists> t . fst (fst (root t)) = p \<and> wf t \<and> tfinite t\<close>
-*)
+  assumes \<open>\<tturnstile> [p]\<close> \<open>t \<equiv> secavProver [p]\<close>
+  shows \<open>fst (fst (root t)) = [p] \<and> wf t \<and> tfinite t\<close>
+  sorry
+
+
 end

@@ -3,7 +3,7 @@ module Main where
 import Parser
 import SeCaVGenerator
 import ProofExtractor
-import SeCaV_Enum
+import Prover
 
 import Options.Applicative
 import qualified ProofParser
@@ -33,20 +33,20 @@ main = run =<< execParser opts
       <> header "secav-prover - a prover for SeCaV" )
 
 run :: Arguments -> IO ()
-run (Arguments formula isabelle) =
-  case parser formula of
-    Left error -> print error
-    Right sequent ->
-      let (formulas, names) = genInit sequent in
+run (Arguments f i) =
+  case parser f of
+    Left e -> print e
+    Right s ->
+      let (formulas, names) = genInit s in
         let proof = secavProver formulas in
-          let short = extract names $ extSurgery $ gammaSurgery $ nextSurgery proof in
-            case isabelle of
+          let shortProof = extract names $ extSurgery $ gammaSurgery $ nextSurgery proof in
+            case i of
               Just file ->
-                let parse = ProofParser.parser short in
+                let parse = ProofParser.parser shortProof in
                   case parse of
                     Left e -> print e
                     Right ast ->
                       let isabelleProof = genFile (takeBaseName file) ast in
                         writeFile file isabelleProof
               Nothing ->
-                putStrLn short
+                putStrLn shortProof

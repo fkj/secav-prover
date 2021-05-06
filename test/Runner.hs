@@ -11,7 +11,7 @@ import Parser (parser)
 import ProofExtractor (extract, gammaSurgery)
 import ProofParser (parser)
 import SeCaVGenerator (genInit)
-import SeCaV_Enum (secavProver)
+import Prover (secavProver)
 import System.Directory
   ( copyFile,
     createDirectoryIfMissing,

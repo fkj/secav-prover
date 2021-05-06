@@ -1,11 +1,12 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Instances where
 
 import Arith(Nat(..))
 import SeCaV(Tm(..), Fm(..))
-import SeCaV_Enum(Prule(..))
+import Prover(Prule(..))
 import Abstract_Completeness(Tree(..))
 import Set(Set(..))
 import FSet(Fset(..))
