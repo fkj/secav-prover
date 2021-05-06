@@ -152,18 +152,6 @@ section \<open>Rules\<close>
 text \<open>A proof state in SeCaV is a list of formulas (a sequent)\<close>
 type_synonym sequent = \<open>fm list\<close>
 
-text \<open>
-We now have to define the rule application we will use in the prover.
-We will start by defining the possible rules.
-\<close>
-datatype rule = Basic
-  | AlphaDis | AlphaImp  | AlphaCon
-  | BetaCon | BetaImp | BetaDis
-  | GammaExi tm | GammaUni tm
-  | DeltaUni | DeltaExi
-  | NegNeg
-  | ExtRotate
-
 text \<open>We now need to define what the rules do\<close>
 fun maxFunTm :: \<open>tm \<Rightarrow> nat\<close> where
   \<open>maxFunTm (Fun n ts) = max n (foldl max 0 (map maxFunTm ts))\<close>
@@ -332,14 +320,6 @@ fun branchDone :: \<open>sequent \<Rightarrow> bool\<close> where
   \<open>branchDone [] = False\<close>
 | \<open>branchDone (Neg p # z) = (p \<in> set z \<or> branchDone z)\<close>
 | \<open>branchDone (p # z) = (Neg p \<in> set z \<or> branchDone z)\<close>
-
-fun subAll :: \<open>fm \<Rightarrow> tm list \<Rightarrow> fm list\<close> where
-  \<open>subAll _ [] = []\<close>
-| \<open>subAll p (t # ts) = sub 0 t p # subAll p ts\<close>
-
-fun subAllNeg :: \<open>fm \<Rightarrow> tm list \<Rightarrow> fm list\<close> where
-  \<open>subAllNeg _ [] = []\<close>
-| \<open>subAllNeg p (t # ts) = Neg (sub 0 t p) # subAllNeg p ts\<close>
 
 (*
   The Gamma phase is divided into a number of iterations of two subphases.

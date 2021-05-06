@@ -39,7 +39,7 @@ run (Arguments formula isabelle) =
     Right sequent ->
       let (formulas, names) = genInit sequent in
         let proof = secavProver formulas in
-          let short = extract names (gammaSurgery proof) in
+          let short = extract names $ extSurgery $ gammaSurgery $ nextSurgery proof in
             case isabelle of
               Just file ->
                 let parse = ProofParser.parser short in

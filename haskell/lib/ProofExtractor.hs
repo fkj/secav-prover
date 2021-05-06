@@ -44,6 +44,16 @@ convertRule Rotate = RExt
 convertRule Duplicate = RExt
 convertRule Next = RExt
 
+nextSurgery :: Tree (([Fm], Phase), Prule) -> Tree (([Fm], Phase), Prule)
+nextSurgery node@(Node _ (Abs_fset (Set []))) = node
+nextSurgery (Node ((_, _), Next) (Abs_fset (Set [node@(Node ((ns, np), nr) (Abs_fset (Set [])))]))) = node
+nextSurgery (Node ((_, _), Next) (Abs_fset (Set [Node ((ns, np), nr) (Abs_fset (Set [current]))]))) =
+  Node ((ns, np), nr) (Abs_fset (Set [nextSurgery current]))
+nextSurgery (Node ((_, _), Next) (Abs_fset (Set [Node ((ns, np), nr) (Abs_fset (Set [current, next]))]))) =
+  Node ((ns, np), nr) (Abs_fset (Set [nextSurgery current, nextSurgery next]))
+nextSurgery (Node s (Abs_fset (Set [current]))) = Node s (Abs_fset (Set [nextSurgery current]))
+nextSurgery (Node s (Abs_fset (Set [current, next]))) = Node s (Abs_fset (Set [nextSurgery current, nextSurgery next]))
+
 gammaSurgery :: Tree (([Fm], Phase), Prule) -> Tree (([Fm], Phase), Rule)
 gammaSurgery (Node ((sequent, phase@(PInstGamma _ _ (t : _) _)), GammaExi) (Abs_fset (Set []))) =
   Node ((sequent, phase), RGammaExi t) (Abs_fset (Set []))
@@ -60,6 +70,18 @@ gammaSurgery (Node ((sequent, phase@(PInstGamma _ _ (t : _) _)), GammaUni) (Abs_
 gammaSurgery (Node (state, rule) (Abs_fset (Set []))) = Node (state, convertRule rule) (Abs_fset (Set []))
 gammaSurgery (Node (state, rule) (Abs_fset (Set [current]))) = Node (state, convertRule rule) (Abs_fset (Set [gammaSurgery current]))
 gammaSurgery (Node (state, rule) (Abs_fset (Set [current, next]))) = Node (state, convertRule rule) (Abs_fset (Set [gammaSurgery current, gammaSurgery next]))
+
+extSurgery :: Tree (([Fm], Phase), Rule) -> Tree (([Fm], Phase), Rule)
+extSurgery node@(Node ((sequent, phase), RExt) (Abs_fset (Set []))) = node
+extSurgery (Node ((sequent, phase), RExt) (Abs_fset (Set [Node ((ns, np), RExt) next@(Abs_fset (Set []))]))) =
+  Node ((sequent, phase), RExt) next
+extSurgery (Node ((sequent, phase), RExt) (Abs_fset (Set [Node ((ns, np), RExt) (Abs_fset (Set [current]))]))) =
+  Node ((sequent, phase), RExt) (Abs_fset (Set [extSurgery current]))
+extSurgery (Node ((sequent, phase), RExt) (Abs_fset (Set [Node ((ns, np), RExt) (Abs_fset (Set [current, next]))]))) =
+  Node ((sequent, phase), RExt) (Abs_fset (Set [extSurgery current, extSurgery next]))
+extSurgery node@(Node (s, r) (Abs_fset (Set []))) = node
+extSurgery (Node (s, r) (Abs_fset (Set [current]))) = Node (s, r) (Abs_fset (Set [extSurgery current]))
+extSurgery node@(Node (s, r) (Abs_fset (Set [current, next]))) = Node (s, r) (Abs_fset (Set [extSurgery current, extSurgery next]))
 
 extract :: NameState -> Tree (([Fm], Phase), Rule) -> String
 extract names (Node ((sequent, _), rule) (Abs_fset (Set []))) =
