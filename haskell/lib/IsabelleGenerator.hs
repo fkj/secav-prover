@@ -52,14 +52,14 @@ genPropFormula' (Con a b) = do
 genPropFormula' (Exi f) = do
   s <- get
   let name = genBoundName (depth s)
-  sts <- modify (\st -> st { depth = depth s + 1 })
+  _ <- modify (\st -> st { depth = depth s + 1 })
   ff <- genPropFormula' f
   _ <- put s
   pure $ "(" <> "\\<exists>" <> name <> ". " <> ff <> ")"
 genPropFormula' (Uni f) = do
   s <- get
   let name = genBoundName (depth s)
-  sts <- modify (\st -> st { depth = depth s + 1 })
+  _ <- modify (\st -> st { depth = depth s + 1 })
   ff <- genPropFormula' f
   _ <- put s
   pure $ "(" <> "\\<forall>" <> name <> ". " <> ff <> ")"
@@ -148,10 +148,10 @@ genProof (Proof _ f l) =
       rules <- case uncons l of
                  Just (first, rest) ->
                    (case unsnoc rest of
-                      Just (middle, last) -> do
+                      Just (middle, lastf) -> do
                         grf <- gr first
                         gff <- gf first
-                        grl <- gr last
+                        grl <- gr lastf
                         middleRules <- traverse midRule middle
                         pure $ if Data.List.null middle
                                then
@@ -249,7 +249,7 @@ genFunName n = do
   case Map.lookup n (existingFuns s) of
     Just index -> pure $ show index
     Nothing -> do
-      sts <- modify (\st -> st { funCount = funCount s + 1
+      _ <- modify (\st -> st { funCount = funCount s + 1
                                , existingFuns = Map.insert n (funCount s) (existingFuns s)
                                })
       pure $ show (funCount s)
@@ -260,7 +260,7 @@ genPreName n = do
   case Map.lookup n (existingPres s) of
     Just index -> pure $ show index
     Nothing -> do
-      sts <- modify (\st -> st { preCount = preCount s + 1
+      _ <- modify (\st -> st { preCount = preCount s + 1
                                , existingPres = Map.insert n (preCount s) (existingPres s)
                                })
       pure $ show (preCount s)

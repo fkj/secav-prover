@@ -3,10 +3,9 @@ module ProofParser where
 import AST
 import ProofLexer
 import Text.Parsec
+import Data.Function (fix)
 
 type SParser a = Parsec String () a
-
-fix f = f (fix f)
 
 name :: SParser Name
 name = m_identifier
