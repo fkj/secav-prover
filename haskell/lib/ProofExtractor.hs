@@ -166,10 +166,7 @@ genName 5 = "f"
 genName x = "g" <> genericReplicate (x - 5) '\''
 
 genNewFun :: Integer -> NameState -> String
-genNewFun n _ = "F" <> show n
-
-genNewPre :: Integer -> NameState -> String
-genNewPre n _ = "P" <> show n
+genNewFun n _ = "F" <> genName n
 
 extractTerm :: NameState -> Tm -> String
 extractTerm names (SeCaV.Fun (Nat n) []) = fromMaybe (genNewFun n names) (Map.lookupR n $ existingFuns names)
@@ -180,13 +177,13 @@ dropEnd :: Int -> String -> String
 dropEnd n = reverse . drop n . reverse
 
 extractFormula :: NameState -> Fm -> String
-extractFormula names (SeCaV.Pre (Nat n) []) = fromMaybe (genNewPre n names) (Map.lookupR n $ existingPres names)
-extractFormula names (SeCaV.Pre (Nat n) ts) = fromMaybe (genNewPre n names) (Map.lookupR n $ existingPres names) <> " [" <> intercalate ", " (map (extractTerm names) ts) <> "]"
+extractFormula names (SeCaV.Pre (Nat n) []) = existingPres names Map.!> n
+extractFormula names (SeCaV.Pre (Nat n) ts) = existingPres names Map.!> n <> " [" <> intercalate ", " (map (extractTerm names) ts) <> "]"
 extractFormula names f = drop 1 $ dropEnd 1 $ extractFormula' names f
 
 extractFormula' :: NameState -> Fm -> String
-extractFormula' names (SeCaV.Pre (Nat n) []) = fromMaybe (genNewPre n names) (Map.lookupR n $ existingPres names)
-extractFormula' names (SeCaV.Pre (Nat n) ts) = "(" <> fromMaybe (genNewPre n names) (Map.lookupR n $ existingPres names) <> " [" <> intercalate ", " (map (extractTerm names) ts) <> "])"
+extractFormula' names (SeCaV.Pre (Nat n) []) = existingPres names Map.!> n
+extractFormula' names (SeCaV.Pre (Nat n) ts) = "(" <> existingPres names Map.!> n <> " [" <> intercalate ", " (map (extractTerm names) ts) <> "])"
 extractFormula' names (SeCaV.Imp a b) = "(Imp " <> extractFormula' names a <> " " <> extractFormula' names b <> ")"
 extractFormula' names (SeCaV.Dis a b) = "(Dis " <> extractFormula' names a <> " " <> extractFormula' names b <> ")"
 extractFormula' names (SeCaV.Con a b) = "(Con " <> extractFormula' names a <> " " <> extractFormula' names b <> ")"
