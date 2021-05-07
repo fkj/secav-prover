@@ -81,9 +81,9 @@ extSurgery node@(Node ((_, _), RExt) (Abs_fset (Set []))) = node
 extSurgery (Node ((sequent, phase), RExt) (Abs_fset (Set [Node ((_, _), RExt) next@(Abs_fset (Set []))]))) =
   Node ((sequent, phase), RExt) next
 extSurgery (Node ((sequent, phase), RExt) (Abs_fset (Set [Node ((_, _), RExt) (Abs_fset (Set [current]))]))) =
-  Node ((sequent, phase), RExt) (Abs_fset (Set [extSurgery current]))
+  extSurgery $ Node ((sequent, phase), RExt) (Abs_fset (Set [current]))
 extSurgery (Node ((sequent, phase), RExt) (Abs_fset (Set [Node ((_, _), RExt) (Abs_fset (Set [current, next]))]))) =
-  Node ((sequent, phase), RExt) (Abs_fset (Set [extSurgery current, extSurgery next]))
+  extSurgery $ Node ((sequent, phase), RExt) (Abs_fset (Set [current, next]))
 extSurgery node@(Node (_, _) (Abs_fset (Set []))) = node
 extSurgery (Node (s, r) (Abs_fset (Set [current]))) = Node (s, r) (Abs_fset (Set [extSurgery current]))
 extSurgery (Node (s, r) (Abs_fset (Set [current, next]))) = Node (s, r) (Abs_fset (Set [extSurgery current, extSurgery next]))
