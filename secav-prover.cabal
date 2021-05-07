@@ -14,7 +14,7 @@ source-repository head
   type:               git
   location:           git://github.com/fkj/secav-prover.git
 
-library export
+library prover
   exposed-modules:    Prover
                     , Abstract_Completeness
                     , FSet
@@ -29,7 +29,7 @@ library export
                     , Stream
                     , MaybeExt
   build-depends:      base
-  hs-source-dirs:     haskell/export
+  hs-source-dirs:     haskell/prover
   default-language:   Haskell2010
 
 library interface
@@ -43,7 +43,7 @@ library interface
                      , ProofParser
                      , IsabelleGenerator
   build-depends:       base ^>=4.13.0.0
-                     , export
+                     , prover
                      , parsec
                      , bimap
                      , mtl
@@ -60,7 +60,7 @@ test-suite test-prover
                      , process
                      , directory
                      , mtl
-                     , export
+                     , prover
                      , interface
   hs-source-dirs:      test
   default-language:    Haskell2010
@@ -68,7 +68,7 @@ test-suite test-prover
 executable secav-prover
   main-is:             Main.hs
   build-depends:       base ^>=4.13.0.0
-                     , export
+                     , prover
                      , interface
                      , filepath
                      , optparse-applicative
