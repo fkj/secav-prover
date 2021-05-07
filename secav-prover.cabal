@@ -8,6 +8,11 @@ author:              Frederik Krogsdal Jacobsen
 maintainer:          fkjacobsen@gmail.com
 category:            Math
 description:         A proof search implementation for the SeCaV system of first-order logic.
+build-type:          Simple
+
+source-repository head
+  type:               git
+  location:           git://github.com/fkj/secav-prover.git
 
 library export
   exposed-modules:    Prover
@@ -26,7 +31,7 @@ library export
   build-depends:      base
   hs-source-dirs:     haskell/export
   default-language:   Haskell2010
-                     
+
 library interface
   exposed-modules:     Instances
                      , AST
@@ -44,7 +49,7 @@ library interface
                      , mtl
   hs-source-dirs:      haskell/lib
   default-language:    Haskell2010
-  ghc-options:         -Wall -Werror
+  ghc-options:         -Wall
 
 test-suite test-prover
   type:                detailed-0.9
@@ -69,4 +74,4 @@ executable secav-prover
                      , optparse-applicative
   hs-source-dirs:      haskell/app
   default-language:    Haskell2010
-  ghc-options:         -Wall -Werror
+  ghc-options:         -Wall
