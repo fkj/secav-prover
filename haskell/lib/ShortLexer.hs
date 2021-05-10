@@ -1,4 +1,4 @@
-module ProofLexer where
+module ShortLexer where
 
 import Text.Parsec.Token
 import Text.Parsec.Char

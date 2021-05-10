@@ -1,4 +1,4 @@
-module AST where
+module ShortAST where
 
 import Data.Bimap
 import Control.Monad.State

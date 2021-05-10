@@ -1,7 +1,7 @@
-module ProofParser where
+module ShortParser where
 
-import AST
-import ProofLexer
+import ShortAST
+import ShortLexer
 import Text.Parsec
 import Data.Function (fix)
 

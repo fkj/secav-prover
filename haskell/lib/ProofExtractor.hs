@@ -5,9 +5,9 @@ import Prover
 import FSet
 import Set
 import Abstract_Completeness
-import AST
+import ShortAST
 import Arith
-import Instances()
+import ProverInstances()
 import qualified Data.Bimap as Map
 import Data.List
 import Data.Maybe (fromMaybe)

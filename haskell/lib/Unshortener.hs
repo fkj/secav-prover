@@ -1,6 +1,6 @@
-module IsabelleGenerator where
+module Unshortener where
 
-import AST
+import ShortAST
 import Control.Monad.State (get, modify, put, runState, evalState)
 import Data.Bimap as Map
 import Data.List

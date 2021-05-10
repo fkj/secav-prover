@@ -1,6 +1,6 @@
-module SeCaVGenerator where
+module SeCaVTranslator where
 
-import AST
+import ShortAST as AST
 import SeCaV
 import Arith
 

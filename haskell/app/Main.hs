@@ -1,12 +1,12 @@
 module Main where
 
-import SeCaVGenerator
+import SeCaVTranslator
 import ProofExtractor
 import Prover
 
 import Options.Applicative
-import ProofParser
-import IsabelleGenerator (genFile)
+import ShortParser
+import Unshortener (genFile)
 import System.FilePath (takeBaseName)
 
 data Arguments = Arguments

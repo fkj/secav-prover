@@ -6,10 +6,10 @@ import Distribution.TestSuite
     Test (Test),
     TestInstance (TestInstance, name, options, run, setOption, tags),
   )
-import IsabelleGenerator (genFile)
+import Unshortener (genFile)
 import ProofExtractor (extract, gammaSurgery)
-import ProofParser (programParser, sequentParser)
-import SeCaVGenerator (genInit)
+import ShortParser (programParser, sequentParser)
+import SeCaVTranslator (genInit)
 import Prover (secavProver)
 import System.Directory
   ( copyFile,
