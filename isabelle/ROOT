@@ -1,6 +1,6 @@
 chapter SeCaV
 
-session SeCaV_Coinductive (FKJ) = "HOL-Library" +
+session SeCaV_Prover (FKJ) = "HOL-Library" +
   options [timeout = 100000]
   sessions
     Collections
