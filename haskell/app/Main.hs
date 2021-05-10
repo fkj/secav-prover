@@ -1,13 +1,29 @@
 module Main where
 
-import SeCaVTranslator
-import ProofExtractor
-import Prover
-
 import Options.Applicative
-import ShortParser
-import Unshortener (genFile)
+    ( optional,
+      (<**>),
+      argument,
+      fullDesc,
+      header,
+      help,
+      info,
+      long,
+      metavar,
+      progDesc,
+      short,
+      str,
+      strOption,
+      execParser,
+      helper,
+      Parser )
+import ProofExtractor
+    ( nextSurgery, gammaSurgery, extSurgery, extract )
+import Prover ( secavProver )
+import SeCaVTranslator ( genInit )
+import ShortParser ( programParser, sequentParser )
 import System.FilePath (takeBaseName)
+import Unshortener (genFile)
 
 data Arguments = Arguments
   { formula :: String

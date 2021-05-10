@@ -1,11 +1,12 @@
 module SeCaVTranslator where
 
-import ShortAST as AST
-import SeCaV
-import Arith
-
-import qualified Data.Bimap as Map
+import Arith ( Nat(..) )
 import Control.Monad.State
+    ( liftM2, modify, runState, MonadState(get) )
+import qualified Data.Bimap as Map
+import SeCaV ( Fm(..), Tm(..) )
+import ShortAST as AST
+    ( NameGen, NameState(..), Formula(..), Term(..), Index, Name )
 
 genInit :: [Formula] -> ([Fm], NameState)
 genInit fs =

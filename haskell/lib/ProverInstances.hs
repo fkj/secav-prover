@@ -4,12 +4,12 @@
 
 module ProverInstances where
 
-import Arith(Nat(..))
-import SeCaV(Tm(..), Fm(..))
-import Prover(Prule(..))
 import Abstract_Completeness(Tree(..))
-import Set(Set(..))
+import Arith(Nat(..))
 import FSet(Fset(..))
+import Prover(Prule(..))
+import SeCaV(Tm(..), Fm(..))
+import Set(Set(..))
 
 instance Show Nat where
   show (Nat x) = show x

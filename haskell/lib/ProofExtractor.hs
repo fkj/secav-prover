@@ -1,16 +1,16 @@
 module ProofExtractor where
 
-import SeCaV
-import Prover
-import FSet
-import Set
-import Abstract_Completeness
-import ShortAST
-import Arith
-import ProverInstances()
+import Abstract_Completeness ( Tree(..) )
+import Arith ( Nat(Nat) )
 import qualified Data.Bimap as Map
-import Data.List
+import Data.List ( genericReplicate, intercalate )
 import Data.Maybe (fromMaybe)
+import FSet ( Fset(Abs_fset) )
+import Prover ( Phase(PInstGamma), Prule(..) )
+import ProverInstances()
+import SeCaV ( Fm(..), Tm(..) )
+import Set ( Set(Set, Coset) )
+import ShortAST ( NameState(existingFuns, existingPres) )
 
 data Rule
   = RBasic

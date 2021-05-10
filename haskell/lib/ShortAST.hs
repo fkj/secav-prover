@@ -1,7 +1,7 @@
 module ShortAST where
 
-import Data.Bimap
-import Control.Monad.State
+import Control.Monad.State ( State )
+import Data.Bimap ( Bimap )
 
 type Name = String
 type Index = Integer
@@ -21,24 +21,24 @@ data Formula
   | Neg Formula
   deriving (Show)
 
-data PRule
-  = PBasic
-  | PAlphaDis
-  | PAlphaImp
-  | PAlphaCon
-  | PBetaCon
-  | PBetaImp
-  | PBetaDis
-  | PGammaExi (Maybe Term)
-  | PGammaUni (Maybe Term)
-  | PDeltaUni
-  | PDeltaExi
-  | PNeg
-  | PExt
+data ShortRule
+  = SBasic
+  | SAlphaDis
+  | SAlphaImp
+  | SAlphaCon
+  | SBetaCon
+  | SBetaImp
+  | SBetaDis
+  | SGammaExi (Maybe Term)
+  | SGammaUni (Maybe Term)
+  | SDeltaUni
+  | SDeltaExi
+  | SNeg
+  | SExt
   deriving (Show)
 
 data Application
-  = Application PRule [[Formula]]
+  = Application ShortRule [[Formula]]
   deriving (Show)
 
 data Intertext

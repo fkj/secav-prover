@@ -6,11 +6,10 @@ import Distribution.TestSuite
     Test (Test),
     TestInstance (TestInstance, name, options, run, setOption, tags),
   )
-import Unshortener (genFile)
 import ProofExtractor (extract, gammaSurgery)
-import ShortParser (programParser, sequentParser)
-import SeCaVTranslator (genInit)
 import Prover (secavProver)
+import SeCaVTranslator (genInit)
+import ShortParser (programParser, sequentParser)
 import System.Directory
   ( copyFile,
     createDirectoryIfMissing,
@@ -19,6 +18,7 @@ import System.Directory
 import System.Exit (ExitCode (ExitFailure, ExitSuccess))
 import System.Process (readProcessWithExitCode)
 import Tests (testcases)
+import Unshortener (genFile)
 
 tests :: IO [Test]
 tests = do

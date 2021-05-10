@@ -1,11 +1,19 @@
 module ShortLexer where
 
-import Text.Parsec.Token
-import Text.Parsec.Char
-import Text.Parsec.Language
-import Control.Applicative
-import Text.Parsec (ParsecT)
+import Control.Applicative ( Alternative((<|>)) )
 import Control.Monad.Identity (Identity)
+import Text.Parsec (ParsecT)
+import Text.Parsec.Char ( alphaNum, letter, oneOf )
+import Text.Parsec.Language ( emptyDef )
+import Text.Parsec.Token
+    ( GenLanguageDef(commentStart, commentEnd, commentLine,
+                     nestedComments, identStart, identLetter, opStart, opLetter,
+                     reservedNames, reservedOpNames, caseSensitive),
+      LanguageDef,
+      makeTokenParser,
+      GenTokenParser(TokenParser, parens, identifier, integer, brackets,
+                     commaSep, stringLiteral, commaSep1, reserved, reservedOp,
+                     whiteSpace) )
 
 languageDef :: LanguageDef st
 languageDef = emptyDef
@@ -42,26 +50,26 @@ languageDef = emptyDef
   , caseSensitive = True
   }
 
-m_parens :: ParsecT String u Identity a -> ParsecT String u Identity a
-m_identifier :: ParsecT String u Identity String
-m_integer :: ParsecT String u Identity Integer
-m_brackets :: ParsecT String u Identity a -> ParsecT String u Identity a
-m_commaSep :: ParsecT String u Identity a -> ParsecT String u Identity [a]
-m_stringLiteral :: ParsecT String u Identity String
-m_commaSep1 :: ParsecT String u Identity a -> ParsecT String u Identity [a]
-m_reserved :: String -> ParsecT String u Identity ()
-m_reservedOp :: String -> ParsecT String u Identity ()
-m_whiteSpace :: ParsecT String u Identity ()
+mParens :: ParsecT String u Identity a -> ParsecT String u Identity a
+mIdentifier :: ParsecT String u Identity String
+mInteger :: ParsecT String u Identity Integer
+mBrackets :: ParsecT String u Identity a -> ParsecT String u Identity a
+mCommaSep :: ParsecT String u Identity a -> ParsecT String u Identity [a]
+mStringLiteral :: ParsecT String u Identity String
+mCommaSep1 :: ParsecT String u Identity a -> ParsecT String u Identity [a]
+mReserved :: String -> ParsecT String u Identity ()
+mReservedOp :: String -> ParsecT String u Identity ()
+mWhiteSpace :: ParsecT String u Identity ()
 
 TokenParser
-  { parens = m_parens
-  , identifier = m_identifier
-  , integer = m_integer
-  , brackets = m_brackets
-  , commaSep = m_commaSep
-  , stringLiteral = m_stringLiteral
-  , commaSep1 = m_commaSep1
-  , reserved = m_reserved
-  , reservedOp = m_reservedOp
-  , whiteSpace = m_whiteSpace
+  { parens = mParens
+  , identifier = mIdentifier
+  , integer = mInteger
+  , brackets = mBrackets
+  , commaSep = mCommaSep
+  , stringLiteral = mStringLiteral
+  , commaSep1 = mCommaSep1
+  , reserved = mReserved
+  , reservedOp = mReservedOp
+  , whiteSpace = mWhiteSpace
   } = makeTokenParser languageDef

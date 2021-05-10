@@ -1,9 +1,25 @@
 module Unshortener where
 
-import ShortAST
 import Control.Monad.State (get, modify, put, runState, evalState)
 import Data.Bimap as Map
+    ( empty, insert, lookup, null, toList, Bimap )
 import Data.List
+    ( null, genericReplicate, intercalate, sortBy, uncons )
+import ShortAST
+    ( BoundNameGen,
+      BoundNameState(..),
+      NameGen,
+      NameState(NameState, existingFuns, funCount, existingPres,
+                preCount),
+      Program(..),
+      Proof(..),
+      Intertext(..),
+      Application(..),
+      ShortRule(..),
+      Formula(..),
+      Term(..),
+      Index,
+      Name )
 
 initialBoundNameState :: BoundNameState
 initialBoundNameState = BoundNameState { depth = 0 }
@@ -180,26 +196,26 @@ genApplicationFormulas (Application _ l) =
       restF <- traverse restApp rest
       pure $ "if \\<open>\\<tturnstile>\n    [\n      " <> intercalate ",\n      " firstF <> "\n    ]\n    \\<close>" <> intercalate "" restF
 
-genRule :: PRule -> NameGen String
-genRule PBasic = pure "Basic"
-genRule PAlphaDis = pure "AlphaDis"
-genRule PAlphaImp = pure "AlphaImp"
-genRule PAlphaCon = pure "AlphaCon"
-genRule PBetaCon = pure "BetaCon"
-genRule PBetaImp = pure "BetaImp"
-genRule PBetaDis = pure "BetaDis"
-genRule (PGammaExi Nothing) = pure "GammaExi"
-genRule (PGammaExi (Just t)) = do
+genRule :: ShortRule -> NameGen String
+genRule SBasic = pure "Basic"
+genRule SAlphaDis = pure "AlphaDis"
+genRule SAlphaImp = pure "AlphaImp"
+genRule SAlphaCon = pure "AlphaCon"
+genRule SBetaCon = pure "BetaCon"
+genRule SBetaImp = pure "BetaImp"
+genRule SBetaDis = pure "BetaDis"
+genRule (SGammaExi Nothing) = pure "GammaExi"
+genRule (SGammaExi (Just t)) = do
   term <- genTerm t
   pure $ "GammaExi[where t=\\<open>" <> term <> "\\<close>]"
-genRule (PGammaUni Nothing) = pure "GammaUni"
-genRule (PGammaUni (Just t)) = do
+genRule (SGammaUni Nothing) = pure "GammaUni"
+genRule (SGammaUni (Just t)) = do
   term <- genTerm t
   pure $ "GammaUni[where t=\\<open>" <> term <> "\\<close>]"
-genRule PDeltaUni = pure "DeltaUni"
-genRule PDeltaExi = pure "DeltaExi"
-genRule PNeg = pure "Neg"
-genRule PExt = pure "Ext"
+genRule SDeltaUni = pure "DeltaUni"
+genRule SDeltaExi = pure "DeltaExi"
+genRule SNeg = pure "Neg"
+genRule SExt = pure "Ext"
 
 genFormula :: Formula -> NameGen String
 genFormula f = drop 1 . dropEnd 1 <$> genFormula' f

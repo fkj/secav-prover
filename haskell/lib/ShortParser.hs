@@ -1,17 +1,48 @@
 module ShortParser where
 
-import ShortAST
-import ShortLexer
-import Text.Parsec
 import Data.Function (fix)
+import ShortAST
+    ( Program(..),
+      Proof(..),
+      Intertext(..),
+      Application(..),
+      ShortRule(..),
+      Formula(..),
+      Term(..),
+      Index,
+      Name )
+import ShortLexer
+    ( mParens,
+      mIdentifier,
+      mInteger,
+      mBrackets,
+      mCommaSep,
+      mStringLiteral,
+      mCommaSep1,
+      mReserved,
+      mReservedOp,
+      mWhiteSpace )
+import Text.Parsec
+    ( choice,
+      eof,
+      many1,
+      option,
+      optionMaybe,
+      sepBy,
+      (<?>),
+      many,
+      parse,
+      try,
+      ParseError,
+      Parsec )
 
 type SParser a = Parsec String () a
 
 name :: SParser Name
-name = m_identifier
+name = mIdentifier
 
 index :: SParser Index
-index = m_integer
+index = mInteger
 
 fun :: SParser Term
 fun = do
@@ -31,29 +62,29 @@ term = fix allTerms
       ] <?> "a function name or a variable"
 
 termList :: SParser [Term]
-termList = fix $ const (m_brackets $ m_commaSep term)
+termList = fix $ const (mBrackets $ mCommaSep term)
 
 -- Parsing of formulas
 predicate :: SParser Formula
 predicate = Pre <$> name <*> option [] termList
 
 implication :: SParser Formula
-implication = fix $ const $ m_reserved "Imp" *> (Imp <$> formula <*> formula)
+implication = fix $ const $ mReserved "Imp" *> (Imp <$> formula <*> formula)
 
 disjunction :: SParser Formula
-disjunction = fix $ const $ m_reserved "Dis" *> (Dis <$> formula <*> formula)
+disjunction = fix $ const $ mReserved "Dis" *> (Dis <$> formula <*> formula)
 
 conjunction :: SParser Formula
-conjunction = fix $ const $ m_reserved "Con" *> (Con <$> formula <*> formula)
+conjunction = fix $ const $ mReserved "Con" *> (Con <$> formula <*> formula)
 
 existential :: SParser Formula
-existential = fix $ const $ m_reserved "Exi" *> (Exi <$> formula)
+existential = fix $ const $ mReserved "Exi" *> (Exi <$> formula)
 
 universal :: SParser Formula
-universal = fix $ const $ m_reserved "Uni" *> (Uni <$> formula)
+universal = fix $ const $ mReserved "Uni" *> (Uni <$> formula)
 
 negation :: SParser Formula
-negation = fix $ const $ m_reserved "Neg" *> (Neg <$> formula)
+negation = fix $ const $ mReserved "Neg" *> (Neg <$> formula)
 
 formula :: SParser Formula
 formula = fix allFormulas
@@ -66,82 +97,82 @@ formula = fix allFormulas
       , existential
       , universal
       , negation
-      , m_parens formula
+      , mParens formula
       ] <?> "a formula"
 
 
 sequent :: SParser [Formula]
-sequent = m_commaSep1 formula
+sequent = mCommaSep1 formula
 
 -- Parsing of proof rules
-basic :: SParser PRule
+basic :: SParser ShortRule
 basic = do
-  m_reserved "Basic"
-  pure PBasic
+  mReserved "Basic"
+  pure SBasic
 
-alphaDis :: SParser PRule
+alphaDis :: SParser ShortRule
 alphaDis = do
-  m_reserved "AlphaDis"
-  pure PAlphaDis
+  mReserved "AlphaDis"
+  pure SAlphaDis
 
-alphaImp :: SParser PRule
+alphaImp :: SParser ShortRule
 alphaImp = do
-  m_reserved "AlphaImp"
-  pure PAlphaImp
+  mReserved "AlphaImp"
+  pure SAlphaImp
 
-alphaCon :: SParser PRule
+alphaCon :: SParser ShortRule
 alphaCon = do
-  m_reserved "AlphaCon"
-  pure PAlphaCon
+  mReserved "AlphaCon"
+  pure SAlphaCon
 
-betaDis :: SParser PRule
+betaDis :: SParser ShortRule
 betaDis = do
-  m_reserved "BetaDis"
-  pure PBetaDis
+  mReserved "BetaDis"
+  pure SBetaDis
 
-betaImp :: SParser PRule
+betaImp :: SParser ShortRule
 betaImp = do
-  m_reserved "BetaImp"
-  pure PBetaImp
+  mReserved "BetaImp"
+  pure SBetaImp
 
-betaCon :: SParser PRule
+betaCon :: SParser ShortRule
 betaCon = do
-  m_reserved "BetaCon"
-  pure PBetaCon
+  mReserved "BetaCon"
+  pure SBetaCon
 
-gammaExi :: SParser PRule
+gammaExi :: SParser ShortRule
 gammaExi = do
-  m_reserved "GammaExi"
-  t <- optionMaybe (m_brackets term)
-  pure $ PGammaExi t
+  mReserved "GammaExi"
+  t <- optionMaybe (mBrackets term)
+  pure $ SGammaExi t
 
-gammaUni :: SParser PRule
+gammaUni :: SParser ShortRule
 gammaUni = do
-  m_reserved "GammaUni"
-  t <- optionMaybe (m_brackets term)
-  pure $ PGammaUni t
+  mReserved "GammaUni"
+  t <- optionMaybe (mBrackets term)
+  pure $ SGammaUni t
 
-deltaUni :: SParser PRule
+deltaUni :: SParser ShortRule
 deltaUni = do
-  m_reserved "DeltaUni"
-  pure PDeltaUni
+  mReserved "DeltaUni"
+  pure SDeltaUni
 
-deltaExi :: SParser PRule
+deltaExi :: SParser ShortRule
 deltaExi = do
-  m_reserved "DeltaExi"
-  pure PDeltaExi
+  mReserved "DeltaExi"
+  pure SDeltaExi
 
-ext :: SParser PRule
+ext :: SParser ShortRule
 ext = do
-  m_reserved "Ext"
-  pure PExt
+  mReserved "Ext"
+  pure SExt
 
-neg :: SParser PRule
+neg :: SParser ShortRule
 neg = do
-  m_reserved "NegNeg"
-  pure PNeg
+  mReserved "NegNeg"
+  pure SNeg
 
-rule :: SParser PRule
+rule :: SParser ShortRule
 rule = fix allRules
   where
     allRules _ = choice
@@ -164,20 +195,20 @@ rule = fix allRules
 application :: SParser Application
 application = do
   r <- rule
-  m_reservedOp ":"
-  l <- many formula `sepBy` m_reservedOp "+"
+  mReservedOp ":"
+  l <- many formula `sepBy` mReservedOp "+"
   pure $ Application r l
 
 section :: SParser Intertext
 section = do
-  m_reservedOp "#"
-  t <- optionMaybe m_stringLiteral
+  mReservedOp "#"
+  t <- optionMaybe mStringLiteral
   pure $ Section t
 
 text :: SParser Intertext
 text = do
-  m_reservedOp "-"
-  t <- optionMaybe m_stringLiteral
+  mReservedOp "-"
+  t <- optionMaybe mStringLiteral
   pure $ Text t
 
 intertext :: SParser Intertext
@@ -208,7 +239,7 @@ program = do
   pure $ Program (first:l) t
 
 programParser :: String -> Either ParseError Program
-programParser = parse (m_whiteSpace *> program <* eof) ""
+programParser = parse (mWhiteSpace *> program <* eof) ""
 
 sequentParser :: String -> Either ParseError [Formula]
-sequentParser = parse (m_whiteSpace *> sequent <* eof) ""
+sequentParser = parse (mWhiteSpace *> sequent <* eof) ""
