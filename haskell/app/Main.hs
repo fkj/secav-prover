@@ -18,7 +18,7 @@ import Options.Applicative
       helper,
       Parser )
 import ProofExtractor
-    ( nextSurgery, gammaSurgery, extSurgery, extract )
+    ( nextSurgery, gammaSurgery, extSurgery, initExtract )
 import Prover ( secavProver )
 import SeCaVTranslator ( genInit )
 import ShortParser ( programParser, sequentParser )
@@ -54,7 +54,7 @@ run (Arguments f i) =
     Right s ->
       let (formulas, names) = genInit s in
         let proofTree = secavProver formulas in
-          let shortProof = extract names $ extSurgery $ gammaSurgery $ nextSurgery proofTree in
+          let shortProof = initExtract names $ extSurgery $ gammaSurgery $ nextSurgery proofTree in
             case i of
               Just file ->
                 let parse = programParser shortProof in

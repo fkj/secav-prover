@@ -3,14 +3,14 @@ module ProofExtractor where
 import Abstract_Completeness ( Tree(..) )
 import Arith ( Nat(Nat) )
 import qualified Data.Bimap as Map
+import Control.Monad.State (evalState, get, modify)
 import Data.List ( genericReplicate, intercalate )
-import Data.Maybe (fromMaybe)
 import FSet ( Fset(Abs_fset) )
 import Prover ( Phase(PInstGamma), Prule(..) )
 import ProverInstances()
 import SeCaV ( Fm(..), Tm(..) )
 import Set ( Set(Set, Coset) )
-import ShortAST ( NameState(existingFuns, existingPres) )
+import ShortAST (funCount, NameGen,  NameState(existingFuns, existingPres) )
 
 data Rule
   = RBasic
@@ -90,70 +90,78 @@ extSurgery (Node (s, r) (Abs_fset (Set [current, next]))) = Node (s, r) (Abs_fse
 extSurgery (Node _ (Abs_fset (Set (_ : _ : _ : _)))) = error "No proof rule should generate more than two branches."
 extSurgery (Node _ (Abs_fset (Coset _))) = error "No proof rule should generate a coset of branches."
 
-extract :: NameState -> Tree (([Fm], Phase), Rule) -> String
-extract names (Node ((sequent, _), rule) (Abs_fset (Set []))) =
-  extractSequent names sequent <>
-  "\n\n" <>
-  extractRule names rule <>
-  "\n"
-extract names (Node ((sequent, _), rule) (Abs_fset (Set [current]))) =
-  extractSequent names sequent <>
-  "\n\n" <>
-  extractRule names rule <>
-  "\n" <>
-  extract' names [] current
-extract names (Node ((sequent, _), rule) (Abs_fset (Set [current, next]))) =
-  extractSequent names sequent <>
-  "\n\n" <>
-  extractRule names rule <>
-  "\n" <>
-  extract' names [extractNextSequent next] current <>
-  extract' names [] next
-extract _ _ =
+initExtract :: NameState -> Tree (([Fm], Phase), Rule) -> String
+initExtract names tree = evalState (extract tree) names
+
+extract :: Tree (([Fm], Phase), Rule) -> NameGen String
+extract (Node ((sequent, _), rule) (Abs_fset (Set []))) = do
+  s <- extractSequent sequent
+  r <- extractRule rule
+  pure $ s <> "\n\n" <> r <> "\n"
+extract (Node ((sequent, _), rule) (Abs_fset (Set [current]))) = do
+  s <- extractSequent sequent
+  r <- extractRule rule
+  c <- extract' [] current
+  pure $ s <> "\n\n" <> r <> "\n" <> c
+extract (Node ((sequent, _), rule) (Abs_fset (Set [current, next]))) = do
+  s <- extractSequent sequent
+  r <- extractRule rule
+  c <- extract' [extractNextSequent next] current
+  n <- extract' [] next
+  pure $ s <> "\n\n" <> r <> "\n" <> c <> n
+extract _ =
   error "By the pricking of my thumbs, something wicked this way comes..."
 
-extract' :: NameState -> [[Fm]] -> Tree (([Fm], Phase), Rule) -> String
-extract' names other (Node ((sequent, _), rule) (Abs_fset (Set []))) =
-  extractSequent' names sequent <>
-  (if null other then "" else "\n+\n" <> extractOtherSequents names other) <>
-  "\n" <>
-  extractRule names rule <>
-  "\n"
-extract' names other (Node ((sequent, _), rule) (Abs_fset (Set [current]))) =
-  extractSequent' names sequent <>
-  (if null other then "" else "\n+\n" <> extractOtherSequents names other) <>
-  "\n" <>
-  extractRule names rule <>
-  "\n" <>
-  extract' names other current
-extract' names other (Node ((sequent, _), rule) (Abs_fset (Set [current, next]))) =
-  extractSequent' names sequent <>
-  (if null other then "" else "\n+\n" <> extractOtherSequents names other) <>
-  "\n" <>
-  extractRule names rule <>
-  "\n" <>
-  extract' names (extractNextSequent next : other) current <>
-  extract' names other next
-extract' _ _ _ =
+extract' :: [[Fm]] -> Tree (([Fm], Phase), Rule) -> NameGen String
+extract' other (Node ((sequent, _), rule) (Abs_fset (Set []))) = do
+  s <- extractSequent' sequent
+  ss <- extractOtherSequents other
+  r <- extractRule rule
+  pure $ s <> (if null other then "" else "\n+\n" <> ss) <> "\n" <> r <> "\n"
+extract' other (Node ((sequent, _), rule) (Abs_fset (Set [current]))) = do
+  s <- extractSequent' sequent
+  ss <- extractOtherSequents other
+  r <- extractRule rule
+  c <- extract' other current
+  pure $ s <> (if null other then "" else "\n+\n" <> ss) <> "\n" <> r <> "\n" <> c
+extract' other (Node ((sequent, _), rule) (Abs_fset (Set [current, next]))) = do
+  s <- extractSequent' sequent
+  ss <- extractOtherSequents other
+  r <- extractRule rule
+  n <- extract' (extractNextSequent next : other) current
+  c <- extract' other next
+  pure $ s <> (if null other then "" else "\n+\n" <> ss) <> "\n" <> r <> "\n" <> n <> c
+extract' _ _ =
   error "By the pricking of my thumbs, something wicked this way comes..."
 
 extractNextSequent :: Tree (([Fm], Phase), Rule) -> [Fm]
 extractNextSequent (Node ((sequent, _), _) _) = sequent
 
-extractOtherSequents :: NameState -> [[Fm]] -> String
-extractOtherSequents _ [] = ""
-extractOtherSequents names [x] = extractSequent' names x
-extractOtherSequents names (x:xs) = extractSequent' names x <> "\n+\n" <> extractOtherSequents names xs
+extractOtherSequents :: [[Fm]] -> NameGen String
+extractOtherSequents [] = pure ""
+extractOtherSequents [x] = extractSequent' x
+extractOtherSequents (x:xs) = do
+  s <- extractSequent' x
+  ss <- extractOtherSequents xs
+  pure $ s <> "\n+\n" <> ss
 
-extractSequent :: NameState -> [Fm] -> String
-extractSequent _ [] = ""
-extractSequent names [x] = extractFormula names x
-extractSequent names (x:xs) = extractFormula names x <> "\n" <> extractSequent names xs
+extractSequent :: [Fm] -> NameGen String
+extractSequent [] = pure ""
+extractSequent [x] = extractFormula x
+extractSequent (x:xs) = do
+  f <- extractFormula x
+  s <- extractSequent xs
+  pure $ f <> "\n" <> s
 
-extractSequent' :: NameState -> [Fm] -> String
-extractSequent' _ [] = ""
-extractSequent' names [x] = "  " <> extractFormula names x
-extractSequent' names (x:xs) = "  " <> extractFormula names x <> "\n" <> extractSequent' names xs
+extractSequent' :: [Fm] -> NameGen String
+extractSequent' [] = pure ""
+extractSequent' [x] = do
+  f <- extractFormula x
+  pure $ "  " <> f
+extractSequent' (x:xs) = do
+  f <- extractFormula x
+  s <- extractSequent' xs
+  pure $ "  " <> f <> "\n" <> s
 
 genName :: Integer -> String
 genName x | x < 0 = "?"
@@ -165,43 +173,87 @@ genName 4 = "e"
 genName 5 = "f"
 genName x = "g" <> genericReplicate (x - 5) '\''
 
-genNewFun :: Integer -> NameState -> String
-genNewFun n _ = "F" <> genName n
+genFunName :: Integer -> NameGen String
+genFunName n = do
+  s <- get
+  case Map.lookupR n (existingFuns s) of
+    Just name -> pure name
+    Nothing -> do
+      let nameNum = until (\x -> Map.notMemberR x (existingFuns s)) (+ 1) 0
+      let name = genName nameNum
+      _ <- modify (\st -> st { funCount = funCount s + 1
+                             , existingFuns = Map.insert name n (existingFuns s)
+                             })
+      pure $ genName nameNum
 
-extractTerm :: NameState -> Tm -> String
-extractTerm names (SeCaV.Fun (Nat n) []) = fromMaybe (genNewFun n names) (Map.lookupR n $ existingFuns names)
-extractTerm names (SeCaV.Fun (Nat n) ts) = fromMaybe (genNewFun n names) (Map.lookupR n $ existingFuns names) <> "[" <> intercalate ", " (map (extractTerm names) ts) <> "]"
-extractTerm _ (SeCaV.Var n) = show n
+extractTerm :: Tm -> NameGen String
+extractTerm (SeCaV.Fun (Nat n) []) = genFunName n
+extractTerm (SeCaV.Fun (Nat n) ts) = do
+  fName <- genFunName n
+  termNames <- traverse extractTerm ts
+  pure $ fName <> "[" <> intercalate ", " termNames <> "]"
+extractTerm (SeCaV.Var n) = pure $ show n
 
 dropEnd :: Int -> String -> String
 dropEnd n = reverse . drop n . reverse
 
-extractFormula :: NameState -> Fm -> String
-extractFormula names (SeCaV.Pre (Nat n) []) = existingPres names Map.!> n
-extractFormula names (SeCaV.Pre (Nat n) ts) = existingPres names Map.!> n <> " [" <> intercalate ", " (map (extractTerm names) ts) <> "]"
-extractFormula names f = drop 1 $ dropEnd 1 $ extractFormula' names f
+extractFormula :: Fm -> NameGen String
+extractFormula (SeCaV.Pre (Nat n) []) = do
+  s <- get
+  pure $ existingPres s Map.!> n
+extractFormula (SeCaV.Pre (Nat n) ts) = do
+  s <- get
+  termNames <- traverse extractTerm ts
+  pure $ existingPres s Map.!> n <> " [" <> intercalate ", " termNames <> "]"
+extractFormula f = do
+  form <- extractFormula' f
+  pure $ drop 1 $ dropEnd 1 form
 
-extractFormula' :: NameState -> Fm -> String
-extractFormula' names (SeCaV.Pre (Nat n) []) = existingPres names Map.!> n
-extractFormula' names (SeCaV.Pre (Nat n) ts) = "(" <> existingPres names Map.!> n <> " [" <> intercalate ", " (map (extractTerm names) ts) <> "])"
-extractFormula' names (SeCaV.Imp a b) = "(Imp " <> extractFormula' names a <> " " <> extractFormula' names b <> ")"
-extractFormula' names (SeCaV.Dis a b) = "(Dis " <> extractFormula' names a <> " " <> extractFormula' names b <> ")"
-extractFormula' names (SeCaV.Con a b) = "(Con " <> extractFormula' names a <> " " <> extractFormula' names b <> ")"
-extractFormula' names (SeCaV.Exi f) = "(Exi " <> extractFormula' names f <> ")"
-extractFormula' names (SeCaV.Uni f) = "(Uni " <> extractFormula' names f <> ")"
-extractFormula' names (SeCaV.Neg f) = "(Neg " <> extractFormula' names f <> ")"
+extractFormula' :: Fm -> NameGen String
+extractFormula' (SeCaV.Pre (Nat n) []) = do
+  s <- get
+  pure $ existingPres s Map.!> n
+extractFormula' (SeCaV.Pre (Nat n) ts) = do
+  s <- get
+  termNames <- traverse extractTerm ts
+  pure $ "(" <> existingPres s Map.!> n <> " [" <> intercalate ", " termNames  <> "])"
+extractFormula' (SeCaV.Imp a b) = do
+  formA <- extractFormula' a
+  formB <- extractFormula' b
+  pure $ "(Imp " <> formA <> " " <> formB <> ")"
+extractFormula' (SeCaV.Dis a b) = do
+  formA <- extractFormula' a
+  formB <- extractFormula' b
+  pure $ "(Dis " <> formA <> " " <> formB <> ")"
+extractFormula' (SeCaV.Con a b) = do
+  formA <- extractFormula' a
+  formB <- extractFormula' b
+  pure $ "(Con " <> formA <> " " <> formB <> ")"
+extractFormula' (SeCaV.Exi f) = do
+  form <- extractFormula' f
+  pure $ "(Exi " <> form <> ")"
+extractFormula' (SeCaV.Uni f) = do
+  form <- extractFormula' f
+  pure $ "(Uni " <> form <> ")"
+extractFormula' (SeCaV.Neg f) = do
+  form <- extractFormula' f
+  pure $ "(Neg " <> form <> ")"
 
-extractRule :: NameState -> Rule -> String
-extractRule _ RBasic = "Basic:"
-extractRule _ RAlphaDis = "AlphaDis:"
-extractRule _ RAlphaImp = "AlphaImp:"
-extractRule _ RAlphaCon = "AlphaCon:"
-extractRule _ RBetaCon = "BetaCon:"
-extractRule _ RBetaImp = "BetaImp:"
-extractRule _ RBetaDis = "BetaDis:"
-extractRule names (RGammaUni t) = "GammaUni[" <> extractTerm names t <> "]:"
-extractRule names (RGammaExi t) = "GammaExi[" <> extractTerm names t <> "]:"
-extractRule _ RDeltaUni = "DeltaUni:"
-extractRule _ RDeltaExi = "DeltaExi:"
-extractRule _ RNeg = "NegNeg:"
-extractRule _ RExt = "Ext:"
+extractRule :: Rule -> NameGen String
+extractRule RBasic = pure "Basic:"
+extractRule RAlphaDis = pure "AlphaDis:"
+extractRule RAlphaImp = pure "AlphaImp:"
+extractRule RAlphaCon = pure "AlphaCon:"
+extractRule RBetaCon = pure"BetaCon:"
+extractRule RBetaImp = pure "BetaImp:"
+extractRule RBetaDis = pure "BetaDis:"
+extractRule (RGammaUni t) = do
+  termName <- extractTerm t
+  pure $ "GammaUni[" <> termName <> "]:"
+extractRule (RGammaExi t) = do
+  termName <- extractTerm t
+  pure $ "GammaExi[" <> termName <> "]:"
+extractRule RDeltaUni = pure "DeltaUni:"
+extractRule RDeltaExi = pure "DeltaExi:"
+extractRule RNeg = pure "NegNeg:"
+extractRule RExt = pure "Ext:"

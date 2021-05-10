@@ -6,7 +6,7 @@ import Distribution.TestSuite
     Test (Test),
     TestInstance (TestInstance, name, options, run, setOption, tags),
   )
-import ProofExtractor (extract, gammaSurgery)
+import ProofExtractor (initExtract, gammaSurgery)
 import Prover (secavProver)
 import SeCaVTranslator (genInit)
 import ShortParser (programParser, sequentParser)
@@ -59,7 +59,7 @@ performTest testDir f = do
     Right fm -> do
       let (formula, names) = genInit fm
       let proofTree = secavProver formula
-      let shortProof = extract names (gammaSurgery proofTree)
+      let shortProof = initExtract names (gammaSurgery proofTree)
       let proofParse = programParser shortProof
       case proofParse of
         Left e -> pure $ Fail $ show e
