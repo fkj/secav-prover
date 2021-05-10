@@ -6,7 +6,7 @@ import qualified Data.Bimap as Map
 import Control.Monad.State (evalState, get, modify)
 import Data.List ( genericReplicate, intercalate )
 import FSet ( Fset(Abs_fset) )
-import Prover ( Phase(PInstGamma), Prule(..) )
+import Prover ( Phase(PInstGamma), PseudoRule(..) )
 import ProverInstances()
 import SeCaV ( Fm(..), Tm(..) )
 import Set ( Set(Set, Coset) )
@@ -28,7 +28,7 @@ data Rule
   | RExt
   deriving (Show)
 
-convertRule :: Prule -> Rule
+convertRule :: PseudoRule -> Rule
 convertRule Basic = RBasic
 convertRule AlphaDis = RAlphaDis
 convertRule AlphaImp = RAlphaImp
@@ -45,7 +45,7 @@ convertRule Rotate = RExt
 convertRule Duplicate = RExt
 convertRule Next = RExt
 
-nextSurgery :: Tree (([Fm], Phase), Prule) -> Tree (([Fm], Phase), Prule)
+nextSurgery :: Tree (([Fm], Phase), PseudoRule) -> Tree (([Fm], Phase), PseudoRule)
 nextSurgery node@(Node _ (Abs_fset (Set []))) = node
 nextSurgery (Node ((_, _), Next) (Abs_fset (Set [node@(Node ((_, _), _) (Abs_fset (Set [])))]))) = node
 nextSurgery (Node ((_, _), Next) (Abs_fset (Set [Node ((ns, np), nr) (Abs_fset (Set [current]))]))) =
@@ -57,7 +57,7 @@ nextSurgery (Node s (Abs_fset (Set [current, next]))) = Node s (Abs_fset (Set [n
 nextSurgery (Node _ (Abs_fset (Set (_ : _ : _ : _)))) = error "No proof rule should generate more than two branches."
 nextSurgery (Node _ (Abs_fset (Coset _))) = error "No proof rule should generate a coset of branches."
 
-gammaSurgery :: Tree (([Fm], Phase), Prule) -> Tree (([Fm], Phase), Rule)
+gammaSurgery :: Tree (([Fm], Phase), PseudoRule) -> Tree (([Fm], Phase), Rule)
 gammaSurgery (Node ((sequent, phase@(PInstGamma _ _ (t : _) _)), GammaExi) (Abs_fset (Set []))) =
   Node ((sequent, phase), RGammaExi t) (Abs_fset (Set []))
 gammaSurgery (Node ((sequent, phase@(PInstGamma _ _ (t : _) _)), GammaExi) (Abs_fset (Set [current]))) =

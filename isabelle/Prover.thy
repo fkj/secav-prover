@@ -264,7 +264,7 @@ datatype phase = PBasic | PABD | PPreGamma nat \<open>tm list\<close> | PInstGam
 
 type_synonym psequent = \<open>sequent \<times> phase\<close>
 
-datatype prule = Basic
+datatype PseudoRule = Basic
   | AlphaDis | AlphaImp  | AlphaCon
   | BetaCon | BetaImp | BetaDis
   | DeltaUni | DeltaExi
@@ -360,7 +360,7 @@ fun branchDone :: \<open>sequent \<Rightarrow> bool\<close> where
 *)
 
 (* this takes a while to check *)
-fun peff' :: \<open>prule \<Rightarrow> psequent \<Rightarrow> psequent fset option\<close> where
+fun peff' :: \<open>PseudoRule \<Rightarrow> psequent \<Rightarrow> psequent fset option\<close> where
 (* Basic phase *)
 (* The Basic rule is only enabled if it completes the proof branch *)
   \<open>peff' Basic ((p # z), PBasic) = (if Neg p \<in> set z then Some {||} else None)\<close>
