@@ -7,9 +7,8 @@ import Distribution.TestSuite
     TestInstance (TestInstance, name, options, run, setOption, tags),
   )
 import IsabelleGenerator (genFile)
-import Parser (parser)
 import ProofExtractor (extract, gammaSurgery)
-import ProofParser (parser)
+import ProofParser (programParser, sequentParser)
 import SeCaVGenerator (genInit)
 import Prover (secavProver)
 import System.Directory
@@ -54,14 +53,14 @@ performTest testDir f = do
   copyFile "isabelle/SeCaV.thy" $ testDir <> "/SeCaV.thy"
   copyFile "test/ROOT" $ testDir <> "/ROOT"
 
-  let parse = Parser.parser f
+  let parse = sequentParser f
   case parse of
     Left e -> pure $ Fail $ show e
     Right fm -> do
       let (formula, names) = genInit fm
       let proofTree = secavProver formula
       let shortProof = extract names (gammaSurgery proofTree)
-      let proofParse = ProofParser.parser shortProof
+      let proofParse = programParser shortProof
       case proofParse of
         Left e -> pure $ Fail $ show e
         Right proofAst -> do

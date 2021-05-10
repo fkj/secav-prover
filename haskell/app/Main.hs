@@ -1,12 +1,11 @@
 module Main where
 
-import Parser
 import SeCaVGenerator
 import ProofExtractor
 import Prover
 
 import Options.Applicative
-import qualified ProofParser
+import ProofParser
 import IsabelleGenerator (genFile)
 import System.FilePath (takeBaseName)
 
@@ -34,15 +33,15 @@ main = run =<< execParser opts
 
 run :: Arguments -> IO ()
 run (Arguments f i) =
-  case parser f of
+  case sequentParser f of
     Left e -> print e
     Right s ->
       let (formulas, names) = genInit s in
-        let proof = secavProver formulas in
-          let shortProof = extract names $ extSurgery $ gammaSurgery $ nextSurgery proof in
+        let proofTree = secavProver formulas in
+          let shortProof = extract names $ extSurgery $ gammaSurgery $ nextSurgery proofTree in
             case i of
               Just file ->
-                let parse = ProofParser.parser shortProof in
+                let parse = programParser shortProof in
                   case parse of
                     Left e -> print e
                     Right ast ->

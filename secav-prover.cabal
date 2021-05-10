@@ -35,8 +35,6 @@ library prover
 library interface
   exposed-modules:     Instances
                      , AST
-                     , Lexer
-                     , Parser
                      , SeCaVGenerator
                      , ProofExtractor
                      , ProofLexer

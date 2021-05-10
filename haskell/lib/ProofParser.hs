@@ -69,6 +69,10 @@ formula = fix allFormulas
       , m_parens formula
       ] <?> "a formula"
 
+
+sequent :: SParser [Formula]
+sequent = m_commaSep1 formula
+
 -- Parsing of proof rules
 basic :: SParser PRule
 basic = do
@@ -203,5 +207,8 @@ program = do
   t <- many intertext
   pure $ Program (first:l) t
 
-parser :: String -> Either ParseError Program
-parser = parse (m_whiteSpace *> program <* eof) ""
+programParser :: String -> Either ParseError Program
+programParser = parse (m_whiteSpace *> program <* eof) ""
+
+sequentParser :: String -> Either ParseError [Formula]
+sequentParser = parse (m_whiteSpace *> sequent <* eof) ""
