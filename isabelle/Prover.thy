@@ -60,25 +60,29 @@ primrec flatten :: \<open>'a list list \<Rightarrow> 'a list\<close> where
   \<open>flatten [] = []\<close>
 | \<open>flatten (l # ls) = l @ flatten ls\<close>
 
-(* It is not necessary to add bound variables to the list of terms to instantiate with *)
 text \<open>subtermTm returns a list of all terms occurring within a term\<close>
-fun subtermTm :: \<open>tm \<Rightarrow> tm list\<close> where
-  \<open>subtermTm (Fun n ts) = (Fun n ts) # (remdups (flatten (map subtermTm ts)))\<close>
-| \<open>subtermTm (Var n) = [Var n]\<close>
+fun subtermTm :: \<open>nat \<Rightarrow> tm \<Rightarrow> tm list\<close> where
+  \<open>subtermTm q (Fun n ts) = (Fun n ts) # (remdups (flatten (map (subtermTm q) ts)))\<close>
+| \<open>subtermTm q (Var n) = (if n \<ge> q then [Var n] else [])\<close>
 
 text \<open>subtermFm returns a list of all terms occurring within a formula\<close>
-fun subtermFm :: \<open>fm \<Rightarrow> tm list\<close> where
-  \<open>subtermFm (Pre _ ts) = remdups (flatten (map subtermTm ts))\<close>
-| \<open>subtermFm (Imp f1 f2) = remdups (subtermFm f1 @ subtermFm f2)\<close>
-| \<open>subtermFm (Dis f1 f2) = remdups (subtermFm f1 @ subtermFm f2)\<close>
-| \<open>subtermFm (Con f1 f2) = remdups (subtermFm f1 @ subtermFm f2)\<close>
-| \<open>subtermFm (Exi f) = subtermFm f\<close>
-| \<open>subtermFm (Uni f) = subtermFm f\<close>
-| \<open>subtermFm (Neg f) = subtermFm f\<close>
+fun subtermFm :: \<open>nat \<Rightarrow> fm \<Rightarrow> tm list\<close> where
+  \<open>subtermFm q (Pre _ ts) = remdups (flatten (map (subtermTm q) ts))\<close>
+| \<open>subtermFm q (Imp f1 f2) = remdups (subtermFm q f1 @ subtermFm q f2)\<close>
+| \<open>subtermFm q (Dis f1 f2) = remdups (subtermFm q f1 @ subtermFm q f2)\<close>
+| \<open>subtermFm q (Con f1 f2) = remdups (subtermFm q f1 @ subtermFm q f2)\<close>
+| \<open>subtermFm q (Exi f) = subtermFm (q + 1) f\<close>
+| \<open>subtermFm q (Uni f) = subtermFm (q + 1) f\<close>
+| \<open>subtermFm q (Neg f) = subtermFm q f\<close>
 
-text \<open>subterms returns a list of all terms occurring within a sequent\<close>
+text \<open>subterms returns a list of all terms occurring within a sequent.
+      This is used to determine which terms to instantiate Gamma-formulas with.
+      We must always be able to instantiate Gamma-formulas, so if there are no terms in the sequent,
+      the function simply returns a list containing the first function.\<close>
 fun subterms :: \<open>sequent \<Rightarrow> tm list\<close> where
-\<open>subterms s = remdups (flatten (map subtermFm s))\<close>
+\<open>subterms s = (case remdups (flatten (map (subtermFm 0) s)) of
+                [] \<Rightarrow> [Fun 0 []]
+              | ts \<Rightarrow> ts)\<close>
 
 text \<open>We need to be able to detect when no further ABD-rules can be applied so we know when to end
       an ABD phase\<close>
