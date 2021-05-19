@@ -11,7 +11,7 @@ testcases =
   , ("extraCon", "Imp (Con p q) (Imp r (Con p r))")
   , ("bigCon", "Con (Con (Imp a a) (Imp b b)) (Con (Imp c c) (Imp d d))")
   , ("deMorganUni", "Imp (Neg (Uni p[0])) (Exi (Neg (p[0])))")
-  , ("deMorganExi", "Imp (Neg (Exi p[0])) (Exi (Neg (p[0])))")
+  , ("deMorganExi", "Imp (Neg (Exi p[0])) (Uni (Neg (p[0])))")
   , ("ex7.2a", "Imp (Con (Uni p[0]) (Uni q[0])) (Uni (Con p[0] q[0]))")
   , ("ex7.2b", "Imp (Uni (Imp p[0] q[0])) (Imp (Uni p[0]) (Uni q[0]))")
   , ("ex7.3a", "Con (Imp (Exi (Imp A[0] B[0])) (Imp (Uni A[0]) (Exi B[0]))) (Imp (Imp (Uni A[0]) (Exi B[0])) (Exi (Imp A[0] B[0])))")
