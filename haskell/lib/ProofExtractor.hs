@@ -240,20 +240,20 @@ extractFormula' (SeCaV.Neg f) = do
   pure $ "(Neg " <> form <> ")"
 
 extractRule :: Rule -> NameGen String
-extractRule RBasic = pure "Basic:"
-extractRule RAlphaDis = pure "AlphaDis:"
-extractRule RAlphaImp = pure "AlphaImp:"
-extractRule RAlphaCon = pure "AlphaCon:"
-extractRule RBetaCon = pure"BetaCon:"
-extractRule RBetaImp = pure "BetaImp:"
-extractRule RBetaDis = pure "BetaDis:"
+extractRule RBasic = pure "Basic"
+extractRule RAlphaDis = pure "AlphaDis"
+extractRule RAlphaImp = pure "AlphaImp"
+extractRule RAlphaCon = pure "AlphaCon"
+extractRule RBetaCon = pure"BetaCon"
+extractRule RBetaImp = pure "BetaImp"
+extractRule RBetaDis = pure "BetaDis"
 extractRule (RGammaUni t) = do
   termName <- extractTerm t
-  pure $ "GammaUni[" <> termName <> "]:"
+  pure $ "GammaUni[" <> termName <> "]"
 extractRule (RGammaExi t) = do
   termName <- extractTerm t
-  pure $ "GammaExi[" <> termName <> "]:"
-extractRule RDeltaUni = pure "DeltaUni:"
-extractRule RDeltaExi = pure "DeltaExi:"
-extractRule RNeg = pure "NegNeg:"
-extractRule RExt = pure "Ext:"
+  pure $ "GammaExi[" <> termName <> "]"
+extractRule RDeltaUni = pure "DeltaUni"
+extractRule RDeltaExi = pure "DeltaExi"
+extractRule RNeg = pure "NegNeg"
+extractRule RExt = pure "Ext"

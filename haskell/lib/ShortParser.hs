@@ -195,7 +195,6 @@ rule = fix allRules
 application :: SParser Application
 application = do
   r <- rule
-  mReservedOp ":"
   l <- many formula `sepBy` mReservedOp "+"
   pure $ Application r l
 
