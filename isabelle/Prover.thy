@@ -7,124 +7,20 @@ theory Prover
           "HOL-Library.Code_Lazy"
 begin
 
-section \<open>Rules\<close>
+section \<open>Datatypes\<close>
 
-text \<open>A proof state in SeCaV is a list of formulas (a sequent)\<close>
+text \<open>A sequent is a list of formulas\<close>
 type_synonym sequent = \<open>fm list\<close>
 
-text \<open>We now need to define what the rules do\<close>
-fun maxFunTm :: \<open>tm \<Rightarrow> nat\<close> where
-  \<open>maxFunTm (Fun n ts) = max n (foldl max 0 (map maxFunTm ts))\<close>
-| \<open>maxFunTm (Var n) = 0\<close>
-
-fun maxFun :: \<open>fm \<Rightarrow> nat\<close> where
-  \<open>maxFun (Pre n ts) = foldl max 0 (map maxFunTm ts)\<close>
-| \<open>maxFun (Imp f1 f2) = max (maxFun f1) (maxFun f2)\<close>
-| \<open>maxFun (Dis f1 f2) = max (maxFun f1) (maxFun f2)\<close>
-| \<open>maxFun (Con f1 f2) = max (maxFun f1) (maxFun f2)\<close>
-| \<open>maxFun (Exi f) = maxFun f\<close>
-| \<open>maxFun (Uni f) = maxFun f\<close>
-| \<open>maxFun (Neg f) = maxFun f\<close>
-
-fun generate_new :: \<open>fm \<Rightarrow> fm list \<Rightarrow> nat\<close> where
-\<open>generate_new p z = 1 + max (maxFun p) (foldl max 0 (map maxFun z))\<close>
-
-text \<open>It should be enough to instantiate gamma rules with existing terms, so we need to extract those\<close>
-primrec flatten :: \<open>'a list list \<Rightarrow> 'a list\<close> where
-  \<open>flatten [] = []\<close>
-| \<open>flatten (l # ls) = l @ flatten ls\<close>
-
-fun subterm_tm :: \<open>tm \<Rightarrow> tm list\<close> where
-  \<open>subterm_tm (Fun n ts) = (Fun n ts) # (remdups (flatten (map subterm_tm ts)))\<close>
-| \<open>subterm_tm (Var n) = [Var n]\<close>
-
-fun subterm_fm :: \<open>fm \<Rightarrow> tm list\<close> where
-  \<open>subterm_fm (Pre _ ts) = remdups (flatten (map subterm_tm ts))\<close>
-| \<open>subterm_fm (Imp f1 f2) = remdups (subterm_fm f1 @ subterm_fm f2)\<close>
-| \<open>subterm_fm (Dis f1 f2) = remdups (subterm_fm f1 @ subterm_fm f2)\<close>
-| \<open>subterm_fm (Con f1 f2) = remdups (subterm_fm f1 @ subterm_fm f2)\<close>
-| \<open>subterm_fm (Exi f) = subterm_fm f\<close>
-| \<open>subterm_fm (Uni f) = subterm_fm f\<close>
-| \<open>subterm_fm (Neg f) = subterm_fm f\<close>
-
-fun subterms :: \<open>sequent \<Rightarrow> tm list\<close> where
-\<open>subterms s = remdups (flatten (map subterm_fm s))\<close>
-
-(*
-
-Algorithm 7.40 adapted for SeCaV:
-
-A proof tree is a tree where each node is labeled by a sequent consisting of a list of formulas.
-
-Initially, the proof tree consists of a single node, the root, labeled with the formula we wish to prove.
-
-The proof tree is built by repeatedly selecting the left-most open branch of the tree, labeled with
-the list of formulas \<Gamma>, and applying the first applicable rule in the following list:
-
-* If \<Gamma> contains a complementary pair, use the Basic rule to close the branch
-* If \<Gamma> is not a set of literals, choose the first formula A in \<Gamma>
-  - If A is an \<alpha>-formula, create a new node l' on the branch and label it with
-         (\<Gamma> - A) \<union> {\<alpha>\<^sub>1, \<alpha>\<^sub>2}
-    (we treat the Neg rule as an \<alpha>-rule with no \<alpha>\<^sub>2)
-
-  - If A is a \<beta>-formula, create two new nodes l' and l'' on the branch and label them with
-     \<Gamma>' = (\<Gamma> - A) \<union> {\<beta>\<^sub>1}
-    \<Gamma>'' = (\<Gamma> - A) \<union> {\<beta>\<^sub>2}
-
-  - If A is a \<delta>-formula, create a new node l' on the branch and label it with
-         \<Gamma>' = (\<Gamma> - A) \<union> {sub 0 a' A}
-    where a' is some constant that does not appear in \<Gamma> 
-
-  - Let {\<gamma>\<^sub>1, ..., \<gamma>\<^sub>m} \<in> \<Gamma> be all of the \<gamma>-formulas in \<Gamma>.
-    Let {c\<^sub>1, ..., c\<^sub>k} be all of the constants appearing in \<Gamma>.
-    Create a new node l' on the branch and label it with
-         \<Gamma>' = \<Gamma> \<union> {\<Union>\<^sub>i\<^sub>=\<^sub>1\<^sup>m \<Union>\<^sub>j\<^sub>=\<^sub>1\<^sup>k sub 0 c\<^sub>j \<gamma>\<^sub>i}
-    However, if \<Gamma> consists only of literals and \<gamma>-formulas and if \<Gamma>' as constructed would be the
-    same as \<Gamma>, do not create node l', and instead mark the branch as open.
-
-Using meta-rules:
-
-- Basic:
-  - Applies Basic, ExtRotate until we have applied Basic to every formula in the sequent
-  - After this we know that no Basic rules can be applied to any formula
-
-- ABD:
-  - For each formula in the sequent:
-     - While any Alpha, Beta or Delta rule can be applied:
-        - Tries to apply an Alpha rule - if this succeeds, it also applies a MBasic rule
-        - Tries to apply a Beta rule - if this succeeds, it also applies a MBasic rule
-        - Tries to apply a Delta rule - if this succeeds, it also applies a MBasic rule
-  - After this we know that no Basic, Alpha, Beta or Delta rules can be applied to any formula
-
-- Gamma:
-  - For each formula in the sequent:
-     - For each term in the sequent:
-        - Tries to apply a Gamma rule instantiated with the current term
-
-Then the rule stream goes: Basic, ABD, Gamma, \<dots>
-
-*)
-
-(*
-  We model this algorithm by keeping track of the current phase in the proof state.
-  The phase is not necessary for the actual proof, only for the search procedure.
-  We introduce a new pseudo-rule Next which advances the phase, but is not part of the actual proof.
-
-  Additionally, we collect all Gamma-rule applications into a single meta-rule called Gamma.
-  This is necessary because we do not have term information at hand when constructing the rule stream.
-  The Gamma meta-rule applies Gamma-rules instantiated with all existing terms to all Gamma-formulas.
-
-  We also introduce the pseudo-rule Rotate, which is just a special case of the Ext rule, in that it
-  moves the first formula in a sequent to the end.
-  Multiple applications of Rotate following each other can be collapsed to a single application of
-  the Ext rule.
-*)
-
+text \<open>Our prover will work in a number of phases, which we define here and explain later\<close>
 datatype phase = PBasic | PABD | PPreGamma nat \<open>tm list\<close> | PInstGamma nat \<open>tm list\<close> \<open>tm list\<close> bool
 
-type_synonym psequent = \<open>sequent \<times> phase\<close>
+text \<open>A proof state is a pair containing a sequent and a phase\<close>
+type_synonym state = \<open>sequent \<times> phase\<close>
 
-datatype PseudoRule = Basic
+text \<open>We introduce a number of pseudo-rules to move between proof states\<close>
+datatype PseudoRule =
+    Basic
   | AlphaDis | AlphaImp  | AlphaCon
   | BetaCon | BetaImp | BetaDis
   | DeltaUni | DeltaExi
@@ -134,32 +30,55 @@ datatype PseudoRule = Basic
   | Duplicate
   | Next
 
-(*
-Ideas/questions:
+section \<open>Auxiliary functions\<close>
 
-integrate Gamma instantiation terms into state so we know when we are done trying the actual terms
-and can go on to trying the infinite stream of all terms
- - A Gamma phase should apply every term to every Gamma formula if there are any terms
- - If there are no terms left, we can move on to the infinite stream of all terms
+text \<open>
+Before defining what the rules do, we need to define a number of auxiliary functions needed for the
+semantics of the rules.\<close>
 
-Is it necessary to do a "full rotation" of Basic rules after every successful ABD rule?
- - For shorter proofs this is best, and we also know this to be complete from Ben-Ari's book
-How can this be done?
- - We just transition back to the Basic phase after each successful application of an ABD-rule
+text \<open>maxFunTm is the largest de Bruijn index used for functions in a term\<close>
+fun maxFunTm :: \<open>tm \<Rightarrow> nat\<close> where
+  \<open>maxFunTm (Fun n ts) = max n (foldl max 0 (map maxFunTm ts))\<close>
+| \<open>maxFunTm (Var n) = 0\<close>
 
-How do we know when to advance phase with the Next rule?
-Is it necessary to keep other state than the current phase and sequent?
- - Yes, we probably need to keep track of the progress through the sequent so we know when we have gone through all formulas in it for the Basic step
- - For the ABD-phase, we advance when there are no more ABD-formulas left
- - For the Gamma-phase we advance when all terms have been applied to every formula (progress needed again)
- - We introduce a counter on the Basic and Gamma phases to keep track of how many formulas are left
- - We initially set the phase counter to the length of the sequent, then count down for every application of Rotate
- - When the phase counter hits 0, we disable every other rule and enable the Next rule
+text \<open>maxFun is the largest de Bruijn index used for functions in a formula\<close>
+fun maxFun :: \<open>fm \<Rightarrow> nat\<close> where
+  \<open>maxFun (Pre n ts) = foldl max 0 (map maxFunTm ts)\<close>
+| \<open>maxFun (Imp f1 f2) = max (maxFun f1) (maxFun f2)\<close>
+| \<open>maxFun (Dis f1 f2) = max (maxFun f1) (maxFun f2)\<close>
+| \<open>maxFun (Con f1 f2) = max (maxFun f1) (maxFun f2)\<close>
+| \<open>maxFun (Exi f) = maxFun f\<close>
+| \<open>maxFun (Uni f) = maxFun f\<close>
+| \<open>maxFun (Neg f) = maxFun f\<close>
 
-In the ABD phase, how do we know when to move to the next formula? (e.g. when is Rotate allowed?)
- - When the current formula is not an ABD-formula
+text \<open>generateNew uses the maxFun function to obtain a fresh function index\<close>
+fun generateNew :: \<open>fm \<Rightarrow> fm list \<Rightarrow> nat\<close> where
+\<open>generateNew p z = 1 + max (maxFun p) (foldl max 0 (map maxFun z))\<close>
 
-*)
+text \<open>This function simply flattens a list of lists into a list\<close>
+primrec flatten :: \<open>'a list list \<Rightarrow> 'a list\<close> where
+  \<open>flatten [] = []\<close>
+| \<open>flatten (l # ls) = l @ flatten ls\<close>
+
+(* It is not necessary to add bound variables to the list of terms to instantiate with *)
+text \<open>subtermTm returns a list of all terms occurring within a term\<close>
+fun subtermTm :: \<open>tm \<Rightarrow> tm list\<close> where
+  \<open>subtermTm (Fun n ts) = (Fun n ts) # (remdups (flatten (map subtermTm ts)))\<close>
+| \<open>subtermTm (Var n) = [Var n]\<close>
+
+text \<open>subtermFm returns a list of all terms occurring within a formula\<close>
+fun subtermFm :: \<open>fm \<Rightarrow> tm list\<close> where
+  \<open>subtermFm (Pre _ ts) = remdups (flatten (map subtermTm ts))\<close>
+| \<open>subtermFm (Imp f1 f2) = remdups (subtermFm f1 @ subtermFm f2)\<close>
+| \<open>subtermFm (Dis f1 f2) = remdups (subtermFm f1 @ subtermFm f2)\<close>
+| \<open>subtermFm (Con f1 f2) = remdups (subtermFm f1 @ subtermFm f2)\<close>
+| \<open>subtermFm (Exi f) = subtermFm f\<close>
+| \<open>subtermFm (Uni f) = subtermFm f\<close>
+| \<open>subtermFm (Neg f) = subtermFm f\<close>
+
+text \<open>subterms returns a list of all terms occurring within a sequent\<close>
+fun subterms :: \<open>sequent \<Rightarrow> tm list\<close> where
+\<open>subterms s = remdups (flatten (map subtermFm s))\<close>
 
 text \<open>We need to be able to detect when no further ABD-rules can be applied so we know when to end
       an ABD phase\<close>
@@ -176,6 +95,8 @@ fun abdDone :: \<open>sequent \<Rightarrow> bool\<close> where
 | \<open>abdDone (_ # z) = abdDone z\<close>
 | \<open>abdDone [] = True\<close>
 
+text \<open>We need to be able to detect if a branch can be closed by the Basic rule so we know whether
+to do anything in a Basic phase or just skip it.\<close>
 fun branchDone :: \<open>sequent \<Rightarrow> bool\<close> where
   \<open>branchDone [] = False\<close>
 | \<open>branchDone (Neg p # z) = (p \<in> set z \<or> branchDone z)\<close>
@@ -219,113 +140,127 @@ fun branchDone :: \<open>sequent \<Rightarrow> bool\<close> where
   
 *)
 
+section \<open>Semantics of pseudo-rules\<close>
+
 (* this takes a while to check *)
-fun peff' :: \<open>PseudoRule \<Rightarrow> psequent \<Rightarrow> psequent fset option\<close> where
+text \<open>The effect function specifies the semantics of each pseudo-rule\<close>
+fun effect :: \<open>PseudoRule \<Rightarrow> state \<Rightarrow> state fset option\<close> where
 (* Basic phase *)
 (* The Basic rule is only enabled if it completes the proof branch *)
-  \<open>peff' Basic ((p # z), PBasic) = (if Neg p \<in> set z then Some {||} else None)\<close>
+  \<open>effect Basic ((p # z), PBasic) = (if Neg p \<in> set z then Some {||} else None)\<close>
 (* Empty sequents are unprovable, so we just disable the rule *)
-| \<open>peff' Basic ([], PBasic) = None\<close>
-| \<open>peff' Basic (_, _) = None\<close>
+| \<open>effect Basic ([], PBasic) = None\<close>
+| \<open>effect Basic (_, _) = None\<close>
 (* The Rotate pseudo-rule is only enabled if the Basic rule will eventually become enabled by rotating *)
 (* It moves the first formula to the end of the sequent *)
-| \<open>peff' Rotate ((p # z), PBasic) = (if branchDone (p # z) \<and> Neg p \<notin> set z then Some {| (z @ [p], PBasic) |} else None)\<close>
+| \<open>effect Rotate ((p # z), PBasic) = (if branchDone (p # z) \<and> Neg p \<notin> set z then Some {| (z @ [p], PBasic) |} else None)\<close>
 (* Empty sequents are unprovable, so we just disable the rule *)
-| \<open>peff' Rotate ([], _) = None\<close>
+| \<open>effect Rotate ([], _) = None\<close>
 (* The Next pseudo-rule advances to an ABD phase if the Basic rule can not be applied even after rotations *)
 (* The rule is disabled if it is possible to end the branch here *)
-| \<open>peff' Next (s, PBasic) = (if branchDone s then None else Some {| (s, PABD) |})\<close>
+| \<open>effect Next (s, PBasic) = (if branchDone s then None else Some {| (s, PABD) |})\<close>
 (* ABD phase *)
 (* Each ABD rule is enabled if the current first formula matches its pattern and disabled otherwise*)
 (* The ABD rule patterns are all mutually exclusive, so the order does not matter *)
 (* After each ABD rule we move back to the Basic phase to check whether we are done with the proof branch *) 
-| \<open>peff' AlphaDis ((Dis p q # z), PABD) = Some {| (p # q # z, PBasic) |}\<close>
-| \<open>peff' AlphaDis (_,_) = None\<close>
-| \<open>peff' AlphaImp ((Imp p q # z), PABD) = Some {| (Neg p # q # z, PBasic) |}\<close>
-| \<open>peff' AlphaImp (_,_) = None\<close>
-| \<open>peff' AlphaCon ((Neg (Con p q) # z), PABD) = Some {| (Neg p # Neg q # z, PBasic) |}\<close>
-| \<open>peff' AlphaCon (_,_) = None\<close>
-| \<open>peff' BetaCon ((Con p q # z), PABD) = Some {| (p # z, PBasic) , (q # z, PBasic) |}\<close>
-| \<open>peff' BetaCon (_,_) = None\<close>
-| \<open>peff' BetaImp ((Neg (Imp p q) # z), PABD) = Some {| (p # z, PBasic) , (Neg q # z, PBasic) |}\<close>
-| \<open>peff' BetaImp (_,_) = None\<close>
-| \<open>peff' BetaDis ((Neg (Dis p q) # z), PABD) = Some {| (Neg p # z, PBasic), (Neg q # z, PBasic) |}\<close>
-| \<open>peff' BetaDis (_,_) = None\<close>
-| \<open>peff' DeltaUni ((Uni p # z), PABD) = Some {| (sub 0 (Fun (generate_new p z) []) p # z, PBasic) |}\<close>
-| \<open>peff' DeltaUni (_,_) = None\<close>
-| \<open>peff' DeltaExi ((Neg (Exi p) # z), PABD) = Some {| (Neg (sub 0 (Fun (generate_new p z) []) p) # z, PBasic) |}\<close>
-| \<open>peff' DeltaExi (_,_) = None\<close>
-| \<open>peff' NegNeg ((Neg (Neg p) # z), PABD) = Some {| (p # z, PBasic) |}\<close>
-| \<open>peff' NegNeg (_,_) = None\<close>
+| \<open>effect AlphaDis ((Dis p q # z), PABD) = Some {| (p # q # z, PBasic) |}\<close>
+| \<open>effect AlphaDis (_,_) = None\<close>
+| \<open>effect AlphaImp ((Imp p q # z), PABD) = Some {| (Neg p # q # z, PBasic) |}\<close>
+| \<open>effect AlphaImp (_,_) = None\<close>
+| \<open>effect AlphaCon ((Neg (Con p q) # z), PABD) = Some {| (Neg p # Neg q # z, PBasic) |}\<close>
+| \<open>effect AlphaCon (_,_) = None\<close>
+| \<open>effect BetaCon ((Con p q # z), PABD) = Some {| (p # z, PBasic) , (q # z, PBasic) |}\<close>
+| \<open>effect BetaCon (_,_) = None\<close>
+| \<open>effect BetaImp ((Neg (Imp p q) # z), PABD) = Some {| (p # z, PBasic) , (Neg q # z, PBasic) |}\<close>
+| \<open>effect BetaImp (_,_) = None\<close>
+| \<open>effect BetaDis ((Neg (Dis p q) # z), PABD) = Some {| (Neg p # z, PBasic), (Neg q # z, PBasic) |}\<close>
+| \<open>effect BetaDis (_,_) = None\<close>
+| \<open>effect DeltaUni ((Uni p # z), PABD) = Some {| (sub 0 (Fun (generateNew p z) []) p # z, PBasic) |}\<close>
+| \<open>effect DeltaUni (_,_) = None\<close>
+| \<open>effect DeltaExi ((Neg (Exi p) # z), PABD) = Some {| (Neg (sub 0 (Fun (generateNew p z) []) p) # z, PBasic) |}\<close>
+| \<open>effect DeltaExi (_,_) = None\<close>
+| \<open>effect NegNeg ((Neg (Neg p) # z), PABD) = Some {| (p # z, PBasic) |}\<close>
+| \<open>effect NegNeg (_,_) = None\<close>
 (* The Rotate pseudo-rule is enabled if none of the ABD rules match the current first formula, but some other formulas do *)
 (* It is disabled if no more ABD rules match anywhere in the sequent, as computed by the predicate abdDone *)
 (* It is also disabled if any ABD rule matches the current first formula, which can be computed by the abdDone predicate with the "sequent" consisting only of p *)
 (* The pseudo-rule simply moves the first formula to the end of the sequent *)
-| \<open>peff' Rotate (p # z, PABD) = (if abdDone (p # z) then None else
+| \<open>effect Rotate (p # z, PABD) = (if abdDone (p # z) then None else
                                     (if abdDone [p] then Some {| (z @ [p], PABD) |} else None))\<close>
 (* The Next pseudo-rule advances to a Gamma phase if no more ABD rules can be applied to the sequent, as computed by the predicate abdDone *)
 (* When we advance, we start off with the length of the sequent as fuel count and put the current existing terms into the state as well *)
 (* The rule is disabled as long as it is still possible to apply an ABD rule somewhere in the sequent *)
-| \<open>peff' Next (s, PABD) = (if abdDone s then Some {| (s, PPreGamma (length s) (subterms s)) |} else None)\<close>
+| \<open>effect Next (s, PABD) = (if abdDone s then Some {| (s, PPreGamma (length s) (subterms s)) |} else None)\<close>
 (* PreGamma phase *)
-| \<open>peff' Rotate ((Exi p) # _, PPreGamma _ _ ) = None\<close>
-| \<open>peff' Rotate ((Neg (Uni p)) # _, PPreGamma _ _) = None\<close>
-| \<open>peff' Rotate (p # z, PPreGamma n ts) = (if n = 0 then None else Some {| (z @ [p], PPreGamma (n - 1) ts) |})\<close>
-| \<open>peff' Duplicate ((Exi p) # z, PPreGamma n ts) = (if n = 0 then None else Some {| (replicate (length ts) (Exi p) @ z @ [Exi p], PInstGamma n ts ts False) |})\<close>
-| \<open>peff' Duplicate ((Neg (Uni p)) # z, PPreGamma n ts) = (if n = 0 then None else Some {| (replicate (length ts) (Neg (Uni p)) @ z @ [Neg (Uni p)], PInstGamma n ts ts False) |})\<close>
-| \<open>peff' Duplicate _ = None\<close>
-| \<open>peff' Next (s, PPreGamma n _) = (if n = 0 then Some {| (s, PBasic) |} else None)\<close>
+| \<open>effect Rotate ((Exi p) # _, PPreGamma _ _ ) = None\<close>
+| \<open>effect Rotate ((Neg (Uni p)) # _, PPreGamma _ _) = None\<close>
+| \<open>effect Rotate (p # z, PPreGamma n ts) = (if n = 0 then None else Some {| (z @ [p], PPreGamma (n - 1) ts) |})\<close>
+| \<open>effect Duplicate ((Exi p) # z, PPreGamma n ts) = (if n = 0 then None else Some {| (replicate (length ts) (Exi p) @ z @ [Exi p], PInstGamma n ts ts False) |})\<close>
+| \<open>effect Duplicate ((Neg (Uni p)) # z, PPreGamma n ts) = (if n = 0 then None else Some {| (replicate (length ts) (Neg (Uni p)) @ z @ [Neg (Uni p)], PInstGamma n ts ts False) |})\<close>
+| \<open>effect Duplicate _ = None\<close>
+| \<open>effect Next (s, PPreGamma n _) = (if n = 0 then Some {| (s, PBasic) |} else None)\<close>
 (* InstGamma phase *)
 (* The bool is used to know whether we have just instantiated and need to rotate (true) or need to instantiate (false) *)
-| \<open>peff' Rotate (p # z, PInstGamma n ots ts True) = Some {| (z @ [p], PInstGamma n ots ts False) |}\<close>
-| \<open>peff' Rotate (_, PInstGamma _ _ _ False) = None\<close>
-| \<open>peff' GammaExi (Exi p # z, PInstGamma n ots (t # ts) False) = Some {| (sub 0 t p # z, PInstGamma n ots ts True) |}\<close>
-| \<open>peff' GammaExi (_, _) = None\<close>
-| \<open>peff' GammaUni (Neg (Uni p) # z, PInstGamma n ots (t # ts) False) = Some {| (Neg (sub 0 t p) # z, PInstGamma n ots ts True) |}\<close>
-| \<open>peff' GammaUni (_, _) = None\<close>
-| \<open>peff' Next (s, PInstGamma n ots [] False) = Some {| (s, PPreGamma (n - 1) ots) |}\<close>
-| \<open>peff' Next (_, PInstGamma _ _ _ _) = None\<close>
+| \<open>effect Rotate (p # z, PInstGamma n ots ts True) = Some {| (z @ [p], PInstGamma n ots ts False) |}\<close>
+| \<open>effect Rotate (_, PInstGamma _ _ _ False) = None\<close>
+| \<open>effect GammaExi (Exi p # z, PInstGamma n ots (t # ts) False) = Some {| (sub 0 t p # z, PInstGamma n ots ts True) |}\<close>
+| \<open>effect GammaExi (_, _) = None\<close>
+| \<open>effect GammaUni (Neg (Uni p) # z, PInstGamma n ots (t # ts) False) = Some {| (Neg (sub 0 t p) # z, PInstGamma n ots ts True) |}\<close>
+| \<open>effect GammaUni (_, _) = None\<close>
+| \<open>effect Next (s, PInstGamma n ots [] False) = Some {| (s, PPreGamma (n - 1) ots) |}\<close>
+| \<open>effect Next (_, PInstGamma _ _ _ _) = None\<close>
 
-text \<open>Then the rule stream is just all rules in any order (since the actual order is enforced by the effect relation):\<close>
-definition rules where
-  \<open>rules = cycle [
-      Basic,
+section \<open>The rules to apply\<close>
+
+text \<open>Then the rule stream is just all rules in any order (since the actual order is enforced by the effect relation).\<close>
+definition rulesList where
+  \<open>rulesList = [ Basic,
       AlphaDis, AlphaImp, AlphaCon, BetaCon, BetaImp, BetaDis, DeltaUni, DeltaExi, NegNeg,
       GammaExi, GammaUni,
       Rotate, Duplicate, Next]\<close>
 
-section \<open>Completeness\<close>
+text \<open>By cycling the list of all rules we obtain an infinite stream with every rule occurring
+infinitely often.\<close>
+definition rules where
+  \<open>rules = cycle rulesList\<close>
 
-interpretation RuleSystem \<open>\<lambda>r s ss. peff' r s = Some ss\<close> rules UNIV
+section \<open>Abstract completeness\<close>
+
+interpretation RuleSystem \<open>\<lambda>r s ss. effect r s = Some ss\<close> rules UNIV
   unfolding rules_def RuleSystem_def
   sorry
 
-interpretation PersistentRuleSystem \<open>\<lambda> r s ss. peff' r s = Some ss\<close> rules UNIV
+interpretation PersistentRuleSystem \<open>\<lambda> r s ss. effect r s = Some ss\<close> rules UNIV
   unfolding rules_def PersistentRuleSystem_def RuleSystem_def PersistentRuleSystem_axioms_def
   sorry
 
-definition \<open>rho \<equiv> i.fenum rules\<close>
-definition \<open>secavTree \<equiv> i.mkTree peff' rho\<close>
-definition \<open>secavProver \<equiv> \<lambda>x . secavTree (x, PBasic)\<close>
-
 lemma tree_completeness:
-  assumes \<open>s \<in> (UNIV :: fm list set)\<close>
+  assumes \<open>s \<in> (UNIV :: sequent set)\<close>
   shows
     \<open>(\<exists> t. fst (fst (root t)) = s \<and> wf t \<and> tfinite t) \<or>
       (\<exists> steps. fst (fst (shd steps)) = s \<and> epath steps \<and> Saturated steps)\<close>
   using epath_completeness_Saturated fstI by fastforce
 
 
-section \<open>Soundness\<close>
+section \<open>The prover function\<close>
 
-fun ssemantics :: \<open>(nat \<Rightarrow> 'a) \<times> (nat \<Rightarrow> 'a list \<Rightarrow> 'a) \<times> (nat \<Rightarrow> 'a list \<Rightarrow> bool) \<Rightarrow> psequent \<Rightarrow> bool\<close>
+definition \<open>rho \<equiv> i.fenum rules\<close>
+definition \<open>secavTree \<equiv> i.mkTree effect rho\<close>
+definition \<open>secavProver \<equiv> \<lambda>x . secavTree (x, PBasic)\<close>
+
+
+section \<open>Soundness of the prover\<close>
+
+fun ssemantics :: \<open>(nat \<Rightarrow> 'a) \<times> (nat \<Rightarrow> 'a list \<Rightarrow> 'a) \<times> (nat \<Rightarrow> 'a list \<Rightarrow> bool) \<Rightarrow> state \<Rightarrow> bool\<close>
   where
   \<open>ssemantics (e,f,g) ([],_) = False\<close>
 | \<open>ssemantics (e,f,g) ((p # z),phase) = (semantics e f g p \<or> ssemantics (e,f,g) (z,phase))\<close>
 
-interpretation Soundness \<open>\<lambda>r s ss. peff' r s = Some ss\<close> rules UNIV ssemantics
+interpretation Soundness \<open>\<lambda>r s ss. effect r s = Some ss\<close> rules UNIV ssemantics
   unfolding rules_def Soundness_def RuleSystem_def
   sorry
+
+section \<open>Completeness of the prover\<close>
 
 (*
 
@@ -339,6 +274,21 @@ theorem completeness:
   defines \<open>t \<equiv> secavProver [p]\<close>
   shows \<open>fst (fst (root t)) = [p] \<and> wf t \<and> tfinite t\<close>
   sorry
+
+(*
+
+If we have an escape path, we can obtain a countermodel which falsifies every sequent on the path <-- this is the hard part
+This contradicts soundness because \<tturnstile> [p] implies that every interpretation is a model, including the interpretation which is the countermodel obtained above.
+This means there cannot be an escape path, so by tree_completeness, we obtain the result.
+
+*)
+
+(*
+
+Make a function that checks if a tree is finite and turns it into an inductive tree if it is.
+Then the Haskell post-processing can be moved into Isabelle and maybe we can prove it sound.
+
+*)
 
 
 end
