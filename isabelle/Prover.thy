@@ -13,7 +13,7 @@ text \<open>A sequent is a list of formulas\<close>
 type_synonym sequent = \<open>fm list\<close>
 
 text \<open>Our prover will work in a number of phases, which we define here and explain later\<close>
-datatype phase = PBasic | PABD | PPreGamma nat \<open>tm list\<close> | PInstGamma nat \<open>tm list\<close> \<open>tm list\<close> bool
+datatype phase = PBasic | PABD | PPrepGamma nat \<open>tm list\<close> | PInstGamma nat \<open>tm list\<close> \<open>tm list\<close> bool
 
 text \<open>A proof state is a pair containing a sequent and a phase\<close>
 type_synonym state = \<open>sequent \<times> phase\<close>
@@ -163,9 +163,9 @@ fun effect :: \<open>PseudoRule \<Rightarrow> state \<Rightarrow> state fset opt
                            (p # z, PBasic) \<Rightarrow> (if branchDone (p # z) \<and> Neg p \<notin> set z then Some {| (z @ [p], PBasic) |} else None)
                          | (p # z, PABD) \<Rightarrow> (if abdDone (p # z) then None else
                                               (if abdDone [p] then Some {| (z @ [p], PABD) |} else None))
-                         | ((Exi p) # _, PPreGamma _ _) \<Rightarrow> None
-                         | ((Neg (Uni p)) # _, PPreGamma _ _) \<Rightarrow> None
-                         | (p # z, PPreGamma n ts) \<Rightarrow> (if n = 0 then None else Some {| (z @ [p], PPreGamma (n - 1) ts) |})
+                         | ((Exi p) # _, PPrepGamma _ _) \<Rightarrow> None
+                         | ((Neg (Uni p)) # _, PPrepGamma _ _) \<Rightarrow> None
+                         | (p # z, PPrepGamma n ts) \<Rightarrow> (if n = 0 then None else Some {| (z @ [p], PPrepGamma (n - 1) ts) |})
                          | (p # z, PInstGamma n ots ts True) \<Rightarrow> Some {| (z @ [p], PInstGamma n ots ts False) |}
                          | (_, PInstGamma _ _ _ False) \<Rightarrow> None
                          | ([], _) \<Rightarrow> None)\<close>
@@ -177,9 +177,9 @@ fun effect :: \<open>PseudoRule \<Rightarrow> state \<Rightarrow> state fset opt
 (* The rule is disabled as long as it is still possible to apply an ABD rule somewhere in the sequent *)
 | \<open>effect Next state = (case state of
                          (s, PBasic) \<Rightarrow> (if branchDone s then None else Some {| (s, PABD) |})
-                       | (s, PABD) \<Rightarrow> (if abdDone s then Some {| (s, PPreGamma (length s) (subterms s)) |} else None)
-                       | (s, PPreGamma n _) \<Rightarrow> (if n = 0 then Some {| (s, PBasic) |} else None)
-                       | (s, PInstGamma n ots [] False) \<Rightarrow> Some {| (s, PPreGamma (n - 1) ots) |}
+                       | (s, PABD) \<Rightarrow> (if abdDone s then Some {| (s, PPrepGamma (length s) (subterms s)) |} else None)
+                       | (s, PPrepGamma n _) \<Rightarrow> (if n = 0 then Some {| (s, PBasic) |} else None)
+                       | (s, PInstGamma n ots [] False) \<Rightarrow> Some {| (s, PPrepGamma (n - 1) ots) |}
                        | (_, PInstGamma _ _ _ _) \<Rightarrow> None)\<close>
 (* ABD phase *)
 (* Each ABD rule is enabled if the current first formula matches its pattern and disabled otherwise*)
@@ -214,8 +214,8 @@ fun effect :: \<open>PseudoRule \<Rightarrow> state \<Rightarrow> state fset opt
                          | (_, _) \<Rightarrow> None)\<close>
 (* PreGamma phase *)
 | \<open>effect Duplicate state = (case state of
-                              ((Exi p) # z, PPreGamma n ts) \<Rightarrow> (if n = 0 then None else Some {| (replicate (length ts) (Exi p) @ z @ [Exi p], PInstGamma n ts ts False) |})
-                            | ((Neg (Uni p)) # z, PPreGamma n ts) \<Rightarrow> (if n = 0 then None else Some {| (replicate (length ts) (Neg (Uni p)) @ z @ [Neg (Uni p)], PInstGamma n ts ts False) |})
+                              ((Exi p) # z, PPrepGamma n ts) \<Rightarrow> (if n = 0 then None else Some {| (replicate (length ts) (Exi p) @ z @ [Exi p], PInstGamma n ts ts False) |})
+                            | ((Neg (Uni p)) # z, PPrepGamma n ts) \<Rightarrow> (if n = 0 then None else Some {| (replicate (length ts) (Neg (Uni p)) @ z @ [Neg (Uni p)], PInstGamma n ts ts False) |})
                             | _ \<Rightarrow> None)\<close>
 (* InstGamma phase *)
 (* The bool is used to know whether we have just instantiated and need to rotate (true) or need to instantiate (false) *)
