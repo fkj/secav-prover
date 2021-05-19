@@ -147,68 +147,84 @@ text \<open>The effect function specifies the semantics of each pseudo-rule\<clo
 fun effect :: \<open>PseudoRule \<Rightarrow> state \<Rightarrow> state fset option\<close> where
 (* Basic phase *)
 (* The Basic rule is only enabled if it completes the proof branch *)
-  \<open>effect Basic ((p # z), PBasic) = (if Neg p \<in> set z then Some {||} else None)\<close>
-(* Empty sequents are unprovable, so we just disable the rule *)
-| \<open>effect Basic ([], PBasic) = None\<close>
-| \<open>effect Basic (_, _) = None\<close>
+  \<open>effect Basic state = (case state of
+                          ((p # z), PBasic) \<Rightarrow> (if Neg p \<in> set z then Some {||} else None)
+                        | (_, _) \<Rightarrow> None)\<close>
 (* The Rotate pseudo-rule is only enabled if the Basic rule will eventually become enabled by rotating *)
 (* It moves the first formula to the end of the sequent *)
-| \<open>effect Rotate ((p # z), PBasic) = (if branchDone (p # z) \<and> Neg p \<notin> set z then Some {| (z @ [p], PBasic) |} else None)\<close>
-(* Empty sequents are unprovable, so we just disable the rule *)
-| \<open>effect Rotate ([], _) = None\<close>
-(* The Next pseudo-rule advances to an ABD phase if the Basic rule can not be applied even after rotations *)
-(* The rule is disabled if it is possible to end the branch here *)
-| \<open>effect Next (s, PBasic) = (if branchDone s then None else Some {| (s, PABD) |})\<close>
-(* ABD phase *)
-(* Each ABD rule is enabled if the current first formula matches its pattern and disabled otherwise*)
-(* The ABD rule patterns are all mutually exclusive, so the order does not matter *)
-(* After each ABD rule we move back to the Basic phase to check whether we are done with the proof branch *) 
-| \<open>effect AlphaDis ((Dis p q # z), PABD) = Some {| (p # q # z, PBasic) |}\<close>
-| \<open>effect AlphaDis (_,_) = None\<close>
-| \<open>effect AlphaImp ((Imp p q # z), PABD) = Some {| (Neg p # q # z, PBasic) |}\<close>
-| \<open>effect AlphaImp (_,_) = None\<close>
-| \<open>effect AlphaCon ((Neg (Con p q) # z), PABD) = Some {| (Neg p # Neg q # z, PBasic) |}\<close>
-| \<open>effect AlphaCon (_,_) = None\<close>
-| \<open>effect BetaCon ((Con p q # z), PABD) = Some {| (p # z, PBasic) , (q # z, PBasic) |}\<close>
-| \<open>effect BetaCon (_,_) = None\<close>
-| \<open>effect BetaImp ((Neg (Imp p q) # z), PABD) = Some {| (p # z, PBasic) , (Neg q # z, PBasic) |}\<close>
-| \<open>effect BetaImp (_,_) = None\<close>
-| \<open>effect BetaDis ((Neg (Dis p q) # z), PABD) = Some {| (Neg p # z, PBasic), (Neg q # z, PBasic) |}\<close>
-| \<open>effect BetaDis (_,_) = None\<close>
-| \<open>effect DeltaUni ((Uni p # z), PABD) = Some {| (sub 0 (Fun (generateNew p z) []) p # z, PBasic) |}\<close>
-| \<open>effect DeltaUni (_,_) = None\<close>
-| \<open>effect DeltaExi ((Neg (Exi p) # z), PABD) = Some {| (Neg (sub 0 (Fun (generateNew p z) []) p) # z, PBasic) |}\<close>
-| \<open>effect DeltaExi (_,_) = None\<close>
-| \<open>effect NegNeg ((Neg (Neg p) # z), PABD) = Some {| (p # z, PBasic) |}\<close>
-| \<open>effect NegNeg (_,_) = None\<close>
+
 (* The Rotate pseudo-rule is enabled if none of the ABD rules match the current first formula, but some other formulas do *)
 (* It is disabled if no more ABD rules match anywhere in the sequent, as computed by the predicate abdDone *)
 (* It is also disabled if any ABD rule matches the current first formula, which can be computed by the abdDone predicate with the "sequent" consisting only of p *)
 (* The pseudo-rule simply moves the first formula to the end of the sequent *)
-| \<open>effect Rotate (p # z, PABD) = (if abdDone (p # z) then None else
-                                    (if abdDone [p] then Some {| (z @ [p], PABD) |} else None))\<close>
+
+(* Empty sequents are unprovable, so we just disable the rule *)
+| \<open>effect Rotate state = (case state of
+                           (p # z, PBasic) \<Rightarrow> (if branchDone (p # z) \<and> Neg p \<notin> set z then Some {| (z @ [p], PBasic) |} else None)
+                         | (p # z, PABD) \<Rightarrow> (if abdDone (p # z) then None else
+                                              (if abdDone [p] then Some {| (z @ [p], PABD) |} else None))
+                         | ((Exi p) # _, PPreGamma _ _) \<Rightarrow> None
+                         | ((Neg (Uni p)) # _, PPreGamma _ _) \<Rightarrow> None
+                         | (p # z, PPreGamma n ts) \<Rightarrow> (if n = 0 then None else Some {| (z @ [p], PPreGamma (n - 1) ts) |})
+                         | (p # z, PInstGamma n ots ts True) \<Rightarrow> Some {| (z @ [p], PInstGamma n ots ts False) |}
+                         | (_, PInstGamma _ _ _ False) \<Rightarrow> None
+                         | ([], _) \<Rightarrow> None)\<close>
+(* The Next pseudo-rule advances to an ABD phase if the Basic rule can not be applied even after rotations *)
+(* The rule is disabled if it is possible to end the branch here *)
+
 (* The Next pseudo-rule advances to a Gamma phase if no more ABD rules can be applied to the sequent, as computed by the predicate abdDone *)
 (* When we advance, we start off with the length of the sequent as fuel count and put the current existing terms into the state as well *)
 (* The rule is disabled as long as it is still possible to apply an ABD rule somewhere in the sequent *)
-| \<open>effect Next (s, PABD) = (if abdDone s then Some {| (s, PPreGamma (length s) (subterms s)) |} else None)\<close>
+| \<open>effect Next state = (case state of
+                         (s, PBasic) \<Rightarrow> (if branchDone s then None else Some {| (s, PABD) |})
+                       | (s, PABD) \<Rightarrow> (if abdDone s then Some {| (s, PPreGamma (length s) (subterms s)) |} else None)
+                       | (s, PPreGamma n _) \<Rightarrow> (if n = 0 then Some {| (s, PBasic) |} else None)
+                       | (s, PInstGamma n ots [] False) \<Rightarrow> Some {| (s, PPreGamma (n - 1) ots) |}
+                       | (_, PInstGamma _ _ _ _) \<Rightarrow> None)\<close>
+(* ABD phase *)
+(* Each ABD rule is enabled if the current first formula matches its pattern and disabled otherwise*)
+(* The ABD rule patterns are all mutually exclusive, so the order does not matter *)
+(* After each ABD rule we move back to the Basic phase to check whether we are done with the proof branch *) 
+| \<open>effect AlphaDis state = (case state of
+                             ((Dis p q # z), PABD) \<Rightarrow> Some {| (p # q # z, PBasic) |}
+                           |(_, _) \<Rightarrow> None)\<close>
+| \<open>effect AlphaImp state = (case state of
+                             ((Imp p q # z), PABD) \<Rightarrow> Some {| (Neg p # q # z, PBasic) |}
+                           | (_, _) \<Rightarrow> None)\<close>
+| \<open>effect AlphaCon state = (case state of
+                             ((Neg (Con p q) # z), PABD) \<Rightarrow> Some {| (Neg p # Neg q # z, PBasic) |}
+                           | (_, _) \<Rightarrow> None)\<close>
+| \<open>effect BetaCon state = (case state of
+                            ((Con p q # z), PABD) \<Rightarrow> Some {| (p # z, PBasic) , (q # z, PBasic) |}
+                          | (_, _) \<Rightarrow> None)\<close>
+| \<open>effect BetaImp state = (case state of
+                            ((Neg (Imp p q) # z), PABD) \<Rightarrow> Some {| (p # z, PBasic) , (Neg q # z, PBasic) |}
+                          | (_, _) \<Rightarrow> None)\<close>
+| \<open>effect BetaDis state = (case state of
+                            ((Neg (Dis p q) # z), PABD) \<Rightarrow> Some {| (Neg p # z, PBasic), (Neg q # z, PBasic) |}
+                          | (_, _) \<Rightarrow> None)\<close>
+| \<open>effect DeltaUni state = (case state of
+                             ((Uni p # z), PABD) \<Rightarrow> Some {| (sub 0 (Fun (generateNew p z) []) p # z, PBasic) |}
+                           | (_, _) \<Rightarrow> None)\<close>
+| \<open>effect DeltaExi state = (case state of
+                             ((Neg (Exi p) # z), PABD) \<Rightarrow> Some {| (Neg (sub 0 (Fun (generateNew p z) []) p) # z, PBasic) |}
+                           | (_, _) \<Rightarrow> None)\<close>
+| \<open>effect NegNeg state = (case state of
+                           ((Neg (Neg p) # z), PABD) \<Rightarrow> Some {| (p # z, PBasic) |}
+                         | (_, _) \<Rightarrow> None)\<close>
 (* PreGamma phase *)
-| \<open>effect Rotate ((Exi p) # _, PPreGamma _ _ ) = None\<close>
-| \<open>effect Rotate ((Neg (Uni p)) # _, PPreGamma _ _) = None\<close>
-| \<open>effect Rotate (p # z, PPreGamma n ts) = (if n = 0 then None else Some {| (z @ [p], PPreGamma (n - 1) ts) |})\<close>
-| \<open>effect Duplicate ((Exi p) # z, PPreGamma n ts) = (if n = 0 then None else Some {| (replicate (length ts) (Exi p) @ z @ [Exi p], PInstGamma n ts ts False) |})\<close>
-| \<open>effect Duplicate ((Neg (Uni p)) # z, PPreGamma n ts) = (if n = 0 then None else Some {| (replicate (length ts) (Neg (Uni p)) @ z @ [Neg (Uni p)], PInstGamma n ts ts False) |})\<close>
-| \<open>effect Duplicate _ = None\<close>
-| \<open>effect Next (s, PPreGamma n _) = (if n = 0 then Some {| (s, PBasic) |} else None)\<close>
+| \<open>effect Duplicate state = (case state of
+                              ((Exi p) # z, PPreGamma n ts) \<Rightarrow> (if n = 0 then None else Some {| (replicate (length ts) (Exi p) @ z @ [Exi p], PInstGamma n ts ts False) |})
+                            | ((Neg (Uni p)) # z, PPreGamma n ts) \<Rightarrow> (if n = 0 then None else Some {| (replicate (length ts) (Neg (Uni p)) @ z @ [Neg (Uni p)], PInstGamma n ts ts False) |})
+                            | _ \<Rightarrow> None)\<close>
 (* InstGamma phase *)
 (* The bool is used to know whether we have just instantiated and need to rotate (true) or need to instantiate (false) *)
-| \<open>effect Rotate (p # z, PInstGamma n ots ts True) = Some {| (z @ [p], PInstGamma n ots ts False) |}\<close>
-| \<open>effect Rotate (_, PInstGamma _ _ _ False) = None\<close>
-| \<open>effect GammaExi (Exi p # z, PInstGamma n ots (t # ts) False) = Some {| (sub 0 t p # z, PInstGamma n ots ts True) |}\<close>
-| \<open>effect GammaExi (_, _) = None\<close>
-| \<open>effect GammaUni (Neg (Uni p) # z, PInstGamma n ots (t # ts) False) = Some {| (Neg (sub 0 t p) # z, PInstGamma n ots ts True) |}\<close>
-| \<open>effect GammaUni (_, _) = None\<close>
-| \<open>effect Next (s, PInstGamma n ots [] False) = Some {| (s, PPreGamma (n - 1) ots) |}\<close>
-| \<open>effect Next (_, PInstGamma _ _ _ _) = None\<close>
+| \<open>effect GammaExi state = (case state of
+                             (Exi p # z, PInstGamma n ots (t # ts) False) \<Rightarrow> Some {| (sub 0 t p # z, PInstGamma n ots ts True) |}
+                           | (_, _) \<Rightarrow> None)\<close>
+| \<open>effect GammaUni state = (case state of
+                             (Neg (Uni p) # z, PInstGamma n ots (t # ts) False) \<Rightarrow> Some {| (Neg (sub 0 t p) # z, PInstGamma n ots ts True) |}
+                           | (_, _) \<Rightarrow> None)\<close>
 
 section \<open>The rules to apply\<close>
 
