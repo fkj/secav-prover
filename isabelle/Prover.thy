@@ -179,11 +179,26 @@ fun effect :: \<open>PseudoRule \<Rightarrow> state \<Rightarrow> state fset opt
 (* The Next pseudo-rule advances to a Gamma phase if no more ABD rules can be applied to the sequent, as computed by the predicate abdDone *)
 (* When we advance, we start off with the length of the sequent as fuel count and put the current existing terms into the state as well *)
 (* The rule is disabled as long as it is still possible to apply an ABD rule somewhere in the sequent *)
+(* If the sequent is empty, we just go to the next phase immediately (this is only relevant for the completeness proof) *)
+(* The patterns with specific formulas will never be used, and are just for the completeness proof *)
 | \<open>effect Next state = (case state of
                          (s, PBasic) \<Rightarrow> (if branchDone s then None else Some {| (s, PABD) |})
                        | (s, PABD) \<Rightarrow> (if abdDone s then Some {| (s, PPrepGamma (length s) (subterms s)) |} else None)
+                       | ([], PPrepGamma n _) \<Rightarrow> Some {| ([], PBasic) |}
                        | (s, PPrepGamma n _) \<Rightarrow> (if n = 0 then Some {| (s, PBasic) |} else None)
                        | (s, PInstGamma n ots [] False) \<Rightarrow> Some {| (s, PPrepGamma (n - 1) ots) |}
+                       | (Pre _ _ # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Imp _ _ # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Dis _ _ # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Con _ _ # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Uni _ # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Neg (Pre _ _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Neg (Imp _ _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Neg (Dis _ _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Neg (Con _ _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Neg (Exi _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Neg (Neg _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | ([], PInstGamma n ots _ _) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
                        | (_, PInstGamma _ _ _ _) \<Rightarrow> None)\<close>
 (* ABD phase *)
 (* Each ABD rule is enabled if the current first formula matches its pattern and disabled otherwise*)
