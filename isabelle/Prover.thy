@@ -419,9 +419,34 @@ proof (simp)
   qed
 qed
 
-interpretation PersistentRuleSystem \<open>\<lambda> r s ss. effect r s = Some ss\<close> rules UNIV
-  unfolding rules_def PersistentRuleSystem_def RuleSystem_def PersistentRuleSystem_axioms_def
-  sorry
+interpretation PersistentRuleSystem eff rules UNIV
+  unfolding PersistentRuleSystem_def RuleSystem_def PersistentRuleSystem_axioms_def
+proof (safe)
+  fix sequent phase
+  show \<open>\<exists>r \<in> R. \<exists>sl. eff r (sequent, phase) sl\<close>
+    using enabled_R rules_def by fastforce
+  fix r
+  assume r_rule: \<open>r \<in> R\<close>
+  show \<open>per r\<close> unfolding per_def
+  proof (safe)
+    fix sequent phase r' sl' sequent' phase'
+    assume st: \<open>(sequent, phase) \<in> (UNIV :: state set)\<close>
+    assume r_enabled: \<open>enabled r (sequent, phase)\<close>
+    assume r': \<open>r' \<in> R\<close>
+    assume r_not_enabled: \<open>\<not> enabled r (sequent', phase')\<close>
+    assume r'_real: \<open>r' \<notin> {}\<close>
+    assume r'_enabled: \<open>eff r' (sequent, phase) sl'\<close>
+    assume st'_follows: \<open>(sequent', phase') |\<in>| sl'\<close>
+    show \<open>r' = r\<close>
+      sorry
+  qed
+  fix sl sequent' phase'
+  assume \<open>(sequent, phase) \<in> (UNIV :: state set)\<close>
+  assume \<open>eff r (sequent, phase) sl\<close>
+  assume \<open>(sequent', phase') |\<in>| sl\<close>
+  show \<open>(sequent', phase') \<in> UNIV\<close>
+    by simp
+qed
 
 lemma tree_completeness:
   assumes \<open>s \<in> (UNIV :: sequent set)\<close>
