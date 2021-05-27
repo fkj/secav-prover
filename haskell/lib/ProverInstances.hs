@@ -4,10 +4,9 @@
 
 module ProverInstances where
 
-import Abstract_Completeness(Tree(..))
 import Arith(Nat(..))
 import FSet(Fset(..))
-import Prover(PseudoRule(..))
+import Prover(PseudoRule(..), Tree(..))
 import SeCaV(Tm(..), Fm(..))
 import Set(Set(..))
 

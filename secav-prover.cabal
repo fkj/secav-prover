@@ -15,8 +15,7 @@ source-repository head
   location:           git://github.com/fkj/secav-prover.git
 
 library prover
-  exposed-modules:    Abstract_Completeness
-                    , Arith
+  exposed-modules:    Arith
                     , FSet
                     , Prover
                     , SeCaV
@@ -25,7 +24,6 @@ library prover
                     , List
                     , MaybeExt
                     , Orderings
-                    , Stream
                     , Product_Type
   build-depends:      base
   hs-source-dirs:     haskell/prover

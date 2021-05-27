@@ -12,4 +12,5 @@ session SeCaV_Prover = "HOL-Library" +
     SeCaV
     Prover
     Soundness
+    Completeness
     Export

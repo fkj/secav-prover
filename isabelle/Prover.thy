@@ -260,6 +260,7 @@ definition rules where
   \<open>rules = cycle rulesList\<close>
 
 section \<open>Abstract completeness\<close>
+
 definition eff where
   \<open>eff \<equiv> \<lambda>r s ss. effect r s = Some ss\<close>
 
@@ -448,50 +449,9 @@ proof (safe)
     by simp
 qed
 
-lemma tree_completeness:
-  assumes \<open>s \<in> (UNIV :: sequent set)\<close>
-  shows
-    \<open>(\<exists> t. fst (fst (root t)) = s \<and> wf t \<and> tfinite t) \<or>
-      (\<exists> steps. fst (fst (shd steps)) = s \<and> epath steps \<and> Saturated steps)\<close>
-  using epath_completeness_Saturated fstI by fastforce
-
-
 section \<open>The prover function\<close>
 
-definition \<open>rho \<equiv> i.fenum rules\<close>
-definition \<open>secavTree \<equiv> i.mkTree effect rho\<close>
-definition \<open>secavProver \<equiv> \<lambda>x . secavTree (x, PBasic)\<close>
-
-
-section \<open>Completeness of the prover\<close>
-
-(*
-
-From here, we proceed to our main result which states that any provable formula in SeCaV
-gives rise to a finite proof tree which will be found by the prover.
-
-*)
-
-theorem completeness:
-  assumes \<open>\<tturnstile> [p]\<close>
-  defines \<open>t \<equiv> secavProver [p]\<close>
-  shows \<open>fst (fst (root t)) = [p] \<and> wf t \<and> tfinite t\<close>
-  sorry
-
-(*
-
-If we have an escape path, we can obtain a countermodel which falsifies every sequent on the path <-- this is the hard part
-This contradicts soundness because \<tturnstile> [p] implies that every interpretation is a model, including the interpretation which is the countermodel obtained above.
-This means there cannot be an escape path, so by tree_completeness, we obtain the result.
-
-*)
-
-(*
-
-Make a function that checks if a tree is finite and turns it into an inductive tree if it is.
-Then the Haskell post-processing can be moved into Isabelle and maybe we can prove it sound.
-
-*)
-
+definition \<open>rho \<equiv> fenum\<close>
+definition \<open>secavProver \<equiv> \<lambda>x . mkTree fenum (x, PBasic)\<close>
 
 end

@@ -1,12 +1,11 @@
 module ProofExtractor where
 
-import Abstract_Completeness ( Tree(..) )
 import Arith ( Nat(Nat) )
 import qualified Data.Bimap as Map
 import Control.Monad.State (evalState, get, modify)
 import Data.List ( genericReplicate, intercalate )
 import FSet ( Fset(Abs_fset) )
-import Prover ( Phase(PInstGamma), PseudoRule(..) )
+import Prover ( Phase(PInstGamma), PseudoRule(..), Tree(..) )
 import ProverInstances()
 import SeCaV ( Fm(..), Tm(..) )
 import Set ( Set(Set, Coset) )

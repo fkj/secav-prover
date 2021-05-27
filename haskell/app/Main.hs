@@ -19,7 +19,7 @@ import Options.Applicative
       Parser )
 import ProofExtractor
     ( nextSurgery, gammaSurgery, extSurgery, initExtract )
-import Prover ( secavProver )
+import Prover ( secavProverCode )
 import SeCaVTranslator ( genInit )
 import ShortParser ( programParser, sequentParser )
 import System.FilePath (takeBaseName)
@@ -53,7 +53,7 @@ run (Arguments f i) =
     Left e -> print e
     Right s ->
       let (formulas, names) = genInit s in
-        let proofTree = secavProver formulas in
+        let proofTree = secavProverCode formulas in
           let shortProof = initExtract names $ extSurgery $ gammaSurgery $ nextSurgery proofTree in
             case i of
               Just file ->
