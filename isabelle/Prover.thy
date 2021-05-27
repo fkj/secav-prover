@@ -287,14 +287,15 @@ proof (simp)
             case neg: True
             then show ?thesis
             proof -
-              have rule: \<open>Rotate \<in> i.R (cycle rulesList)\<close>
+              have \<open>Rotate \<in> i.R (cycle rulesList)\<close>
                 unfolding rulesList_def by simp
-              with bd neg have \<open>effect Rotate (p # z, PBasic) = Some {| (z @ [p], PBasic) |}\<close>
-                proof (cases p)
-                  case (Neg q)
-                  with neg bd show ?thesis by (cases q) simp_all
-                qed simp_all
-              with rule show ?thesis unfolding rulesList_def by simp
+              moreover have \<open>effect Rotate (p # z, PBasic) = Some {| (z @ [p], PBasic) |}\<close>
+                using bd neg
+              proof (cases p)
+                case (Neg q)
+                with neg bd show ?thesis by (cases q) simp_all
+              qed simp_all
+              ultimately show ?thesis unfolding rulesList_def by simp
             qed
           next
             case False

@@ -42,7 +42,7 @@ proof (rule ccontr, simp)
   show \<open>\<exists> steps. epath steps \<and> fst (fst (shd steps)) = [p] \<and> Saturated steps \<Longrightarrow> False\<close>
   proof -
     assume ep: \<open>\<exists> steps. epath steps \<and> fst (fst (shd steps)) = [p] \<and> Saturated steps\<close>
-    have *: \<open>\<exists> e f g . \<not> (semantics e f g p)\<close>
+    have \<open>\<exists> e f g . \<not> (semantics e f g p)\<close>
       using ep epath_countermodel by blast
     with assms show False using sound by fastforce
   qed
