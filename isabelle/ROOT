@@ -1,6 +1,6 @@
 chapter SeCaV
 
-session SeCaV_Prover (FKJ) = "HOL-Library" +
+session SeCaV_Prover = "HOL-Library" +
   options [timeout = 100000]
   sessions
     Collections
@@ -11,4 +11,5 @@ session SeCaV_Prover (FKJ) = "HOL-Library" +
     Abstract_Soundness.Finite_Proof_Soundness
     SeCaV
     Prover
+    Soundness
     Export
