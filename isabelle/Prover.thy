@@ -260,8 +260,10 @@ definition rules where
   \<open>rules = cycle rulesList\<close>
 
 section \<open>Abstract completeness\<close>
+definition eff where
+  \<open>eff \<equiv> \<lambda>r s ss. effect r s = Some ss\<close>
 
-interpretation RuleSystem \<open>\<lambda>r s ss. effect r s = Some ss\<close> rules UNIV
+interpretation RuleSystem eff rules UNIV
   unfolding rules_def RuleSystem_def
   sorry
 
@@ -291,9 +293,23 @@ fun ssemantics :: \<open>(nat \<Rightarrow> 'a) \<times> (nat \<Rightarrow> 'a l
   \<open>ssemantics (e,f,g) ([],_) = False\<close>
 | \<open>ssemantics (e,f,g) ((p # z),phase) = (semantics e f g p \<or> ssemantics (e,f,g) (z,phase))\<close>
 
-interpretation Soundness \<open>\<lambda>r s ss. effect r s = Some ss\<close> rules UNIV ssemantics
-  unfolding rules_def Soundness_def RuleSystem_def
-  sorry
+interpretation Soundness eff rules UNIV ssemantics
+  unfolding Soundness_def RuleSystem_def
+proof (safe)
+  fix r sequent phase sl f g and e :: \<open>nat \<Rightarrow> 'a\<close>
+  assume r_rule: \<open>r \<in> R\<close>
+  assume r_enabled: \<open>eff r (sequent, phase) sl\<close>
+  assume next_sound: \<open>\<forall>s'. s' |\<in>| sl \<longrightarrow> (\<forall>S \<in> UNIV. ssemantics S s')\<close>
+  show \<open>ssemantics (e, f, g) (sequent, phase)\<close>
+  proof (induct sequent)
+    case Nil
+    then show ?case sorry
+(* contradiction on the assumption that we can move to a sound state when sequent is empty *)
+  next
+    case (Cons a sequent)
+    then show ?case sorry
+  qed
+qed
 
 section \<open>Completeness of the prover\<close>
 
