@@ -218,7 +218,7 @@ fun effect :: \<open>PseudoRule \<Rightarrow> state \<Rightarrow> state fset opt
                          | (_, _) \<Rightarrow> None)\<close>
 (* PreGamma phase *)
 | \<open>effect Duplicate state = (case state of
-                              ((Exi p) # z, PPrepGamma n ts) \<Rightarrow> (if n = 0 then None else Some {| (replicate (length ts) (Exi p) @ z @ [Exi p], PInstGamma n ts ts False) |})
+                              (Exi p # z, PPrepGamma n ts) \<Rightarrow> (if n = 0 then None else Some {| (replicate (length ts) (Exi p) @ z @ [Exi p], PInstGamma n ts ts False) |})
                             | ((Neg (Uni p)) # z, PPrepGamma n ts) \<Rightarrow> (if n = 0 then None else Some {| (replicate (length ts) (Neg (Uni p)) @ z @ [Neg (Uni p)], PInstGamma n ts ts False) |})
                             | _ \<Rightarrow> None)\<close>
 (* InstGamma phase *)
@@ -230,7 +230,7 @@ fun effect :: \<open>PseudoRule \<Rightarrow> state \<Rightarrow> state fset opt
                              (Neg (Uni p) # z, PInstGamma n ots (t # ts) False) \<Rightarrow> Some {| (Neg (sub 0 t p) # z, PInstGamma n ots ts True) |}
                            | (_, _) \<Rightarrow> None)\<close>
 
-section \<open>The rules to apply\<close>
+section \<open>The rule stream\<close>
 
 text \<open>Then the rule stream is just all rules in any order (since the actual order is enforced by the effect relation).\<close>
 definition rulesList where
