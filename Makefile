@@ -20,4 +20,5 @@ $(EXPORT)/%.hs: $(ISABELLE_SOURCES) $(ISABELLE)/ROOT
 
 clean:
 	rm -rf $(EXPORT)
+	rm -rf $(ISABELLE)/output
 	cabal clean
