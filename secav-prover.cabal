@@ -46,7 +46,7 @@ library interface
   default-language:    Haskell2010
   ghc-options:         -Wall
 
-test-suite test-prover
+test-suite completeness
   type:                detailed-0.9
   test-module:         Runner
   other-modules:       Tests
@@ -57,7 +57,20 @@ test-suite test-prover
                      , mtl
                      , prover
                      , interface
-  hs-source-dirs:      test
+  hs-source-dirs:      test/completeness
+  default-language:    Haskell2010
+
+test-suite soundness
+  type:                detailed-0.9
+  test-module:         Runner
+  other-modules:       Tests
+  build-depends:       base ^>=4.13.0.0
+                     , Cabal >= 1.9.2
+                     , process
+                     , mtl
+                     , prover
+                     , interface
+  hs-source-dirs:      test/soundness
   default-language:    Haskell2010
 
 executable secav-prover

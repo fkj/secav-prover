@@ -17,6 +17,7 @@ import System.Directory
   )
 import System.Exit (ExitCode (ExitFailure, ExitSuccess))
 import System.Process (readProcessWithExitCode)
+import System.Timeout (timeout)
 import Tests (testcases)
 import Unshortener (genFile)
 
@@ -51,7 +52,7 @@ performTest :: String -> String -> IO Result
 performTest testDir f = do
   createDirectoryIfMissing False testDir
   copyFile "isabelle/SeCaV.thy" $ testDir <> "/SeCaV.thy"
-  copyFile "test/ROOT" $ testDir <> "/ROOT"
+  copyFile "test/completeness/ROOT" $ testDir <> "/ROOT"
 
   let parse = sequentParser f
   case parse of
