@@ -17,7 +17,8 @@ proof -
       unfolding secavProver_def using wf_mkTree fair_fenum by simp
     then obtain steps where "ipath (mkTree fenum ([p], PBasic)) steps" using Konig by blast
     with assms have "fst (fst (shd steps)) = [p] \<and> epath steps \<and> Saturated steps"
-      by (metis UNIV_I fair_fenum ipath.cases ipath_mkTree_Saturated mkTree.simps(1) prod.sel(1) wf_ipath_epath wf_mkTree)
+      by (metis UNIV_I fair_fenum ipath.cases ipath_mkTree_Saturated mkTree.simps(1) prod.sel(1)
+          wf_ipath_epath wf_mkTree)
     hence ?B by blast
   }
   thus ?thesis by blast

@@ -171,13 +171,17 @@ fun effect :: \<open>PseudoRule \<Rightarrow> state \<Rightarrow> state fset opt
 
 (* Empty sequents are unprovable, so we just disable the rule *)
 | \<open>effect Rotate state = (case state of
-                           (p # z, PBasic) \<Rightarrow> (if branchDone (p # z) \<and> Neg p \<notin> set z then Some {| (z @ [p], PBasic) |} else None)
+                           (p # z, PBasic) \<Rightarrow> (if branchDone (p # z) \<and> Neg p \<notin> set z
+                                               then Some {| (z @ [p], PBasic) |} else None)
                          | (p # z, PABD) \<Rightarrow> (if abdDone (p # z) then None else
-                                              (if abdDone [p] then Some {| (z @ [p], PABD) |} else None))
+                                              (if abdDone [p]
+                                               then Some {| (z @ [p], PABD) |} else None))
                          | ((Exi p) # _, PPrepGamma _ _) \<Rightarrow> None
                          | ((Neg (Uni p)) # _, PPrepGamma _ _) \<Rightarrow> None
-                         | (p # z, PPrepGamma n ts) \<Rightarrow> (if n = 0 then None else Some {| (z @ [p], PPrepGamma (n - 1) ts) |})
-                         | (p # z, PInstGamma n ots ts True) \<Rightarrow> Some {| (z @ [p], PInstGamma n ots ts False) |}
+                         | (p # z, PPrepGamma n ts) \<Rightarrow>
+                              (if n = 0 then None else Some {| (z @ [p], PPrepGamma (n - 1) ts) |})
+                         | (p # z, PInstGamma n ots ts True) \<Rightarrow>
+                              Some {| (z @ [p], PInstGamma n ots ts False) |}
                          | (_, PInstGamma _ _ _ False) \<Rightarrow> None
                          | ([], _) \<Rightarrow> None)\<close>
   (* The Next pseudo-rule advances to an ABD phase if the Basic rule can not be applied even after rotations *)
@@ -190,21 +194,34 @@ fun effect :: \<open>PseudoRule \<Rightarrow> state \<Rightarrow> state fset opt
 (* The patterns with specific formulas will never be used, and are just for the completeness proof *)
 | \<open>effect Next state = (case state of
                          (s, PBasic) \<Rightarrow> (if branchDone s then None else Some {| (s, PABD) |})
-                       | (s, PABD) \<Rightarrow> (if abdDone s then Some {| (s, PPrepGamma (length s) (subterms s)) |} else None)
+                       | (s, PABD) \<Rightarrow> (if abdDone s
+                                       then Some {| (s, PPrepGamma (length s) (subterms s)) |}
+                                       else None)
                        | ([], PPrepGamma n _) \<Rightarrow> Some {| ([], PBasic) |}
                        | (s, PPrepGamma n _) \<Rightarrow> (if n = 0 then Some {| (s, PBasic) |} else None)
                        | (s, PInstGamma n ots [] False) \<Rightarrow> Some {| (s, PPrepGamma (n - 1) ots) |}
-                       | (Pre _ _ # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
-                       | (Imp _ _ # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
-                       | (Dis _ _ # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
-                       | (Con _ _ # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
-                       | (Uni _ # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
-                       | (Neg (Pre _ _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
-                       | (Neg (Imp _ _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
-                       | (Neg (Dis _ _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
-                       | (Neg (Con _ _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
-                       | (Neg (Exi _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
-                       | (Neg (Neg _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Pre _ _ # z, PInstGamma n ots (_ # _) False) \<Rightarrow>
+                            Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Imp _ _ # z, PInstGamma n ots (_ # _) False) \<Rightarrow>
+                            Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Dis _ _ # z, PInstGamma n ots (_ # _) False) \<Rightarrow>
+                            Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Con _ _ # z, PInstGamma n ots (_ # _) False) \<Rightarrow>
+                            Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Uni _ # z, PInstGamma n ots (_ # _) False) \<Rightarrow>
+                            Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Neg (Pre _ _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow>
+                            Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Neg (Imp _ _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow>
+                            Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Neg (Dis _ _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow>
+                            Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Neg (Con _ _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow>
+                            Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Neg (Exi _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow>
+                            Some {| ([], PPrepGamma (n - 1) ots) |}
+                       | (Neg (Neg _) # z, PInstGamma n ots (_ # _) False) \<Rightarrow>
+                            Some {| ([], PPrepGamma (n - 1) ots) |}
                        | ([], PInstGamma n ots _ _) \<Rightarrow> Some {| ([], PPrepGamma (n - 1) ots) |}
                        | (_, PInstGamma _ _ _ _) \<Rightarrow> None)\<close>
   (* ABD phase *)
@@ -224,32 +241,42 @@ fun effect :: \<open>PseudoRule \<Rightarrow> state \<Rightarrow> state fset opt
                             ((Con p q # z), PABD) \<Rightarrow> Some {| (p # z, PBasic) , (q # z, PBasic) |}
                           | (_, _) \<Rightarrow> None)\<close>
 | \<open>effect BetaImp state = (case state of
-                            ((Neg (Imp p q) # z), PABD) \<Rightarrow> Some {| (p # z, PBasic) , (Neg q # z, PBasic) |}
+                            ((Neg (Imp p q) # z), PABD) \<Rightarrow>
+                                Some {| (p # z, PBasic) , (Neg q # z, PBasic) |}
                           | (_, _) \<Rightarrow> None)\<close>
 | \<open>effect BetaDis state = (case state of
-                            ((Neg (Dis p q) # z), PABD) \<Rightarrow> Some {| (Neg p # z, PBasic), (Neg q # z, PBasic) |}
+                            ((Neg (Dis p q) # z), PABD) \<Rightarrow>
+                                Some {| (Neg p # z, PBasic), (Neg q # z, PBasic) |}
                           | (_, _) \<Rightarrow> None)\<close>
 | \<open>effect DeltaUni state = (case state of
-                             ((Uni p # z), PABD) \<Rightarrow> Some {| (sub 0 (Fun (generateNew p z) []) p # z, PBasic) |}
+                             ((Uni p # z), PABD) \<Rightarrow>
+                                Some {| (sub 0 (Fun (generateNew p z) []) p # z, PBasic) |}
                            | (_, _) \<Rightarrow> None)\<close>
 | \<open>effect DeltaExi state = (case state of
-                             ((Neg (Exi p) # z), PABD) \<Rightarrow> Some {| (Neg (sub 0 (Fun (generateNew p z) []) p) # z, PBasic) |}
+                             ((Neg (Exi p) # z), PABD) \<Rightarrow>
+                                Some {| (Neg (sub 0 (Fun (generateNew p z) []) p) # z, PBasic) |}
                            | (_, _) \<Rightarrow> None)\<close>
 | \<open>effect NegNeg state = (case state of
                            ((Neg (Neg p) # z), PABD) \<Rightarrow> Some {| (p # z, PBasic) |}
                          | (_, _) \<Rightarrow> None)\<close>
   (* PreGamma phase *)
 | \<open>effect Duplicate state = (case state of
-                              (Exi p # z, PPrepGamma n ts) \<Rightarrow> (if n = 0 then None else Some {| (replicate (length ts) (Exi p) @ z @ [Exi p], PInstGamma n ts ts False) |})
-                            | ((Neg (Uni p)) # z, PPrepGamma n ts) \<Rightarrow> (if n = 0 then None else Some {| (replicate (length ts) (Neg (Uni p)) @ z @ [Neg (Uni p)], PInstGamma n ts ts False) |})
+                              (Exi p # z, PPrepGamma n ts) \<Rightarrow> (if n = 0 then None else
+                                Some {| (replicate (length ts) (Exi p) @ z @ [Exi p],
+                                        PInstGamma n ts ts False) |})
+                            | ((Neg (Uni p)) # z, PPrepGamma n ts) \<Rightarrow> (if n = 0 then None else
+                                Some {| (replicate (length ts) (Neg (Uni p)) @ z @ [Neg (Uni p)],
+                                        PInstGamma n ts ts False) |})
                             | _ \<Rightarrow> None)\<close>
   (* InstGamma phase *)
   (* The bool is used to know whether we have just instantiated and need to rotate (true) or need to instantiate (false) *)
 | \<open>effect GammaExi state = (case state of
-                             (Exi p # z, PInstGamma n ots (t # ts) False) \<Rightarrow> Some {| (sub 0 t p # z, PInstGamma n ots ts True) |}
+                             (Exi p # z, PInstGamma n ots (t # ts) False) \<Rightarrow>
+                                Some {| (sub 0 t p # z, PInstGamma n ots ts True) |}
                            | (_, _) \<Rightarrow> None)\<close>
 | \<open>effect GammaUni state = (case state of
-                             (Neg (Uni p) # z, PInstGamma n ots (t # ts) False) \<Rightarrow> Some {| (Neg (sub 0 t p) # z, PInstGamma n ots ts True) |}
+                             (Neg (Uni p) # z, PInstGamma n ots (t # ts) False) \<Rightarrow>
+                                Some {| (Neg (sub 0 t p) # z, PInstGamma n ots ts True) |}
                            | (_, _) \<Rightarrow> None)\<close>
 
 section \<open>The rule stream\<close>
@@ -1520,7 +1547,8 @@ proof (intro allI impI)
                   unfolding enabled_def eff_def RuleSystem_Defs.enabled_def
                   by (induct r'; simp split: fm.splits list.splits)
                 then have \<open>r' = Next\<close> using r'_enabled content b ts p q by simp
-                moreover have \<open>enabled r (Neg (Pre pn pts) # z, PInstGamma n ots (t' # ts') False) \<Longrightarrow> r = Next\<close>
+                moreover have \<open>enabled r (Neg (Pre pn pts) # z, PInstGamma n ots (t' # ts') False)
+                                  \<Longrightarrow> r = Next\<close>
                   unfolding enabled_def eff_def RuleSystem_Defs.enabled_def
                   by (induct r; simp split: fm.splits list.splits)
                 ultimately show False using not_eq r_enabled content b ts p q by simp
@@ -1536,7 +1564,8 @@ proof (intro allI impI)
                   unfolding enabled_def eff_def RuleSystem_Defs.enabled_def
                   by (induct r'; simp split: fm.splits list.splits)
                 then have \<open>r' = Next\<close> using r'_enabled content b ts p q by simp
-                moreover have \<open>enabled r (Neg (Imp f1 f2) # z, PInstGamma n ots (t' # ts') False) \<Longrightarrow> r = Next\<close>
+                moreover have \<open>enabled r (Neg (Imp f1 f2) # z, PInstGamma n ots (t' # ts') False)
+                                  \<Longrightarrow> r = Next\<close>
                   unfolding enabled_def eff_def RuleSystem_Defs.enabled_def
                   by (induct r; simp split: fm.splits list.splits)
                 ultimately show False using not_eq r_enabled content b ts p q by simp
@@ -1552,7 +1581,8 @@ proof (intro allI impI)
                   unfolding enabled_def eff_def RuleSystem_Defs.enabled_def
                   by (induct r'; simp split: fm.splits list.splits)
                 then have \<open>r' = Next\<close> using r'_enabled content b ts p q by simp
-                moreover have \<open>enabled r (Neg (Dis f1 f2) # z, PInstGamma n ots (t' # ts') False) \<Longrightarrow> r = Next\<close>
+                moreover have \<open>enabled r (Neg (Dis f1 f2) # z, PInstGamma n ots (t' # ts') False)
+                                  \<Longrightarrow> r = Next\<close>
                   unfolding enabled_def eff_def RuleSystem_Defs.enabled_def
                   by (induct r; simp split: fm.splits list.splits)
                 ultimately show False using not_eq r_enabled content b ts p q by simp
@@ -1568,7 +1598,8 @@ proof (intro allI impI)
                   unfolding enabled_def eff_def RuleSystem_Defs.enabled_def
                   by (induct r'; simp split: fm.splits list.splits)
                 then have \<open>r' = Next\<close> using r'_enabled content b ts p q by simp
-                moreover have \<open>enabled r (Neg (Con f1 f2) # z, PInstGamma n ots (t' # ts') False) \<Longrightarrow> r = Next\<close>
+                moreover have \<open>enabled r (Neg (Con f1 f2) # z, PInstGamma n ots (t' # ts') False)
+                                  \<Longrightarrow> r = Next\<close>
                   unfolding enabled_def eff_def RuleSystem_Defs.enabled_def
                   by (induct r; simp split: fm.splits list.splits)
                 ultimately show False using not_eq r_enabled content b ts p q by simp
@@ -1584,7 +1615,8 @@ proof (intro allI impI)
                   unfolding enabled_def eff_def RuleSystem_Defs.enabled_def
                   by (induct r'; simp split: fm.splits list.splits)
                 then have \<open>r' = Next\<close> using r'_enabled content b ts p q by simp
-                moreover have \<open>enabled r (Neg (Exi f1) # z, PInstGamma n ots (t' # ts') False) \<Longrightarrow> r = Next\<close>
+                moreover have \<open>enabled r (Neg (Exi f1) # z, PInstGamma n ots (t' # ts') False)
+                                  \<Longrightarrow> r = Next\<close>
                   unfolding enabled_def eff_def RuleSystem_Defs.enabled_def
                   by (induct r; simp split: fm.splits list.splits)
                 ultimately show False using not_eq r_enabled content b ts p q by simp
@@ -1600,7 +1632,8 @@ proof (intro allI impI)
                 unfolding enabled_def eff_def RuleSystem_Defs.enabled_def
                 by (induct r'; simp split: fm.splits list.splits)
               then have \<open>r' = GammaUni\<close> using r'_enabled content b ts p q by simp
-              moreover have \<open>enabled r (Neg (Uni f1) # z, PInstGamma n ots (t' # ts') False) \<Longrightarrow> r = GammaUni\<close>
+              moreover have \<open>enabled r (Neg (Uni f1) # z, PInstGamma n ots (t' # ts') False)
+                                \<Longrightarrow> r = GammaUni\<close>
                 unfolding enabled_def eff_def RuleSystem_Defs.enabled_def
                 by (induct r; simp split: fm.splits list.splits)
               ultimately show False using not_eq r_enabled content b ts p q by simp
