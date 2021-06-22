@@ -11,6 +11,7 @@ session SeCaV_Prover = "HOL-Library" +
     Abstract_Soundness.Finite_Proof_Soundness
     SeCaV
     Prover
+    Soundness
     Completeness
     Export
   document_files
