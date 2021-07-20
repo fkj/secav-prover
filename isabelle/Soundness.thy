@@ -6,35 +6,189 @@ section \<open>Soundness of the prover\<close>
 
 fun ssemantics :: \<open>(nat \<Rightarrow> 'a) \<times> (nat \<Rightarrow> 'a list \<Rightarrow> 'a) \<times> (nat \<Rightarrow> 'a list \<Rightarrow> bool) \<Rightarrow> state \<Rightarrow> bool\<close>
   where
-  \<open>ssemantics (e,f,g) ([],_) = False\<close>
-| \<open>ssemantics (e,f,g) ((p # z),phase) = (semantics e f g p \<or> ssemantics (e,f,g) (z,phase))\<close>
+  \<open>ssemantics (e, f, g) (z, _) = (\<exists>p \<in> set z. semantics e f g p)\<close>
+
+lemma eff_preserves_Nil:
+  assumes \<open>eff r ([], phase) sl\<close> \<open>s |\<in>| sl\<close>
+  shows \<open>fst s = []\<close>
+  using assms unfolding eff_def
+proof (induct r)
+  case Basic
+  then show ?case
+    by (induct phase) simp_all
+next
+  case AlphaDis
+  then show ?case
+    by (induct phase) auto
+next
+  case AlphaImp
+  then show ?case
+    by (induct phase) auto
+next
+  case AlphaCon
+  then show ?case
+    by (induct phase) auto
+next
+  case BetaCon
+  then show ?case
+    by (induct phase) auto
+next
+  case BetaImp
+  then show ?case
+    by (induct phase) auto
+next
+  case BetaDis
+  then show ?case
+    by (induct phase) auto
+next
+  case DeltaUni
+  then show ?case
+    by (induct phase) auto
+next
+  case DeltaExi
+  then show ?case
+    by (induct phase) auto
+next
+  case NegNeg
+  then show ?case
+    by (induct phase) auto
+next
+  case GammaExi
+  then show ?case
+    by (induct phase) auto
+next
+  case GammaUni
+  then show ?case
+    by (induct phase) auto
+next
+  case Rotate
+  have *: \<open>effect Rotate ([], PInstGamma n ts ots b) = Some sl \<Longrightarrow>
+       s |\<in>| sl \<Longrightarrow> fst s = []\<close> for n ts ots b
+    apply (induct ts)
+     apply (induct b)
+      apply simp
+    apply simp
+    by auto
+  
+  from Rotate show ?case
+    apply (induct phase)
+    apply simp
+      apply simp
+     apply simp
+    using * by simp
+next
+  case Duplicate
+  then show ?case
+    by (induct phase) auto
+next
+  case Next
+  moreover have \<open>effect Next ([], PInstGamma n ots ts b) = Some sl \<Longrightarrow>
+       s |\<in>| sl \<Longrightarrow> fst s = []\<close> for n ots ts b
+    by (induct ts) (induct b, auto)+
+  ultimately show ?case
+    by (induct phase) auto
+qed
+
+lemma branches_if_not_Basic:
+  assumes \<open>eff r ([], phase) sl\<close> \<open>r \<noteq> Basic\<close>
+  shows \<open>sl \<noteq> {||}\<close>
+  using assms unfolding eff_def
+proof (induct r)
+  case Rotate
+  moreover have \<open>effect Rotate ([], PInstGamma n ots ts b) = Some sl \<Longrightarrow>
+       Rotate \<noteq> Basic \<Longrightarrow> sl \<noteq> {||}\<close> for n ots ts b
+    by (induct b) simp_all
+  ultimately show ?case
+    by (induct phase) auto
+next
+  case Next
+  moreover have \<open>effect Next ([], PInstGamma n ots ts b) = Some sl \<Longrightarrow>
+       Next \<noteq> Basic \<Longrightarrow> sl \<noteq> {||}\<close> for n ots ts b
+    by (induct ts) (induct b, auto)+
+  ultimately show ?case
+    by (induct phase) auto
+qed (induct phase, auto)
 
 interpretation Soundness eff rules UNIV ssemantics
   unfolding Soundness_def
 proof (safe)
   fix r sequent phase sl f g and e :: \<open>nat \<Rightarrow> 'a\<close>
   assume r_rule: \<open>r \<in> R\<close>
-  assume r_enabled: \<open>eff r (sequent, phase) sl\<close>
-  assume next_sound: \<open>\<forall>s'. s' |\<in>| sl \<longrightarrow> (\<forall>S \<in> UNIV. ssemantics S s')\<close>
+    and r_enabled: \<open>eff r (sequent, phase) sl\<close>
+    and next_sound: \<open>\<forall>s'. s' |\<in>| sl \<longrightarrow> (\<forall>S \<in> UNIV. ssemantics S s')\<close>
   show \<open>ssemantics (e, f, g) (sequent, phase)\<close>
   proof (cases sequent)
     case Nil
-    assume empty: \<open>sequent = []\<close>
     show \<open>ssemantics (e, f, g) (sequent, phase)\<close>
     proof (rule ccontr)
-      note \<open>\<forall>s'. s' |\<in>| sl \<longrightarrow> (\<forall>S \<in> UNIV. ssemantics S s')\<close>
       have \<open>eff r ([], phase) sl \<Longrightarrow> (\<forall>s'. s' |\<in>| sl \<longrightarrow> fst s' = [])\<close>
-        sorry
+        using eff_preserves_Nil by blast
       moreover have \<open>\<forall>s'. fst s' = [] \<longrightarrow> (\<not> (\<forall>S \<in> UNIV. ssemantics S s'))\<close>
-        sorry
-      ultimately show \<open>False\<close> using next_sound r_enabled r_rule
-        sorry
+        by simp
+      ultimately have \<open>\<forall>s'. s' |\<in>| sl \<longrightarrow> fst s' = []\<close>
+        using Nil r_enabled by blast
+      then have \<open>sl = {||}\<close>
+        using next_sound by fastforce
+      moreover have \<open>r \<noteq> Basic\<close>
+        using r_enabled Nil unfolding eff_def by auto
+      ultimately show \<open>False\<close>
+        using branches_if_not_Basic Nil r_enabled by blast
     qed
   next
     case (Cons p z)
-    assume \<open>sequent = p # z\<close>
-    show \<open>ssemantics (e, f, g) (sequent, phase)\<close>
-      sorry
+    then show \<open>ssemantics (e, f, g) (sequent, phase)\<close>
+    proof (induct phase)
+      case PBasic
+      then show ?case
+      proof (cases p)
+        case (Pre n ts)
+        then show ?thesis
+        proof (cases \<open>branchDone (p # z)\<close>)
+          case True
+          then show ?thesis
+          proof (cases \<open>Neg p \<notin> set z\<close>)
+            case True
+            then have \<open>r = Rotate\<close>
+              sorry
+            then show ?thesis
+              sorry
+          next
+            case False
+            then show ?thesis sorry
+          qed
+        next
+          case False
+          then show ?thesis sorry
+        qed 
+      next
+        case (Imp x21 x22)
+        then show ?thesis sorry
+      next
+        case (Dis x31 x32)
+        then show ?thesis sorry
+      next
+        case (Con x41 x42)
+        then show ?thesis sorry
+      next
+        case (Exi x5)
+        then show ?thesis sorry
+      next
+        case (Uni x6)
+        then show ?thesis sorry
+      next
+        case (Neg x7)
+        then show ?thesis sorry
+      qed  
+    next
+      case PABD
+      then show ?case sorry
+    next
+      case (PPrepGamma x1 x2)
+      then show ?case sorry
+    next
+      case (PInstGamma x1 x2 x3 x4)
+      then show ?case sorry
+    qed
   qed
 qed
 
