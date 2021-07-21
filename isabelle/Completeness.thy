@@ -167,8 +167,6 @@ lemma hintikka_counter_model:
   assumes \<open>Hintikka S\<close>
   shows \<open>p \<in> S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close> \<open>Neg p \<in> S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
   using assms
-  sorry
-(*
 proof (induct p)
   fix n ts
   assume \<open>Pre n ts \<in> S\<close>
@@ -178,8 +176,131 @@ proof (induct p)
     by simp
   then show \<open>\<not> semantics Var Fun (sat S) (Pre n ts)\<close>
     by simp
+next
+  fix n ts
+  assume \<open>Neg (Pre n ts) \<in> S\<close>
+  then have \<open>sat S n ts\<close>
+    by simp
+  then show \<open>semantics Var Fun (sat S) (Pre n ts)\<close>
+    by simp
+next
+  fix p q
+  assume np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
+    and q: \<open>q \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) q\<close>
+    and imp: \<open>Imp p q \<in> S\<close>
+  show \<open>\<not> semantics Var Fun (sat S) (Imp p q)\<close>
+    using Hintikka.AlphaImp assms imp np q semantics.simps(2) by blast
+next
+  fix p q
+  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
+    and nq: \<open>Neg q \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) q\<close>
+    and nimp: \<open>Neg (Imp p q) \<in> S\<close>
+  show \<open>semantics Var Fun (sat S) (Imp p q)\<close>
+    using Hintikka.BetaImp assms nimp p nq semantics.simps(2) by blast
+next
+  fix p q
+  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
+    and q: \<open>q \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) q\<close>
+    and dis: \<open>Dis p q \<in> S\<close>
+  show \<open>\<not> semantics Var Fun (sat S) (Dis p q)\<close>
+    using Hintikka.AlphaDis assms dis p q semantics.simps(3) by blast
+next
+  fix p q
+  assume np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
+    and nq: \<open>Neg q \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) q\<close>
+    and ndis: \<open>Neg (Dis p q) \<in> S\<close>
+  show \<open>semantics Var Fun (sat S) (Dis p q)\<close>
+    using Hintikka.BetaDis assms ndis np nq semantics.simps(3) by blast
+next
+  fix p q
+  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
+    and q: \<open>q \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) q\<close>
+    and con: \<open>Con p q \<in> S\<close>
+  show \<open>\<not> semantics Var Fun (sat S) (Con p q)\<close>
+    using Hintikka.BetaCon assms con p q semantics.simps(4) by blast
+next
+  fix p q
+  assume np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
+    and nq: \<open>Neg q \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) q\<close>
+    and ncon: \<open>Neg (Con p q) \<in> S\<close>
+  show \<open>semantics Var Fun (sat S) (Con p q)\<close>
+    using Hintikka.AlphaCon assms ncon np nq semantics.simps(4) by blast
+next
+  fix p
+  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
+    and np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
+    and exi: \<open>Exi p \<in> S\<close>
+  show \<open>\<not> semantics Var Fun (sat S) (Exi p)\<close>
+    using Hintikka.GammaExi assms exi p semantics.simps(5)
+    sorry
+next
+  fix p
+  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
+    and np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
+    and nexi: \<open>Neg (Exi p) \<in> S\<close>
+  show \<open>semantics Var Fun (sat S) (Exi p)\<close>
+    using Hintikka.DeltaExi assms nexi p np semantics.simps(5)
+    sorry
+next
+  fix p
+  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
+    and np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
+    and uni: \<open>Uni p \<in> S\<close>
+  show \<open>\<not> semantics Var Fun (sat S) (Uni p)\<close>
+    using Hintikka.GammaUni assms uni p semantics.simps(6)
+    sorry
+next
+  fix p
+  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
+    and np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
+    and nuni: \<open>Neg (Uni p) \<in> S\<close>
+  show \<open>semantics Var Fun (sat S) (Uni p)\<close>
+    using Hintikka.DeltaUni assms nuni p np semantics.simps(6)
+    sorry
+next
+  fix p
+  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
+    and np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
+    and neg: \<open>Neg p \<in> S\<close>
+  show \<open>\<not> semantics Var Fun (sat S) (Neg p)\<close>
+  proof (cases p)
+    case pre: (Pre n ts)
+    have \<open>sat S n ts\<close> using neg pre by simp
+    then show ?thesis
+      using assms neg np by simp
+  next
+    case (Imp f1 f2)
+    then show ?thesis
+      using assms np neg semantics.simps(7) by blast
+  next
+    case (Dis p1 p2)
+    then show ?thesis
+      using assms np neg semantics.simps(7) by blast
+  next
+    case (Con p1 p2)
+    then show ?thesis
+      using assms np neg semantics.simps(7) by blast
+  next
+    case (Exi p)
+    then show ?thesis
+      using assms np neg semantics.simps(7) by blast
+  next
+    case (Uni p)
+    then show ?thesis
+      using assms np neg semantics.simps(7) by blast
+  next
+    case (Neg p)
+    then show ?thesis
+      using assms np neg semantics.simps(7) by blast
+  qed
+next
+  fix p
+  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
+    and np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
+    and nexi: \<open>Neg (Neg p) \<in> S\<close>
+  show \<open>semantics Var Fun (sat S) (Neg p)\<close>
+    using Hintikka.Neg assms nexi p np semantics.simps(7) by blast
 qed
-*)
 
 text \<open>We need some lemmas to prove our main theorem\<close>
 lemma epath_countermodel:
