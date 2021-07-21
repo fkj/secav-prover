@@ -44,6 +44,11 @@ locale Hintikka =
     DeltaExi: \<open>Neg (Exi p) \<in> H \<Longrightarrow> \<exists>t. Neg (sub 0 t p) \<in> H\<close> and
     Neg: \<open>Neg (Neg p) \<in> H \<Longrightarrow> p \<in> H\<close>
 
+lemma exactly_one_enabled: \<open>\<forall>sequent phase. \<exists>! r. enabled r (sequent, phase)\<close>
+  unfolding enabled_def Ex1_def
+  using at_least_one_enabled enabled_unique
+  by (metis RuleSystem_Defs.enabled_def member_remove remove_def rules_def) 
+
 lemma woop:
   assumes \<open>Dis p q \<in> tree_fms steps\<close>
   shows \<open>\<exists>n. s = shd (sdrop n steps) \<and> (\<exists>z. s = ((Dis p q # z, PABD), AlphaDis))\<close>
