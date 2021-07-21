@@ -13,73 +13,12 @@ lemma eff_preserves_Nil:
   shows \<open>fst s = []\<close>
   using assms unfolding eff_def
 proof (induct r)
-  case Basic
-  then show ?case
-    by (induct phase) simp_all
-next
-  case AlphaDis
-  then show ?case
-    by (induct phase) auto
-next
-  case AlphaImp
-  then show ?case
-    by (induct phase) auto
-next
-  case AlphaCon
-  then show ?case
-    by (induct phase) auto
-next
-  case BetaCon
-  then show ?case
-    by (induct phase) auto
-next
-  case BetaImp
-  then show ?case
-    by (induct phase) auto
-next
-  case BetaDis
-  then show ?case
-    by (induct phase) auto
-next
-  case DeltaUni
-  then show ?case
-    by (induct phase) auto
-next
-  case DeltaExi
-  then show ?case
-    by (induct phase) auto
-next
-  case NegNeg
-  then show ?case
-    by (induct phase) auto
-next
-  case GammaExi
-  then show ?case
-    by (induct phase) auto
-next
-  case GammaUni
-  then show ?case
-    by (induct phase) auto
-next
   case Rotate
-  have *: \<open>effect Rotate ([], PInstGamma n ts ots b) = Some sl \<Longrightarrow>
-       s |\<in>| sl \<Longrightarrow> fst s = []\<close> for n ts ots b
-    apply (induct ts)
-     apply (induct b)
-      apply simp
-    apply simp
-    by auto
-  
-  from Rotate show ?case
-    apply (induct phase)
-    apply simp
-      apply simp
-     apply simp
-    using * by simp
-next
-  case Duplicate
-  then show ?case
-    by (induct phase) auto
+  moreover have \<open>effect Rotate ([], PInstGamma n ots ts b) = Some sl \<Longrightarrow>
+       s |\<in>| sl \<Longrightarrow> fst s = []\<close> for n ots ts b
+    by (induct b) simp_all
+  ultimately show ?case
+    by (induct phase) simp_all
 next
   case Next
   moreover have \<open>effect Next ([], PInstGamma n ots ts b) = Some sl \<Longrightarrow>
@@ -87,7 +26,7 @@ next
     by (induct ts) (induct b, auto)+
   ultimately show ?case
     by (induct phase) auto
-qed
+qed (induct phase, simp_all)
 
 lemma branches_if_not_Basic:
   assumes \<open>eff r ([], phase) sl\<close> \<open>r \<noteq> Basic\<close>
