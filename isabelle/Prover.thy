@@ -298,126 +298,127 @@ section \<open>Abstract completeness\<close>
 definition eff where
   \<open>eff \<equiv> \<lambda>r s ss. effect r s = Some ss\<close>
 
-interpretation RuleSystem eff rules UNIV
-  unfolding rules_def RuleSystem_def
-proof (simp)
-  show \<open>\<forall>sequent phase. \<exists>r\<in>i.R (cycle rulesList). \<exists>sl. eff r (sequent, phase) sl\<close>
-  proof (intro allI)
-    fix sequent phase
-    show \<open>\<exists>r\<in>i.R (cycle rulesList). \<exists>sl. eff r (sequent, phase) sl\<close>
-    proof (induct phase)
-      case PBasic
-      then show ?case unfolding eff_def
-      proof (induct sequent)
-        case Nil
-        then show ?case unfolding rulesList_def by simp
-      next
-        case (Cons p z)
-        then show ?case
-        proof (cases \<open>branchDone (p # z)\<close>)
-          case bd: True
-          show ?thesis
-          proof (cases \<open>Neg p \<notin> set z\<close>)
-            case neg: True
-            then show ?thesis
-            proof -
-              have \<open>Rotate \<in> i.R (cycle rulesList)\<close>
-                unfolding rulesList_def by simp
-              moreover have \<open>effect Rotate (p # z, PBasic) = Some {| (z @ [p], PBasic) |}\<close>
-                using bd neg
-              proof (cases p)
-                case (Neg q)
-                with neg bd show ?thesis by (cases q) simp_all
-              qed simp_all
-              ultimately show ?thesis unfolding rulesList_def by simp
-            qed
-          next
-            case False
-            then show ?thesis unfolding rulesList_def by simp
+lemma at_least_one_enabled: \<open>\<forall>sequent phase. \<exists>r \<in> i.R (cycle rulesList). \<exists>sl. eff r (sequent,phase) sl\<close>
+proof (intro allI)
+  fix sequent phase
+  show \<open>\<exists>r\<in>i.R (cycle rulesList). \<exists>sl. eff r (sequent, phase) sl\<close>
+  proof (induct phase)
+    case PBasic
+    then show ?case unfolding eff_def
+    proof (induct sequent)
+      case Nil
+      then show ?case unfolding rulesList_def by simp
+    next
+      case (Cons p z)
+      then show ?case
+      proof (cases \<open>branchDone (p # z)\<close>)
+        case bd: True
+        show ?thesis
+        proof (cases \<open>Neg p \<notin> set z\<close>)
+          case neg: True
+          then show ?thesis
+          proof -
+            have \<open>Rotate \<in> i.R (cycle rulesList)\<close>
+              unfolding rulesList_def by simp
+            moreover have \<open>effect Rotate (p # z, PBasic) = Some {| (z @ [p], PBasic) |}\<close>
+              using bd neg
+            proof (cases p)
+              case (Neg q)
+              with neg bd show ?thesis by (cases q) simp_all
+            qed simp_all
+            ultimately show ?thesis unfolding rulesList_def by simp
           qed
         next
           case False
-          then show ?thesis unfolding rulesList_def
-            by (simp split: fm.splits)
+          then show ?thesis unfolding rulesList_def by simp
         qed
+      next
+        case False
+        then show ?thesis unfolding rulesList_def
+          by (simp split: fm.splits)
       qed
+    qed
+  next
+    case PABD
+    then show ?case unfolding rulesList_def eff_def
+    proof (induct sequent)
+      case Nil
+      show ?case by simp
     next
-      case PABD
-      then show ?case unfolding rulesList_def eff_def
-      proof (induct sequent)
-        case Nil
-        show ?case by simp
+      case (Cons p z)
+      show ?case
+      proof (cases p)
+        case (Neg q)
+        then show ?thesis
+          by (cases q) simp_all
+      qed simp_all
+    qed
+  next
+    case (PPrepGamma n ts)
+    then show ?case unfolding eff_def
+    proof (induct n)
+      case 0
+      then show ?case unfolding rulesList_def
+        by (cases sequent; simp split: fm.splits)
+    next
+      case n': (Suc n')
+      then show ?case
+      proof (cases sequent)
+        case p: Nil
+        then show ?thesis unfolding p rulesList_def by simp
       next
         case (Cons p z)
-        show ?case
-        proof (cases p)
-          case (Neg q)
-          then show ?thesis
-            by (cases q) simp_all
-        qed simp_all
-      qed
-    next
-      case (PPrepGamma n ts)
-      then show ?case unfolding eff_def
-      proof (induct n)
-        case 0
-        then show ?case unfolding rulesList_def
-          by (cases sequent; simp split: fm.splits)
-      next
-        case n': (Suc n')
-        then show ?case
-        proof (cases sequent)
-          case p: Nil
-          then show ?thesis unfolding p rulesList_def by simp
-        next
-          case (Cons p z)
-          then show ?thesis
-          proof simp
-            show \<open>\<exists>r\<in>i.R (cycle rulesList).
+        then show ?thesis
+        proof simp
+          show \<open>\<exists>r\<in>i.R (cycle rulesList).
                     \<exists>sl. effect r (p # z, PPrepGamma (Suc n') ts) = Some sl\<close>
-            proof (cases p)
-              case p: (Neg q)
-              then show ?thesis unfolding rulesList_def
-                by (cases q) simp_all
-            qed (unfold rulesList_def, simp_all)
-          qed
+          proof (cases p)
+            case p: (Neg q)
+            then show ?thesis unfolding rulesList_def
+              by (cases q) simp_all
+          qed (unfold rulesList_def, simp_all)
         qed
       qed
+    qed
+  next
+    case (PInstGamma n ots ts b)
+    then show ?case unfolding eff_def
+    proof (induct ts)
+      case Nil
+      then show ?case unfolding rulesList_def
+        by (cases b; cases sequent; simp split: list.splits fm.splits bool.splits)
     next
-      case (PInstGamma n ots ts b)
-      then show ?case unfolding eff_def
-      proof (induct ts)
-        case Nil
-        then show ?case unfolding rulesList_def
-          by (cases b; cases sequent; simp split: list.splits fm.splits bool.splits)
+      case (Cons t ts')
+      then show ?case
+      proof (cases b)
+        case bt: True
+        then show ?thesis unfolding rulesList_def
+          by (cases sequent; simp add: bt split: fm.splits)
       next
-        case (Cons t ts')
-        then show ?case
-        proof (cases b)
-          case bt: True
+        case bf: False
+        then show ?thesis
+        proof (cases sequent)
+          case Nil
           then show ?thesis unfolding rulesList_def
-            by (cases sequent; simp add: bt split: fm.splits)
+            by (simp add: bf)
         next
-          case bf: False
+          case ss: (Cons p z)
           then show ?thesis
-          proof (cases sequent)
-            case Nil
+          proof (cases p)
+            case pneg: (Neg q)
             then show ?thesis unfolding rulesList_def
-              by (simp add: bf)
-          next
-            case ss: (Cons p z)
-            then show ?thesis
-            proof (cases p)
-              case pneg: (Neg q)
-              then show ?thesis unfolding rulesList_def
-                by (cases q; simp add: bf ss pneg)
-            qed (unfold rulesList_def, simp_all add: bf ss)
-          qed
+              by (cases q; simp add: bf ss pneg)
+          qed (unfold rulesList_def, simp_all add: bf ss)
         qed
       qed
     qed
   qed
 qed
+
+interpretation RuleSystem eff rules UNIV
+  unfolding rules_def RuleSystem_def
+  using at_least_one_enabled
+  by simp
 
 lemma enabled_unique:
   \<open>\<forall>r sequent phase. enabled r (sequent, phase) \<longrightarrow> (\<forall>r' \<in> R - {r}. \<not> enabled r' (sequent, phase))\<close>
