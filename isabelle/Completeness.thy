@@ -160,146 +160,165 @@ lemma
 
 abbreviation (input) \<open>sat S n ts \<equiv> Neg (Pre n ts) \<in> S\<close>
 
-lemma semantics_list_id [simp]: \<open>semantics_list Var Fun ts = ts\<close>
-  sorry
+lemma semantics_id [simp]:
+  \<open>semantics_term Var Fun t = t\<close>
+  \<open>semantics_list Var Fun ts = ts\<close>
+  by (induct t and ts rule: semantics_term.induct semantics_list.induct) simp_all
+
+lemma size_sub [simp]: \<open>size (sub i t p) = size p\<close>
+  by (induct p arbitrary: i t) auto
 
 lemma hintikka_counter_model:
   assumes \<open>Hintikka S\<close>
-  shows \<open>p \<in> S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close> \<open>Neg p \<in> S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
-  using assms
-proof (induct p)
-  fix n ts
-  assume \<open>Pre n ts \<in> S\<close>
-  then have \<open>Neg (Pre n ts) \<notin> S\<close>
-    using assms unfolding Hintikka_def by metis
-  then have \<open>\<not> sat S n ts\<close>
-    by simp
-  then show \<open>\<not> semantics Var Fun (sat S) (Pre n ts)\<close>
-    by simp
+  shows \<open>(p \<in> S \<longrightarrow> \<not> semantics Var Fun (sat S) p) \<and> (Neg p \<in> S \<longrightarrow> semantics Var Fun (sat S) p)\<close>
+proof (induct p rule: wf_induct [where r=\<open>measure size\<close>])
+  case 1
+  then show ?case ..
 next
-  fix n ts
-  assume \<open>Neg (Pre n ts) \<in> S\<close>
-  then have \<open>sat S n ts\<close>
-    by simp
-  then show \<open>semantics Var Fun (sat S) (Pre n ts)\<close>
-    by simp
-next
-  fix p q
-  assume np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
-    and q: \<open>q \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) q\<close>
-    and imp: \<open>Imp p q \<in> S\<close>
-  show \<open>\<not> semantics Var Fun (sat S) (Imp p q)\<close>
-    using Hintikka.AlphaImp assms imp np q semantics.simps(2) by blast
-next
-  fix p q
-  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
-    and nq: \<open>Neg q \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) q\<close>
-    and nimp: \<open>Neg (Imp p q) \<in> S\<close>
-  show \<open>semantics Var Fun (sat S) (Imp p q)\<close>
-    using Hintikka.BetaImp assms nimp p nq semantics.simps(2) by blast
-next
-  fix p q
-  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
-    and q: \<open>q \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) q\<close>
-    and dis: \<open>Dis p q \<in> S\<close>
-  show \<open>\<not> semantics Var Fun (sat S) (Dis p q)\<close>
-    using Hintikka.AlphaDis assms dis p q semantics.simps(3) by blast
-next
-  fix p q
-  assume np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
-    and nq: \<open>Neg q \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) q\<close>
-    and ndis: \<open>Neg (Dis p q) \<in> S\<close>
-  show \<open>semantics Var Fun (sat S) (Dis p q)\<close>
-    using Hintikka.BetaDis assms ndis np nq semantics.simps(3) by blast
-next
-  fix p q
-  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
-    and q: \<open>q \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) q\<close>
-    and con: \<open>Con p q \<in> S\<close>
-  show \<open>\<not> semantics Var Fun (sat S) (Con p q)\<close>
-    using Hintikka.BetaCon assms con p q semantics.simps(4) by blast
-next
-  fix p q
-  assume np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
-    and nq: \<open>Neg q \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) q\<close>
-    and ncon: \<open>Neg (Con p q) \<in> S\<close>
-  show \<open>semantics Var Fun (sat S) (Con p q)\<close>
-    using Hintikka.AlphaCon assms ncon np nq semantics.simps(4) by blast
-next
-  fix p
-  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
-    and np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
-    and exi: \<open>Exi p \<in> S\<close>
-  show \<open>\<not> semantics Var Fun (sat S) (Exi p)\<close>
-    using Hintikka.GammaExi assms exi p semantics.simps(5)
-    sorry
-next
-  fix p
-  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
-    and np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
-    and nexi: \<open>Neg (Exi p) \<in> S\<close>
-  show \<open>semantics Var Fun (sat S) (Exi p)\<close>
-    using Hintikka.DeltaExi assms nexi p np semantics.simps(5)
-    sorry
-next
-  fix p
-  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
-    and np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
-    and uni: \<open>Uni p \<in> S\<close>
-  show \<open>\<not> semantics Var Fun (sat S) (Uni p)\<close>
-    using Hintikka.GammaUni assms uni p semantics.simps(6)
-    sorry
-next
-  fix p
-  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
-    and np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
-    and nuni: \<open>Neg (Uni p) \<in> S\<close>
-  show \<open>semantics Var Fun (sat S) (Uni p)\<close>
-    using Hintikka.DeltaUni assms nuni p np semantics.simps(6)
-    sorry
-next
-  fix p
-  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
-    and np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
-    and neg: \<open>Neg p \<in> S\<close>
-  show \<open>\<not> semantics Var Fun (sat S) (Neg p)\<close>
-  proof (cases p)
-    case pre: (Pre n ts)
-    have \<open>sat S n ts\<close> using neg pre by simp
-    then show ?thesis
-      using assms neg np by simp
+  fix x
+  assume wf: \<open>\<forall>q. (q, x) \<in> measure size \<longrightarrow>
+      (q \<in> S \<longrightarrow> \<not> semantics Var Fun (sat S) q) \<and>
+      (Neg q \<in> S \<longrightarrow> semantics Var Fun (sat S) q)\<close>
+
+  show \<open>(x \<in> S \<longrightarrow> \<not> semantics Var Fun (sat S) x) \<and>
+        (Neg x \<in> S \<longrightarrow> semantics Var Fun (sat S) x)\<close>
+  proof (cases x)
+    case (Pre n ts)
+    show ?thesis
+    proof (intro conjI impI)
+      assume \<open>x \<in> S\<close>
+      then have \<open>Neg (Pre n ts) \<notin> S\<close>
+        using assms Pre Hintikka.Basic by blast
+      then show \<open>\<not> semantics Var Fun (sat S) x\<close>
+        using Pre by simp
+    next
+      assume \<open>Neg x \<in> S\<close>
+      then have \<open>sat S n ts\<close>
+        using assms Pre Hintikka.Basic by blast
+      then show \<open>semantics Var Fun (sat S) x\<close>
+        using Pre by simp
+    qed
   next
-    case (Imp f1 f2)
-    then show ?thesis
-      using assms np neg semantics.simps(7) by blast
+    case (Imp p q)
+    show ?thesis
+    proof (intro conjI impI)
+      assume \<open>x \<in> S\<close>
+      then have \<open>Neg p \<in> S\<close> \<open>q \<in> S\<close>
+        using Imp assms Hintikka.AlphaImp by blast+
+      then show \<open>\<not> semantics Var Fun (sat S) x\<close>
+        using wf Imp by fastforce
+    next
+      assume \<open>Neg x \<in> S\<close>
+      then have \<open>p \<in> S \<or> Neg q \<in> S\<close>
+        using Imp assms Hintikka.BetaImp by blast
+      then show \<open>semantics Var Fun (sat S) x\<close>
+        using wf Imp by fastforce
+    qed
   next
-    case (Dis p1 p2)
-    then show ?thesis
-      using assms np neg semantics.simps(7) by blast
+    case (Dis p q)
+    show ?thesis
+    proof (intro conjI impI)
+      assume \<open>x \<in> S\<close>
+      then have \<open>p \<in> S\<close> \<open>q \<in> S\<close>
+        using Dis assms Hintikka.AlphaDis by blast+
+      then show \<open>\<not> semantics Var Fun (sat S) x\<close>
+        using wf Dis by fastforce
+    next
+      assume \<open>Neg x \<in> S\<close>
+      then have \<open>Neg p \<in> S \<or> Neg q \<in> S\<close>
+        using Dis assms Hintikka.BetaDis by blast
+      then show \<open>semantics Var Fun (sat S) x\<close>
+        using wf Dis by fastforce
+    qed
   next
-    case (Con p1 p2)
-    then show ?thesis
-      using assms np neg semantics.simps(7) by blast
+    case (Con p q)
+    show ?thesis
+    proof (intro conjI impI)
+      assume \<open>x \<in> S\<close>
+      then have \<open>p \<in> S \<or> q \<in> S\<close>
+        using Con assms Hintikka.BetaCon by blast
+      then show \<open>\<not> semantics Var Fun (sat S) x\<close>
+        using wf Con by fastforce
+    next
+      assume \<open>Neg x \<in> S\<close>
+      then have \<open>Neg p \<in> S\<close> \<open>Neg q \<in> S\<close>
+        using Con assms Hintikka.AlphaCon by blast+
+      then show \<open>semantics Var Fun (sat S) x\<close>
+        using wf Con by fastforce
+    qed
   next
     case (Exi p)
-    then show ?thesis
-      using assms np neg semantics.simps(7) by blast
+    show ?thesis
+    proof (intro conjI impI)
+      assume \<open>x \<in> S\<close>
+      then have \<open>\<forall>t \<in> {Fun 0 []} \<union> set (subtermFm 0 p). sub 0 t p \<in> S\<close>
+        using Exi assms Hintikka.GammaExi by blast
+      then have \<open>\<forall>t \<in> {Fun 0 []} \<union> set (subtermFm 0 p). \<not> semantics Var Fun (sat S) (sub 0 t p)\<close>
+        using wf Exi size_sub
+        by (metis (no_types, lifting) add.right_neutral add_Suc_right fm.size(12) in_measure lessI)
+
+      (* Need a lemma that proves that quantifying over Fun 0 [] and the subterms is enough
+         to generalize to all terms *)      
+      have \<open>\<forall>t. \<not> semantics Var Fun (sat S) (sub 0 t p)\<close>
+        sorry
+      then have \<open>\<forall>t. \<not> semantics (SeCaV.shift Var 0 t) Fun (sat S) p\<close>
+        using subst_lemma by simp
+      then show \<open>\<not> semantics Var Fun (sat S) x\<close>
+        using Exi by simp
+    next
+      assume \<open>Neg x \<in> S\<close>
+      then obtain t where \<open>Neg (sub 0 t p) \<in> S\<close>
+        using Exi assms Hintikka.DeltaExi by blast
+      then have \<open>semantics Var Fun (sat S) (sub 0 t p)\<close>
+        using wf Exi size_sub
+        by (metis Nat.add_0_right add_Suc_right fm.size(12) in_measure less_Suc_eq)
+      then show \<open>semantics Var Fun (sat S) x\<close>
+        using wf Exi by fastforce
+    qed
   next
     case (Uni p)
-    then show ?thesis
-      using assms np neg semantics.simps(7) by blast
+    show ?thesis
+    proof (intro conjI impI)
+      assume \<open>x \<in> S\<close>
+      then obtain t where \<open>sub 0 t p \<in> S\<close>
+        using Uni assms Hintikka.DeltaUni by blast
+      then have \<open>\<not> semantics Var Fun (sat S) (sub 0 t p)\<close>
+        using wf Uni size_sub
+        by (metis Nat.add_0_right add_Suc_right fm.size(13) in_measure less_Suc_eq)
+      then show \<open>\<not> semantics Var Fun (sat S) x\<close>
+        using Uni by fastforce
+    next
+      assume \<open>Neg x \<in> S\<close>
+      then have \<open>\<forall>t \<in> {Fun 0 []} \<union> set (subtermFm 0 p). Neg (sub 0 t p) \<in> S\<close>
+        using Uni assms Hintikka.GammaUni by blast
+      then have \<open>\<forall>t \<in> {Fun 0 []} \<union> set (subtermFm 0 p). semantics Var Fun (sat S) (sub 0 t p)\<close>
+        using wf Uni size_sub
+        by (metis (no_types, lifting) add.right_neutral add_Suc_right fm.size(13) in_measure lessI)
+
+      (* Need a lemma that proves that quantifying over Fun 0 [] and the subterms is enough
+         to generalize to all terms *)      
+      have \<open>\<forall>t. semantics Var Fun (sat S) (sub 0 t p)\<close>
+        sorry
+      then have \<open>\<forall>t. semantics (SeCaV.shift Var 0 t) Fun (sat S) p\<close>
+        using subst_lemma by simp
+      then show \<open>semantics Var Fun (sat S) x\<close>
+        using wf Uni by fastforce
+    qed
   next
     case (Neg p)
-    then show ?thesis
-      using assms np neg semantics.simps(7) by blast
+    show ?thesis
+    proof (intro conjI impI)
+      assume \<open>x \<in> S\<close>
+      then show \<open>\<not> semantics Var Fun (sat S) x\<close>
+        using wf Neg by fastforce
+    next
+      assume \<open>Neg x \<in> S\<close>
+      then have \<open>p \<in> S\<close>
+        using Neg assms Hintikka.Neg by blast
+      then show \<open>semantics Var Fun (sat S) x\<close>
+        using wf Neg by fastforce
+    qed
   qed
-next
-  fix p
-  assume p: \<open>p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> \<not> semantics Var Fun (sat S) p\<close>
-    and np: \<open>Neg p \<in> S \<Longrightarrow> Hintikka S \<Longrightarrow> semantics Var Fun (sat S) p\<close>
-    and nexi: \<open>Neg (Neg p) \<in> S\<close>
-  show \<open>semantics Var Fun (sat S) (Neg p)\<close>
-    using Hintikka.Neg assms nexi p np semantics.simps(7) by blast
 qed
 
 text \<open>We need some lemmas to prove our main theorem\<close>
@@ -321,8 +340,7 @@ proof (rule ccontr)
     moreover have \<open>p \<in> tree_fms steps\<close>
       using steps shd_sset unfolding tree_fms_def by force
     then have \<open>\<exists>(e :: nat \<Rightarrow> tm) f g . \<not> semantics e f g p\<close>
-      using calculation(2) hintikka_counter_model(1) steps
-      by force
+      using calculation(2) hintikka_counter_model steps by blast
     ultimately show \<open>False\<close>
       by blast
   qed
