@@ -38,8 +38,8 @@ locale Hintikka =
     BetaCon: \<open>Con p q \<in> H \<Longrightarrow> p \<in> H \<or> q \<in> H\<close> and
     BetaImp: \<open>Neg (Imp p q) \<in> H \<Longrightarrow> p \<in> H \<or> Neg q \<in> H\<close> and
     BetaDis: \<open>Neg (Dis p q) \<in> H \<Longrightarrow> Neg p \<in> H \<or> Neg q \<in> H\<close> and
-    GammaExi: \<open>Exi p \<in> H \<Longrightarrow> \<forall>t \<in> {Fun 0 []} \<union> set (subtermFm 0 p). sub 0 t p \<in> H\<close> and
-    GammaUni: \<open>Neg (Uni p) \<in> H \<Longrightarrow> \<forall>t \<in> {Fun 0 []} \<union> set (subtermFm 0 p). Neg (sub 0 t p) \<in> H\<close> and
+    GammaExi: \<open>Exi p \<in> H \<Longrightarrow> \<forall>t \<in> \<Union>f \<in> H. set (subtermFm 0 f). sub 0 t p \<in> H\<close> and
+    GammaUni: \<open>Neg (Uni p) \<in> H \<Longrightarrow> \<forall>t \<in> \<Union>f \<in> H. set (subtermFm 0 f). Neg (sub 0 t p) \<in> H\<close> and
     DeltaUni: \<open>Uni p \<in> H \<Longrightarrow> \<exists>t. sub 0 t p \<in> H\<close> and
     DeltaExi: \<open>Neg (Exi p) \<in> H \<Longrightarrow> \<exists>t. Neg (sub 0 t p) \<in> H\<close> and
     Neg: \<open>Neg (Neg p) \<in> H \<Longrightarrow> p \<in> H\<close>
@@ -61,7 +61,7 @@ lemma sset_sdrop: \<open>sset (sdrop n s) \<subseteq> sset s\<close>
 lemma escape_path_Hintikka:
   fixes steps
   assumes \<open>fst (fst (shd steps)) = [p] \<and> epath steps\<close> \<open>Saturated steps\<close>
-  shows \<open>Hintikka (tree_fms steps)\<close>
+  shows \<open>Hintikka (tree_fms steps)\<close> (is \<open>Hintikka ?H\<close>)
 proof
   fix n ts
   assume \<open>Pre n ts \<in> tree_fms steps\<close>
@@ -116,12 +116,12 @@ next
 next
   fix p
   assume \<open>Exi p \<in> tree_fms steps\<close>
-  show \<open>\<forall>t\<in>{Fun 0 []} \<union> set (subtermFm 0 p). sub 0 t p \<in> tree_fms steps\<close>
+  show \<open>\<forall>t\<in>\<Union>f \<in> tree_fms steps. set (subtermFm 0 f). sub 0 t p \<in> tree_fms steps\<close>
     sorry
 next
   fix p
   assume \<open>Neg (Uni p) \<in> tree_fms steps\<close>
-  show \<open>\<forall>t\<in>{Fun 0 []} \<union> set (subtermFm 0 p). Neg (sub 0 t p) \<in> tree_fms steps\<close>
+  show \<open>\<forall>t\<in>\<Union>f \<in> tree_fms steps. set (subtermFm 0 f). Neg (sub 0 t p) \<in> tree_fms steps\<close>
     sorry
 next
   fix p
@@ -167,6 +167,32 @@ lemma semantics_id [simp]:
 
 lemma size_sub [simp]: \<open>size (sub i t p) = size p\<close>
   by (induct p arbitrary: i t) auto
+
+lemma
+  assumes
+    \<open>\<forall>e. \<forall>t \<in> {Fun i []} \<union> set (subtermFm 0 p). semantics e f g (sub 0 t p)\<close>
+    \<open>i \<notin> params p\<close>
+  shows \<open>semantics e f g (sub 0 t p)\<close>
+proof (cases \<open>t \<in> set (subtermFm 0 p)\<close>)
+  case True
+  then show ?thesis
+    using assms by blast
+next
+  case False
+  let ?x = \<open>semantics_term e f t\<close>
+  let ?y = \<open>f i []\<close>
+
+  (* t = f(g(a)) *)
+
+  have \<open>semantics (SeCaV.shift e 0 ?y) f g p\<close>
+    using assms by simp
+  then have \<open>\<forall>x. semantics (SeCaV.shift e 0 x) f g p\<close>
+    using \<open>i \<notin> params p\<close> sorry
+  then have \<open>semantics (SeCaV.shift e 0 ?x) f g p\<close>
+    by simp
+  then show ?thesis
+    using subst_lemma by simp
+qed
 
 lemma hintikka_counter_model:
   assumes \<open>Hintikka S\<close>
@@ -251,14 +277,41 @@ next
     show ?thesis
     proof (intro conjI impI)
       assume \<open>x \<in> S\<close>
-      then have \<open>\<forall>t \<in> {Fun 0 []} \<union> set (subtermFm 0 p). sub 0 t p \<in> S\<close>
+      then have \<open>\<forall>t \<in> \<Union>f \<in> S. set (subtermFm 0 f). sub 0 t p \<in> S\<close>
         using Exi assms Hintikka.GammaExi by blast
-      then have \<open>\<forall>t \<in> {Fun 0 []} \<union> set (subtermFm 0 p). \<not> semantics Var Fun (sat S) (sub 0 t p)\<close>
+      then have \<open>\<forall>t \<in> \<Union>f \<in> S. set (subtermFm 0 f). \<not> semantics Var Fun (sat S) (sub 0 t p)\<close>
         using wf Exi size_sub
         by (metis (no_types, lifting) add.right_neutral add_Suc_right fm.size(12) in_measure lessI)
+      (* NEW THOUGHTS: Need to restrict the model so that the universe only contains
+            terms that occur in S.
+            We cannot do this easily with the Isabelle logic.
+            Maybe we can define a semantics a la FEval here:
+              https://www.isa-afp.org/browser_info/current/AFP/Verified-Prover/Prover.html *)
+
+      (* Assume formula is closed and be arbitrary over e *)    
 
       (* Need a lemma that proves that quantifying over Fun 0 [] and the subterms is enough
-         to generalize to all terms *)      
+         to generalize to all terms *)
+
+      (* e :: nat \<Rightarrow> {t :: tm. t \<in> \<Union>f \<in> H. set (subtermFm 0 f)}
+
+          e S
+         (f S) n ts : 'a
+
+          datatype htm = HFun nat htm list | Other
+          if Fun n ts \<in> S then HFun n ts else Other
+
+          f :: filter
+
+
+          Sig at t er en subterm af S.
+          Så f t = t og det holder induktivt.
+
+          Sig at t ikke er en subterm af S.
+          Så f t = Fun 0 []
+          Så skal vi vise \<not> semantics Var f (sat S) (sub 0 (Fun 0 []) p)
+            Hvordan gør vi det?
+       *)
       have \<open>\<forall>t. \<not> semantics Var Fun (sat S) (sub 0 t p)\<close>
         sorry
       then have \<open>\<forall>t. \<not> semantics (SeCaV.shift Var 0 t) Fun (sat S) p\<close>
@@ -289,14 +342,13 @@ next
         using Uni by fastforce
     next
       assume \<open>Neg x \<in> S\<close>
-      then have \<open>\<forall>t \<in> {Fun 0 []} \<union> set (subtermFm 0 p). Neg (sub 0 t p) \<in> S\<close>
+      then have \<open>\<forall>t \<in> \<Union>f \<in> S. set (subtermFm 0 f). Neg (sub 0 t p) \<in> S\<close>
         using Uni assms Hintikka.GammaUni by blast
-      then have \<open>\<forall>t \<in> {Fun 0 []} \<union> set (subtermFm 0 p). semantics Var Fun (sat S) (sub 0 t p)\<close>
+      then have \<open>\<forall>t \<in> \<Union>f \<in> S. set (subtermFm 0 f). semantics Var Fun (sat S) (sub 0 t p)\<close>
         using wf Uni size_sub
         by (metis (no_types, lifting) add.right_neutral add_Suc_right fm.size(13) in_measure lessI)
 
-      (* Need a lemma that proves that quantifying over Fun 0 [] and the subterms is enough
-         to generalize to all terms *)      
+(* SEE ABOVE *)
       have \<open>\<forall>t. semantics Var Fun (sat S) (sub 0 t p)\<close>
         sorry
       then have \<open>\<forall>t. semantics (SeCaV.shift Var 0 t) Fun (sat S) p\<close>
