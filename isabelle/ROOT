@@ -13,6 +13,7 @@ session SeCaV_Prover = "HOL-Library" +
     Prover
     Soundness
     Completeness
+    Model
     Export
   document_files
     "root.tex"

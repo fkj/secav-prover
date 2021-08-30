@@ -57,8 +57,64 @@ lemma usubst_lemma [iff]:
   \<open>usemantics u e f g (subst a t i) \<longleftrightarrow> usemantics u (SeCaV.shift e i (semantics_term e f t)) f g a\<close>
   by (induct a arbitrary: e i t) simp_all
 
-lemma subtermTm_Fun: \<open>t \<in> set ts \<Longrightarrow> t \<in> set (subtermTm 0 (Fun i ts))\<close>
-  sorry
+lemma subtermTm_Fun: \<open>t \<in> set ts \<longrightarrow> t \<in> set (subtermTm 0 (Fun i ts))\<close>
+proof (induction ts)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons t' ts')
+  then show ?case
+  proof (safe)
+    assume \<open>t \<in> set (t' # ts')\<close> \<open>t \<notin> set ts'\<close>
+    from this have \<open>t = t'\<close> by simp
+    moreover have \<open>t' \<in> set (subtermTm 0 (Fun i (t' # ts')))\<close>
+    proof (simp)
+      have \<open>t' \<in> set (subtermTm 0 t')\<close>
+        by (cases t') simp_all
+      then show \<open>t' = Fun i (t' # ts') \<or> t' \<in> set (subtermTm 0 t') \<or> (\<exists>x\<in>set ts'. t' \<in> set (subtermTm 0 x))\<close>
+        by simp
+    qed
+    ultimately show \<open>t \<in> set (subtermTm 0 (Fun i (t' # ts')))\<close> by simp
+  next
+    assume \<open>t \<in> set (t' # ts')\<close> \<open>t \<in> set (subtermTm 0 (Fun i ts'))\<close>
+    then show \<open>t \<in> set (subtermTm 0 (Fun i (t' # ts')))\<close>
+    proof (simp)
+      assume *: \<open>t = t' \<or> t \<in> set ts'\<close>
+      assume \<open>t = Fun i ts' \<or> (\<exists>x\<in>set ts'. t \<in> set (subtermTm 0 x))\<close>
+      then show \<open>t = Fun i (t' # ts') \<or> t \<in> set (subtermTm 0 t') \<or> (\<exists>x\<in>set ts'. t \<in> set (subtermTm 0 x))\<close>
+      proof (cases \<open>\<exists>x\<in>set ts'. t \<in> set (subtermTm 0 x)\<close>)
+        case True
+        then show ?thesis by simp
+      next
+        case False
+        then show ?thesis
+        proof (cases \<open>t = t'\<close>)
+          case True
+          then show ?thesis
+          proof (simp)
+            have \<open>t' \<in> set (subtermTm 0 t')\<close>
+              by (cases t') simp_all
+            then show \<open>t' = Fun i (t' # ts') \<or> t' \<in> set (subtermTm 0 t') \<or> (\<exists>x\<in>set ts'. t' \<in> set (subtermTm 0 x))\<close>
+              by simp
+          qed
+        next
+          case False
+          then show ?thesis
+          proof -
+            have \<open>t \<in> set ts'\<close>
+              using * False by simp
+            moreover have \<open>t \<in> set (subtermTm 0 t)\<close>
+              by (cases t) simp_all
+            ultimately have \<open>\<exists>x \<in> set ts'. t \<in> set (subtermTm 0 x)\<close>
+              by blast
+            then show \<open>t = Fun i (t' # ts') \<or> t \<in> set (subtermTm 0 t') \<or> (\<exists>x\<in>set ts'. t \<in> set (subtermTm 0 x))\<close>
+              by simp
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
 
 (* This thing is downwards closed *)
 value \<open>subtermTm 0 (Fun 0 [Var 0, Fun 1 [Var 1]])\<close>
