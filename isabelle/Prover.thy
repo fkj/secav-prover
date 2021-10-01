@@ -56,19 +56,19 @@ fun generateNew :: \<open>fm \<Rightarrow> fm list \<Rightarrow> nat\<close> whe
   \<open>generateNew p z = 1 + max (maxFun p) (foldl max 0 (map maxFun z))\<close>
 
 text \<open>subtermTm returns a list of all terms occurring within a term\<close>
-fun subtermTm :: \<open>nat \<Rightarrow> tm \<Rightarrow> tm list\<close> where
-  \<open>subtermTm q (Fun n ts) = (Fun n ts) # (remdups (concat (map (subtermTm q) ts)))\<close>
-| \<open>subtermTm q (Var n) = (if n \<ge> q then [Var n] else [])\<close>
+fun subtermTm :: \<open>tm \<Rightarrow> tm list\<close> where
+  \<open>subtermTm (Fun n ts) = Fun n ts # remdups (concat (map subtermTm ts))\<close>
+| \<open>subtermTm (Var n) = [Var n]\<close>
 
 text \<open>subtermFm returns a list of all terms occurring within a formula\<close>
-fun subtermFm :: \<open>nat \<Rightarrow> fm \<Rightarrow> tm list\<close> where
-  \<open>subtermFm q (Pre _ ts) = remdups (concat (map (subtermTm q) ts))\<close>
-| \<open>subtermFm q (Imp f1 f2) = remdups (subtermFm q f1 @ subtermFm q f2)\<close>
-| \<open>subtermFm q (Dis f1 f2) = remdups (subtermFm q f1 @ subtermFm q f2)\<close>
-| \<open>subtermFm q (Con f1 f2) = remdups (subtermFm q f1 @ subtermFm q f2)\<close>
-| \<open>subtermFm q (Exi f) = subtermFm (q + 1) f\<close>
-| \<open>subtermFm q (Uni f) = subtermFm (q + 1) f\<close>
-| \<open>subtermFm q (Neg f) = subtermFm q f\<close>
+fun subtermFm :: \<open>fm \<Rightarrow> tm list\<close> where
+  \<open>subtermFm (Pre _ ts) = remdups (concat (map subtermTm ts))\<close>
+| \<open>subtermFm (Imp f1 f2) = remdups (subtermFm f1 @ subtermFm f2)\<close>
+| \<open>subtermFm (Dis f1 f2) = remdups (subtermFm f1 @ subtermFm f2)\<close>
+| \<open>subtermFm (Con f1 f2) = remdups (subtermFm f1 @ subtermFm f2)\<close>
+| \<open>subtermFm (Exi f) = subtermFm f\<close>
+| \<open>subtermFm (Uni f) = subtermFm f\<close>
+| \<open>subtermFm (Neg f) = subtermFm f\<close>
 
 text \<open>subterms returns a list of all terms occurring within a sequent.
       This is used to determine which terms to instantiate Gamma-formulas with.
@@ -78,7 +78,7 @@ text \<open>subterms returns a list of all terms occurring within a sequent.
    Check Grandfather proof to see why - it creates new free variables
    We have functions unlike Ben-Ari, so we need to handle functions of bound variables as well *)
 fun subterms :: \<open>sequent \<Rightarrow> tm list\<close> where
-  \<open>subterms s = (case remdups (concat (map (subtermFm 0) s)) of
+  \<open>subterms s = (case remdups (concat (map subtermFm s)) of
                 [] \<Rightarrow> [Fun 0 []]
               | ts \<Rightarrow> ts)\<close>
 

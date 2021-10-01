@@ -32,32 +32,11 @@ lemma uvalid_semantics:
 
 section \<open>Machinery\<close>
 
-primrec closedt where
-  \<open>closedt m (Var n) = (n < m)\<close>
-| \<open>closedt m (Fun _ ts) = list_all (closedt m) ts\<close>
-
-primrec closed where
-  \<open>closed m (Pre _ ts) = list_all (closedt m) ts\<close>
-| \<open>closed m (Imp p q) = (closed m p \<and> closed m q)\<close>
-| \<open>closed m (Dis p q) = (closed m p \<and> closed m q)\<close>
-| \<open>closed m (Con p q) = (closed m p \<and> closed m q)\<close>
-| \<open>closed m (Exi p) = (closed (Suc m) p)\<close>
-| \<open>closed m (Uni p) = (closed (Suc m) p)\<close>
-| \<open>closed m (Neg p) = closed m p\<close>
-
-lemma closedt_usemantics_id [simp]:
-  assumes \<open>closedt 0 t\<close> \<open>list_all (closedt 0) ts\<close>
-  shows
-  \<open>semantics_term e Fun t = t\<close>
-  \<open>semantics_list e Fun ts = ts\<close>
-  using assms by (induct t and ts rule: semantics_term.induct semantics_list.induct)
-    (simp_all add: assms)
-
 lemma usubst_lemma [iff]:
   \<open>usemantics u e f g (subst a t i) \<longleftrightarrow> usemantics u (SeCaV.shift e i (semantics_term e f t)) f g a\<close>
   by (induct a arbitrary: e i t) simp_all
 
-lemma subtermTm_Fun: \<open>t \<in> set ts \<longrightarrow> t \<in> set (subtermTm 0 (Fun i ts))\<close>
+lemma subtermTm_Fun: \<open>t \<in> set ts \<longrightarrow> t \<in> set (subtermTm (Fun i ts))\<close>
 proof (induction ts)
   case Nil
   then show ?case by simp
@@ -67,22 +46,22 @@ next
   proof (safe)
     assume \<open>t \<in> set (t' # ts')\<close> \<open>t \<notin> set ts'\<close>
     from this have \<open>t = t'\<close> by simp
-    moreover have \<open>t' \<in> set (subtermTm 0 (Fun i (t' # ts')))\<close>
+    moreover have \<open>t' \<in> set (subtermTm (Fun i (t' # ts')))\<close>
     proof (simp)
-      have \<open>t' \<in> set (subtermTm 0 t')\<close>
+      have \<open>t' \<in> set (subtermTm t')\<close>
         by (cases t') simp_all
-      then show \<open>t' = Fun i (t' # ts') \<or> t' \<in> set (subtermTm 0 t') \<or> (\<exists>x\<in>set ts'. t' \<in> set (subtermTm 0 x))\<close>
+      then show \<open>t' = Fun i (t' # ts') \<or> t' \<in> set (subtermTm t') \<or> (\<exists>x\<in>set ts'. t' \<in> set (subtermTm x))\<close>
         by simp
     qed
-    ultimately show \<open>t \<in> set (subtermTm 0 (Fun i (t' # ts')))\<close> by simp
+    ultimately show \<open>t \<in> set (subtermTm (Fun i (t' # ts')))\<close> by simp
   next
-    assume \<open>t \<in> set (t' # ts')\<close> \<open>t \<in> set (subtermTm 0 (Fun i ts'))\<close>
-    then show \<open>t \<in> set (subtermTm 0 (Fun i (t' # ts')))\<close>
+    assume \<open>t \<in> set (t' # ts')\<close> \<open>t \<in> set (subtermTm (Fun i ts'))\<close>
+    then show \<open>t \<in> set (subtermTm (Fun i (t' # ts')))\<close>
     proof (simp)
       assume *: \<open>t = t' \<or> t \<in> set ts'\<close>
-      assume \<open>t = Fun i ts' \<or> (\<exists>x\<in>set ts'. t \<in> set (subtermTm 0 x))\<close>
-      then show \<open>t = Fun i (t' # ts') \<or> t \<in> set (subtermTm 0 t') \<or> (\<exists>x\<in>set ts'. t \<in> set (subtermTm 0 x))\<close>
-      proof (cases \<open>\<exists>x\<in>set ts'. t \<in> set (subtermTm 0 x)\<close>)
+      assume \<open>t = Fun i ts' \<or> (\<exists>x\<in>set ts'. t \<in> set (subtermTm x))\<close>
+      then show \<open>t = Fun i (t' # ts') \<or> t \<in> set (subtermTm t') \<or> (\<exists>x\<in>set ts'. t \<in> set (subtermTm x))\<close>
+      proof (cases \<open>\<exists>x\<in>set ts'. t \<in> set (subtermTm x)\<close>)
         case True
         then show ?thesis by simp
       next
@@ -92,9 +71,9 @@ next
           case True
           then show ?thesis
           proof (simp)
-            have \<open>t' \<in> set (subtermTm 0 t')\<close>
+            have \<open>t' \<in> set (subtermTm t')\<close>
               by (cases t') simp_all
-            then show \<open>t' = Fun i (t' # ts') \<or> t' \<in> set (subtermTm 0 t') \<or> (\<exists>x\<in>set ts'. t' \<in> set (subtermTm 0 x))\<close>
+            then show \<open>t' = Fun i (t' # ts') \<or> t' \<in> set (subtermTm t') \<or> (\<exists>x\<in>set ts'. t' \<in> set (subtermTm x))\<close>
               by simp
           qed
         next
@@ -103,11 +82,11 @@ next
           proof -
             have \<open>t \<in> set ts'\<close>
               using * False by simp
-            moreover have \<open>t \<in> set (subtermTm 0 t)\<close>
+            moreover have \<open>t \<in> set (subtermTm t)\<close>
               by (cases t) simp_all
-            ultimately have \<open>\<exists>x \<in> set ts'. t \<in> set (subtermTm 0 x)\<close>
+            ultimately have \<open>\<exists>x \<in> set ts'. t \<in> set (subtermTm x)\<close>
               by blast
-            then show \<open>t = Fun i (t' # ts') \<or> t \<in> set (subtermTm 0 t') \<or> (\<exists>x\<in>set ts'. t \<in> set (subtermTm 0 x))\<close>
+            then show \<open>t = Fun i (t' # ts') \<or> t \<in> set (subtermTm t') \<or> (\<exists>x\<in>set ts'. t \<in> set (subtermTm x))\<close>
               by simp
           qed
         qed
@@ -117,13 +96,81 @@ next
 qed
 
 (* This thing is downwards closed *)
-value \<open>subtermTm 0 (Fun 0 [Var 0, Fun 1 [Var 1]])\<close>
-value \<open>subtermFm 0 (Pre 0 [Var 0, Fun 1 [Var 1]])\<close>
+value \<open>subtermTm (Fun 0 [Var 0, Fun 1 [Var 1]])\<close>
+value \<open>subtermFm (Pre 0 [Var 0, Fun 1 [Var 1]])\<close>
 
-abbreviation \<open>terms H \<equiv> \<Union>f \<in> H. set (subtermFm 0 f)\<close>
+abbreviation \<open>terms H \<equiv> \<Union>f \<in> H. set (subtermFm f)\<close>
 
-lemma woop: \<open>t \<in> terms S \<Longrightarrow> s \<in> set (subtermTm 0 t) \<Longrightarrow> s \<in> terms S\<close>
-  sorry
+lemma subtermTm_refl [simp]: \<open>t \<in> set (subtermTm t)\<close>
+  by (induct t) simp_all
+
+lemma subterm_Pre_refl: \<open>set ts \<subseteq> set (subtermFm (Pre n ts))\<close>
+  by (induct ts) auto
+
+lemma subterm_Fun_refl: \<open>set ts \<subseteq> set (subtermTm (Fun n ts))\<close>
+  by (induct ts) auto
+
+lemma detherlemma: \<open>t \<in> terms S \<Longrightarrow> \<exists>p \<in> S. t \<in> set (subtermFm p)\<close>
+  by blast
+
+primrec preds :: \<open>fm \<Rightarrow> fm set\<close> where
+  \<open>preds (Pre n ts) = {Pre n ts}\<close>
+| \<open>preds (Imp f1 f2) = preds f1 \<union> preds f2\<close>
+| \<open>preds (Dis f1 f2) = preds f1 \<union> preds f2\<close>
+| \<open>preds (Con f1 f2) = preds f1 \<union> preds f2\<close>
+| \<open>preds (Exi f) = preds f\<close>
+| \<open>preds (Uni f) = preds f\<close>
+| \<open>preds (Neg f) = preds f\<close>
+
+lemma subtermFm_preds: \<open>t \<in> set (subtermFm p) \<longleftrightarrow> (\<exists>pre \<in> preds p. t \<in> set (subtermFm pre))\<close>
+  by (induct p) auto
+
+lemma preds_shape: \<open>pre \<in> preds p \<Longrightarrow> \<exists>n ts. pre = Pre n ts\<close>
+  by (induct p) auto
+
+lemma subtermTm_le: \<open>t \<in> set (subtermTm s) \<Longrightarrow> set (subtermTm t) \<subseteq> set (subtermTm s)\<close>
+  by (induct s) auto
+
+lemma ogdether:
+  assumes \<open>Fun n ts \<in> set (subtermFm p)\<close>
+  shows \<open>set ts \<subseteq> set (subtermFm p)\<close>
+proof -
+  obtain pre where pre: \<open>pre \<in> preds p\<close> \<open>Fun n ts \<in> set (subtermFm pre)\<close>
+    using assms subtermFm_preds by blast
+  then obtain n' ts' where \<open>pre = Pre n' ts'\<close>
+    using preds_shape by blast
+  then have \<open>set ts \<subseteq> set (subtermFm pre)\<close>
+    using subtermTm_le pre by force
+  then have \<open>set ts \<subseteq> set (subtermFm p)\<close>
+    using pre subtermFm_preds by blast
+  then show ?thesis
+    by blast
+qed
+
+lemma woop: \<open>t \<in> terms S \<Longrightarrow> set (subtermTm t) \<subseteq> terms S\<close>
+proof (induct t)
+  case (Fun n ts)
+  moreover have \<open>\<forall>t \<in> set ts. t \<in> set ts\<close>
+    by simp
+  moreover have \<open>\<forall>t \<in> set ts. t \<in> terms S\<close>
+  proof
+    fix t
+    assume \<open>t \<in> set ts\<close>
+    moreover obtain p where p: \<open>p \<in> S\<close> \<open>Fun n ts \<in> set (subtermFm p)\<close>
+      using Fun(2) detherlemma by blast
+    ultimately show \<open>t \<in> terms S\<close>
+      using ogdether by fast
+  qed
+  ultimately have \<open>\<forall>t \<in> set ts. set (subtermTm t) \<subseteq> terms S\<close>
+    using Fun by meson
+  moreover note \<open>Fun n ts \<in> terms S\<close>
+  ultimately show ?case
+    by auto
+next
+  case (Var x)
+  then show ?case
+    by simp
+qed
 
 section \<open>The Good Stuff\<close>
 
@@ -148,19 +195,17 @@ abbreviation (input) \<open>sat S n ts \<equiv> Neg (Pre n ts) \<in> S\<close>
 abbreviation \<open>E S n \<equiv> if Var n \<in> terms S then Var n else SOME t. t \<in> terms S\<close>
 
 lemma usemantics_E:
-  assumes \<open>t \<in> terms S\<close> \<open>list_all (\<lambda>t. t \<in> terms S) ts\<close>
   shows
-    \<open>semantics_term (E S) Fun t = t\<close>
-    \<open>semantics_list (E S) Fun ts = ts\<close>
-  using assms
+    \<open>t \<in> terms S \<Longrightarrow> semantics_term (E S) Fun t = t\<close>
+    \<open>list_all (\<lambda>t. t \<in> terms S) ts \<Longrightarrow> semantics_list (E S) Fun ts = ts\<close>
 proof (induct t and ts arbitrary: ts rule: semantics_term.induct semantics_list.induct)
   case (Fun i ts')
-  moreover have \<open>\<forall>t' \<in> set ts'. t' \<in> set (subtermTm 0 (Fun i ts'))\<close>
+  moreover have \<open>\<forall>t' \<in> set ts'. t' \<in> set (subtermTm (Fun i ts'))\<close>
     using subtermTm_Fun by blast
   ultimately have \<open>list_all (\<lambda>t. t \<in> terms S) ts'\<close>
-    using woop by (metis (no_types, lifting) Ball_set_list_all)
+    using woop unfolding list_all_def by (metis (no_types, lifting) subsetD)
   then show ?case
-    using Fun assms(1) by simp
+    using Fun by simp
 next
   case (Var x)
   then show ?case
@@ -172,7 +217,7 @@ next
 next
   case (Cons_tm x1 x2)
   then show ?case
-    using assms(2) by simp
+    by simp
 qed
     
 lemma size_sub [simp]: \<open>size (sub i t p) = size p\<close>
@@ -197,11 +242,10 @@ proof
 qed
 
 lemma hintikka_counter_model:
-  assumes \<open>Hintikka S\<close> \<open>\<forall>p \<in> S. closed 0 p\<close> \<open>closed 0 p\<close>
+  assumes \<open>Hintikka S\<close>
   shows
     \<open>(p \<in> S \<longrightarrow> \<not> usemantics (terms S) (E S) Fun (sat S) p) \<and>
  (Neg p \<in> S \<longrightarrow> usemantics (terms S) (E S) Fun (sat S) p)\<close>
-  using assms(3)
 proof (induct p rule: wf_induct [where r=\<open>measure size\<close>])
   case 1
   then show ?case ..
@@ -210,9 +254,8 @@ next
 
   let ?s = \<open>usemantics (terms S) (E S) Fun (sat S)\<close>
 
-  assume wf: \<open>\<forall>q. (q, x) \<in> measure size \<longrightarrow> closed 0 q \<longrightarrow>
+  assume wf: \<open>\<forall>q. (q, x) \<in> measure size \<longrightarrow>
     (q \<in> S \<longrightarrow> \<not> ?s q) \<and> (Neg q \<in> S \<longrightarrow> ?s q)\<close>
-  assume cl: \<open>closed 0 x\<close>
 
   show \<open>(x \<in> S \<longrightarrow> \<not> ?s x) \<and> (Neg x \<in> S \<longrightarrow> ?s x)\<close>
   proof (cases x)
@@ -222,16 +265,20 @@ next
       assume \<open>x \<in> S\<close>
       then have \<open>Neg (Pre n ts) \<notin> S\<close>
         using assms Pre Hintikka.Basic by blast
-      then show \<open>\<not> ?s x\<close>
-        using Pre cl closedt_usemantics_id
-        by (metis (no_types, lifting) closed.simps(1) closedt.simps(2) usemantics.simps(1))
+      moreover have \<open>list_all (\<lambda>t. t \<in> terms S) ts\<close>
+        using \<open>x \<in> S\<close> Pre subterm_Pre_refl unfolding list_all_def by fast
+      ultimately show \<open>\<not> ?s x\<close>
+        using Pre usemantics_E
+        by (metis (no_types, lifting) usemantics.simps(1))
     next
       assume \<open>Neg x \<in> S\<close>
       then have \<open>sat S n ts\<close>
         using assms Pre Hintikka.Basic by blast
-      then show \<open>?s x\<close>
-        using Pre cl closedt_usemantics_id
-        by (metis (no_types, lifting) closed.simps(1) closedt.simps(2) usemantics.simps(1))
+      moreover have \<open>list_all (\<lambda>t. t \<in> terms S) ts\<close>
+        using \<open>Neg x \<in> S\<close> Pre subterm_Pre_refl unfolding list_all_def by force
+      ultimately show \<open>?s x\<close>
+        using Pre usemantics_E
+        by (metis (no_types, lifting) usemantics.simps(1))
     qed
   next
     case (Imp p q)
@@ -241,13 +288,13 @@ next
       then have \<open>Neg p \<in> S\<close> \<open>q \<in> S\<close>
         using Imp assms Hintikka.AlphaImp by blast+
       then show \<open>\<not> ?s x\<close>
-        using wf Imp cl by fastforce
+        using wf Imp by fastforce
     next
       assume \<open>Neg x \<in> S\<close>
       then have \<open>p \<in> S \<or> Neg q \<in> S\<close>
         using Imp assms Hintikka.BetaImp by blast
       then show \<open>?s x\<close>
-        using wf Imp cl by fastforce
+        using wf Imp by fastforce
     qed
   next
     case (Dis p q)
@@ -257,13 +304,13 @@ next
       then have \<open>p \<in> S\<close> \<open>q \<in> S\<close>
         using Dis assms Hintikka.AlphaDis by blast+
       then show \<open>\<not> ?s x\<close>
-        using wf Dis cl by fastforce
+        using wf Dis by fastforce
     next
       assume \<open>Neg x \<in> S\<close>
       then have \<open>Neg p \<in> S \<or> Neg q \<in> S\<close>
         using Dis assms Hintikka.BetaDis by blast
       then show \<open>?s x\<close>
-        using wf Dis cl by fastforce
+        using wf Dis by fastforce
     qed
   next
     case (Con p q)
@@ -273,13 +320,13 @@ next
       then have \<open>p \<in> S \<or> q \<in> S\<close>
         using Con assms Hintikka.BetaCon by blast
       then show \<open>\<not> ?s x\<close>
-        using wf Con cl by fastforce
+        using wf Con by fastforce
     next
       assume \<open>Neg x \<in> S\<close>
       then have \<open>Neg p \<in> S\<close> \<open>Neg q \<in> S\<close>
         using Con assms Hintikka.AlphaCon by blast+
       then show \<open>?s x\<close>
-        using wf Con cl by fastforce
+        using wf Con by fastforce
     qed
   next
     case (Exi p)
@@ -288,9 +335,7 @@ next
       assume \<open>x \<in> S\<close>
       then have \<open>\<forall>t \<in> terms S. sub 0 t p \<in> S\<close>
         using Exi assms Hintikka.GammaExi by blast
-      moreover from this have \<open>\<forall>t \<in> terms S. closed 0 (sub 0 t p)\<close>
-        using assms(2) by blast
-      ultimately have \<open>\<forall>t \<in> terms S. \<not> ?s (sub 0 t p)\<close>
+      then have \<open>\<forall>t \<in> terms S. \<not> ?s (sub 0 t p)\<close>
         using wf Exi size_sub
         by (metis (no_types, lifting) add.right_neutral add_Suc_right fm.size(12) in_measure lessI)
       then have \<open>\<forall>t \<in> terms S. \<not> usemantics (terms S)
@@ -305,10 +350,8 @@ next
     next
       assume \<open>Neg x \<in> S\<close>
       then obtain t where \<open>t \<in> terms S\<close> \<open>Neg (sub 0 t p) \<in> S\<close>
-        using Exi cl assms Hintikka.DeltaExi by metis
-      moreover from this have \<open>closed 0 (sub 0 t p)\<close>
-        using assms(2) by auto
-      ultimately have \<open>?s (sub 0 t p)\<close>
+        using Exi assms Hintikka.DeltaExi by metis
+      then have \<open>?s (sub 0 t p)\<close>
         using wf Exi size_sub
         by (metis (no_types, lifting) add.right_neutral add_Suc_right fm.size(12) in_measure lessI)
       moreover have \<open>semantics_term (E S) Fun t = t\<close>
@@ -323,24 +366,20 @@ next
       assume \<open>x \<in> S\<close>
       then obtain t where \<open>t \<in> terms S\<close> \<open>sub 0 t p \<in> S\<close>
         using Uni assms Hintikka.DeltaUni by metis
-      moreover from this have \<open>closed 0 (sub 0 t p)\<close>
-        using assms(2) by blast
-      ultimately have \<open>\<not> ?s (sub 0 t p)\<close>
-        using wf Uni cl size_sub
+      then have \<open>\<not> ?s (sub 0 t p)\<close>
+        using wf Uni size_sub
         by (metis (no_types, lifting) add.right_neutral add_Suc_right fm.size(13) in_measure lessI)
       moreover have \<open>semantics_term (E S) Fun t = t\<close>
         using \<open>t \<in> terms S\<close> usemantics_E(1) woop unfolding list_all_def by blast
       ultimately show \<open>\<not> ?s x\<close>
-        using Uni cl \<open>t \<in> terms S\<close> by auto
+        using Uni \<open>t \<in> terms S\<close> by auto
     next
       assume \<open>Neg x \<in> S\<close>
       then have \<open>\<forall>t \<in> terms S. Neg (sub 0 t p) \<in> S\<close>
         using Uni assms Hintikka.GammaUni by blast
-      moreover from this have \<open>\<forall>t \<in> terms S. closed 0 (Neg (sub 0 t p))\<close>
-        using assms(2) by blast
-      ultimately have \<open>\<forall>t \<in> terms S. ?s (sub 0 t p)\<close>
-        using wf Uni cl size_sub
-        by (metis (no_types, lifting) Nat.add_0_right add_Suc_right closed.simps(7)
+      then have \<open>\<forall>t \<in> terms S. ?s (sub 0 t p)\<close>
+        using wf Uni size_sub
+        by (metis (no_types, lifting) Nat.add_0_right add_Suc_right
             fm.size(13) in_measure lessI)
       then have \<open>\<forall>t \<in> terms S. usemantics (terms S)
           (SeCaV.shift (E S) 0 (semantics_term (E S) Fun t)) Fun (sat S) p\<close>
@@ -358,13 +397,13 @@ next
     proof (intro conjI impI)
       assume \<open>x \<in> S\<close>
       then show \<open>\<not> ?s x\<close>
-        using wf Neg cl by fastforce
+        using wf Neg by fastforce
     next
       assume \<open>Neg x \<in> S\<close>
       then have \<open>p \<in> S\<close>
         using Neg assms Hintikka.Neg by blast
       then show \<open>?s x\<close>
-        using wf Neg cl by fastforce
+        using wf Neg by fastforce
     qed
   qed
 qed
