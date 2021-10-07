@@ -55,6 +55,13 @@ text \<open>generateNew uses the maxFun function to obtain a fresh function inde
 fun generateNew :: \<open>fm \<Rightarrow> fm list \<Rightarrow> nat\<close> where
   \<open>generateNew p z = 1 + max (maxFun p) (foldl max 0 (map maxFun z))\<close>
 
+fun flatten :: \<open>'a list option list \<Rightarrow> 'a list option\<close> where
+  \<open>flatten [] = Some []\<close>
+| \<open>flatten (None # _) = None\<close>
+| \<open>flatten (Some x # xs) = (case flatten xs of
+                             None \<Rightarrow> None
+                           | Some ys \<Rightarrow> Some (x @ ys))\<close>
+
 text \<open>subtermTm returns a list of all terms occurring within a term\<close>
 fun subtermTm :: \<open>tm \<Rightarrow> tm list\<close> where
   \<open>subtermTm (Fun n ts) = Fun n ts # remdups (concat (map subtermTm ts))\<close>

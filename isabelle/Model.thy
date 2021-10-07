@@ -2,6 +2,7 @@ theory Model imports Prover begin
 
 section \<open>Alternative Semantics\<close>
 
+text \<open>We define an alternate semantics where the quantifiers refer to a specific set\<close>
 primrec usemantics where
   \<open>usemantics u e f g (Pre i l) = g i (semantics_list e f l)\<close> |
   \<open>usemantics u e f g (Imp p q) = (usemantics u e f g p \<longrightarrow> usemantics u e f g q)\<close> |
@@ -11,18 +12,24 @@ primrec usemantics where
   \<open>usemantics u e f g (Uni p) = (\<forall>x \<in> u. usemantics u (SeCaV.shift e 0 x) f g p)\<close> |
   \<open>usemantics u e f g (Neg p) = (\<not> usemantics u e f g p)\<close>
 
+text \<open>An environment is only defined if the variables are actually in the quantifier set u\<close>
 definition is_env :: \<open>'a set \<Rightarrow> (nat \<Rightarrow> 'a) \<Rightarrow> bool\<close> where
   \<open>is_env u e \<equiv> \<forall>n. e n \<in> u\<close>
 
+text \<open>A formula only needs to be valid for the "real" environments\<close>
 definition uvalid :: \<open>'a set \<Rightarrow> fm \<Rightarrow> bool\<close> where
   \<open>uvalid u p \<equiv> \<forall>e f g. is_env u e \<longrightarrow> usemantics u e f g p\<close>
 
+text \<open>If we choose to quantify over the universal set, we obtain the usual semantics\<close>
 lemma usemantics_UNIV: \<open>usemantics UNIV e f g p \<longleftrightarrow> semantics e f g p\<close>
   by (induct p arbitrary: e) auto
 
+text \<open>If we choose the universal set, any environment is defined\<close>
 lemma is_env_UNIV: \<open>is_env UNIV e\<close>
   unfolding is_env_def by blast
 
+text \<open>If a formula is valid for any quantifier set, it is valid for the universal set in particular,
+and we thus obtain that it is also valid in the usual semantics\<close>
 lemma uvalid_semantics:
   fixes e :: \<open>nat \<Rightarrow> 'a\<close>
   assumes \<open>\<forall>(u :: 'a set). uvalid u p\<close>
@@ -32,10 +39,38 @@ lemma uvalid_semantics:
 
 section \<open>Machinery\<close>
 
+text \<open>A term is closed wrt. scope m if it contains no variables that have de Bruijn indices at or above m\<close>
+primrec closedt where
+  \<open>closedt m (Var n) = (n < m)\<close>
+| \<open>closedt m (Fun _ ts) = list_all (closedt m) ts\<close>
+
+text \<open>A formula is closed wrt. m if it only contains de Bruijn indices at or above m behind an
+appropriate number of quantifiers\<close>
+primrec closed where
+  \<open>closed m (Pre _ ts) = list_all (closedt m) ts\<close>
+| \<open>closed m (Imp p q) = (closed m p \<and> closed m q)\<close>
+| \<open>closed m (Dis p q) = (closed m p \<and> closed m q)\<close>
+| \<open>closed m (Con p q) = (closed m p \<and> closed m q)\<close>
+| \<open>closed m (Exi p) = (closed (Suc m) p)\<close>
+| \<open>closed m (Uni p) = (closed (Suc m) p)\<close>
+| \<open>closed m (Neg p) = closed m p\<close>
+
+text \<open>If a term is closed wrt. the outer scope, a Herbrand interpretation may be defined for it\<close>
+lemma closedt_usemantics_id [simp]:
+  assumes \<open>closedt 0 t\<close> \<open>list_all (closedt 0) ts\<close>
+  shows
+  \<open>semantics_term e Fun t = t\<close>
+  \<open>semantics_list e Fun ts = ts\<close>
+  using assms by (induct t and ts rule: semantics_term.induct semantics_list.induct)
+    (simp_all add: assms)
+
+text \<open>The semantics of substituting variable i by term t in formula a are well-defined\<close>
 lemma usubst_lemma [iff]:
   \<open>usemantics u e f g (subst a t i) \<longleftrightarrow> usemantics u (SeCaV.shift e i (semantics_term e f t)) f g a\<close>
   by (induct a arbitrary: e i t) simp_all
 
+text \<open>If t is a term in some argument list ts, t is also in the list of subterms of a function
+applied to those arguments\<close>
 lemma subtermTm_Fun: \<open>t \<in> set ts \<longrightarrow> t \<in> set (subtermTm (Fun i ts))\<close>
 proof (induction ts)
   case Nil
@@ -190,10 +225,14 @@ locale Hintikka =
     DeltaExi: \<open>Neg (Exi p) \<in> H \<Longrightarrow> \<exists>t \<in> terms H. Neg (sub 0 t p) \<in> H\<close> and
     Neg: \<open>Neg (Neg p) \<in> H \<Longrightarrow> p \<in> H\<close>
 
+text \<open>A predicate is satisfied in a set of formulas S if its negation is also in S\<close>
 abbreviation (input) \<open>sat S n ts \<equiv> Neg (Pre n ts) \<in> S\<close>
 
+text \<open>Alternate interpretation for environments: if a variable is not present, we interpret it as some existing term\<close>
 abbreviation \<open>E S n \<equiv> if Var n \<in> terms S then Var n else SOME t. t \<in> terms S\<close>
 
+text \<open>If terms are actually in a set of formulas, interpreting the environment over these formulas
+allows for a Herbrand interpretation\<close>
 lemma usemantics_E:
   shows
     \<open>t \<in> terms S \<Longrightarrow> semantics_term (E S) Fun t = t\<close>
@@ -219,10 +258,13 @@ next
   then show ?case
     by simp
 qed
-    
+
+text \<open>Substituting a variable by a term does not change the depth of a formula
+(only the term size changes)\<close>
 lemma size_sub [simp]: \<open>size (sub i t p) = size p\<close>
   by (induct p arbitrary: i t) auto
 
+text \<open>As long as some formulas exist, our alternate interpretation of environments is defined\<close>
 lemma is_env_E:
   assumes \<open>terms S \<noteq> {}\<close>
   shows \<open>is_env (terms S) (E S)\<close>
@@ -241,6 +283,8 @@ proof
   qed
 qed
 
+text \<open>If S is a Hintikka set containing only closed formulas, then we can construct a countermodel
+for any closed formula using our alternate semantics and a Herbrand interpretation\<close>
 lemma hintikka_counter_model:
   assumes \<open>Hintikka S\<close>
   shows
