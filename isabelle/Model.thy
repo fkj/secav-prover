@@ -16,10 +16,13 @@ text \<open>An environment is only defined if the variables are actually in the 
 definition is_env :: \<open>'a set \<Rightarrow> (nat \<Rightarrow> 'a) \<Rightarrow> bool\<close> where
   \<open>is_env u e \<equiv> \<forall>n. e n \<in> u\<close>
 
+definition is_fdenot :: \<open>'a set \<Rightarrow> (nat \<Rightarrow> 'a list \<Rightarrow> 'a) \<Rightarrow> bool\<close> where
+  \<open>is_fdenot u f \<equiv> \<forall>i l. list_all (\<lambda>x. x \<in> u) l \<longrightarrow> f i l \<in> u\<close>
+
 text \<open>A formula only needs to be valid for the "real" environments\<close>
 (* TODO: change this *)
 definition uvalid :: \<open>'a set \<Rightarrow> fm \<Rightarrow> bool\<close> where
-  \<open>uvalid u p \<equiv> \<forall>e f g. is_env u e \<longrightarrow> usemantics u e f g p\<close>
+  \<open>uvalid u p \<equiv> \<forall>e f g. is_env u e \<longrightarrow> is_fdenot u f \<longrightarrow> usemantics u e f g p\<close>
 
 text \<open>If we choose to quantify over the universal set, we obtain the usual semantics\<close>
 lemma usemantics_UNIV: \<open>usemantics UNIV e f g p \<longleftrightarrow> semantics e f g p\<close>
@@ -33,10 +36,9 @@ text \<open>If a formula is valid for any quantifier set, it is valid for the un
 and we thus obtain that it is also valid in the usual semantics\<close>
 lemma uvalid_semantics:
   fixes e :: \<open>nat \<Rightarrow> 'a\<close>
-  assumes \<open>\<forall>(u :: 'a set). uvalid u p\<close>
+  assumes \<open>\<forall>(u :: 'a set) e f g. usemantics u e f g p\<close>
   shows \<open>semantics e f g p\<close>
-  using assms is_env_UNIV usemantics_UNIV unfolding uvalid_def
-  by blast
+  using assms is_env_UNIV usemantics_UNIV by blast
 
 lemma uupd_lemma [iff]: \<open>n \<notin> params p \<Longrightarrow> usemantics u e (f(n := z)) g p \<longleftrightarrow> usemantics u e f g p\<close>
   by (induct p arbitrary: e) simp_all
@@ -47,9 +49,6 @@ lemma usubst_lemma [iff]:
   by (induct a arbitrary: e i t) simp_all
 
 subsection \<open>Soundness of SeCaV\<close>
-
-definition is_fdenot :: \<open>'a set \<Rightarrow> (nat \<Rightarrow> 'a list \<Rightarrow> 'a) \<Rightarrow> bool\<close> where
-  \<open>is_fdenot u f \<equiv> \<forall>i l. list_all (\<lambda>x. x \<in> u) l \<longrightarrow> f i l \<in> u\<close>
 
 lemma usemantics_term [simp]:
   assumes \<open>is_env u e\<close> \<open>is_fdenot u f\<close>
@@ -191,7 +190,7 @@ qed
 value \<open>subtermTm (Fun 0 [Var 0, Fun 1 [Var 1]])\<close>
 value \<open>subtermFm (Pre 0 [Var 0, Fun 1 [Var 1]])\<close>
 
-abbreviation \<open>terms H \<equiv> \<Union>f \<in> H. set (subtermFm f)\<close>
+abbreviation \<open>terms H \<equiv> {Fun 0 []} \<union> (\<Union>f \<in> H. set (subtermFm f))\<close>
 
 lemma subtermTm_refl [simp]: \<open>t \<in> set (subtermTm t)\<close>
   by (induct t) simp_all
@@ -202,7 +201,7 @@ lemma subterm_Pre_refl: \<open>set ts \<subseteq> set (subtermFm (Pre n ts))\<cl
 lemma subterm_Fun_refl: \<open>set ts \<subseteq> set (subtermTm (Fun n ts))\<close>
   by (induct ts) auto
 
-lemma detherlemma: \<open>t \<in> terms S \<Longrightarrow> \<exists>p \<in> S. t \<in> set (subtermFm p)\<close>
+lemma detherlemma: \<open>t \<in> terms S \<Longrightarrow> t = Fun 0 [] \<or> (\<exists>p \<in> S. t \<in> set (subtermFm p))\<close>
   by blast
 
 primrec preds :: \<open>fm \<Rightarrow> fm set\<close> where
@@ -247,11 +246,15 @@ proof (induct t)
   moreover have \<open>\<forall>t \<in> set ts. t \<in> terms S\<close>
   proof
     fix t
-    assume \<open>t \<in> set ts\<close>
-    moreover obtain p where p: \<open>p \<in> S\<close> \<open>Fun n ts \<in> set (subtermFm p)\<close>
-      using Fun(2) detherlemma by blast
-    ultimately show \<open>t \<in> terms S\<close>
-      using ogdether by fast
+    assume *: \<open>t \<in> set ts\<close>
+    then show \<open>t \<in> terms S\<close>
+    proof (cases \<open>t = Fun 0 []\<close>)
+      case False
+      moreover obtain p where p: \<open>p \<in> S\<close> \<open>Fun n ts \<in> set (subtermFm p)\<close>
+        using Fun(2) detherlemma * by fastforce
+      ultimately show \<open>t \<in> terms S\<close>
+        using * ogdether by blast
+    qed simp
   qed
   ultimately have \<open>\<forall>t \<in> set ts. set (subtermTm t) \<subseteq> terms S\<close>
     using Fun by meson
@@ -324,29 +327,21 @@ lemma size_sub [simp]: \<open>size (sub i t p) = size p\<close>
   by (induct p arbitrary: i t) auto
 
 text \<open>As long as some formulas exist, our alternate interpretation of environments is defined\<close>
-lemma is_env_E:
-  assumes \<open>terms S \<noteq> {}\<close>
-  shows \<open>is_env (terms S) (E S)\<close>
+lemma is_env_E: \<open>is_env (terms S) (E S)\<close>
   unfolding is_env_def
 proof
   fix n
   show \<open>E S n \<in> terms S\<close>
   proof (cases \<open>Var n \<in> terms S\<close>)
-    case True
-    then show ?thesis
-      by simp
-  next
     case False
     then show ?thesis
-      using assms by (metis someI equals0I)
-  qed
+      by (meson someI UnCI insertCI)
+  qed simp
 qed
 
-lemma is_fdenot_F:
-  assumes \<open>terms S \<noteq> {}\<close>
-  shows \<open>is_fdenot (terms S) (F S)\<close>
+lemma is_fdenot_F: \<open>is_fdenot (terms S) (F S)\<close>
   unfolding is_fdenot_def
-proof safe
+proof (intro allI impI)
   fix i l
   assume \<open>list_all (\<lambda>x. x \<in> terms S) l\<close>
   then show \<open>F S i l \<in> terms S\<close>
@@ -357,7 +352,7 @@ proof safe
   next
     case False
     then show ?thesis
-      using assms by (metis someI equals0I)
+      by (meson someI UnCI insertCI)
   qed
 qed
 

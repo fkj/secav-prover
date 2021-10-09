@@ -100,12 +100,12 @@ next
 next
   fix p
   assume \<open>Exi p \<in> tree_fms steps\<close>
-  show \<open>\<forall>t\<in>\<Union>f \<in> tree_fms steps. set (subtermFm f). sub 0 t p \<in> tree_fms steps\<close>
+  show \<open>\<forall>t\<in>terms (tree_fms steps). sub 0 t p \<in> tree_fms steps\<close>
     sorry
 next
   fix p
   assume \<open>Neg (Uni p) \<in> tree_fms steps\<close>
-  show \<open>\<forall>t\<in>\<Union>f \<in> tree_fms steps. set (subtermFm f). Neg (sub 0 t p) \<in> tree_fms steps\<close>
+  show \<open>\<forall>t\<in>terms (tree_fms steps). Neg (sub 0 t p) \<in> tree_fms steps\<close>
     sorry
 next
   fix p
@@ -144,9 +144,7 @@ proof (rule ccontr)
       using steps shd_sset unfolding tree_fms_def by force
     then have \<open>\<exists>g. \<not> usemantics (terms ?S) (E ?S) (F ?S) g p\<close>
       using calculation(2) hintikka_counter_model assms(2) steps by blast
-    moreover have \<open>terms ?S \<noteq> {}\<close>
-      sorry (* TODO: not sure about this yet *)
-    then have \<open>is_env (terms ?S) (E ?S)\<close> \<open>is_fdenot (terms ?S) (F ?S)\<close>
+    moreover have \<open>is_env (terms ?S) (E ?S)\<close> \<open>is_fdenot (terms ?S) (F ?S)\<close>
       using is_env_E is_fdenot_F by blast+
     ultimately show False
       by blast
