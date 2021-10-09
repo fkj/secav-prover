@@ -288,12 +288,14 @@ abbreviation (input) \<open>sat S n ts \<equiv> Neg (Pre n ts) \<in> S\<close>
 text \<open>Alternate interpretation for environments: if a variable is not present, we interpret it as some existing term\<close>
 abbreviation \<open>E S n \<equiv> if Var n \<in> terms S then Var n else SOME t. t \<in> terms S\<close>
 
+abbreviation \<open>F S i l \<equiv> if Fun i l \<in> terms S then Fun i l else SOME t. t \<in> terms S\<close>
+
 text \<open>If terms are actually in a set of formulas, interpreting the environment over these formulas
 allows for a Herbrand interpretation\<close>
 lemma usemantics_E:
   shows
-    \<open>t \<in> terms S \<Longrightarrow> semantics_term (E S) Fun t = t\<close>
-    \<open>list_all (\<lambda>t. t \<in> terms S) ts \<Longrightarrow> semantics_list (E S) Fun ts = ts\<close>
+    \<open>t \<in> terms S \<Longrightarrow> semantics_term (E S) (F S) t = t\<close>
+    \<open>list_all (\<lambda>t. t \<in> terms S) ts \<Longrightarrow> semantics_list (E S) (F S) ts = ts\<close>
 proof (induct t and ts arbitrary: ts rule: semantics_term.induct semantics_list.induct)
   case (Fun i ts')
   moreover have \<open>\<forall>t' \<in> set ts'. t' \<in> set (subtermTm (Fun i ts'))\<close>
@@ -340,26 +342,39 @@ proof
   qed
 qed
 
-(* TODO: this does not hold *)
-lemma
+lemma is_fdenot_F:
   assumes \<open>terms S \<noteq> {}\<close>
-  shows \<open>is_fdenot (terms S) Fun\<close>
-  unfolding is_fdenot_def list_all_def sorry
+  shows \<open>is_fdenot (terms S) (F S)\<close>
+  unfolding is_fdenot_def
+proof safe
+  fix i l
+  assume \<open>list_all (\<lambda>x. x \<in> terms S) l\<close>
+  then show \<open>F S i l \<in> terms S\<close>
+  proof (cases \<open>Fun i l \<in> terms S\<close>)
+    case True
+    then show ?thesis
+      by simp
+  next
+    case False
+    then show ?thesis
+      using assms by (metis someI equals0I)
+  qed
+qed
 
 text \<open>If S is a Hintikka set containing only closed formulas, then we can construct a countermodel
 for any closed formula using our alternate semantics and a Herbrand interpretation\<close>
 lemma hintikka_counter_model:
   assumes \<open>Hintikka S\<close>
   shows
-    \<open>(p \<in> S \<longrightarrow> \<not> usemantics (terms S) (E S) Fun (sat S) p) \<and>
- (Neg p \<in> S \<longrightarrow> usemantics (terms S) (E S) Fun (sat S) p)\<close>
+    \<open>(p \<in> S \<longrightarrow> \<not> usemantics (terms S) (E S) (F S) (sat S) p) \<and>
+ (Neg p \<in> S \<longrightarrow> usemantics (terms S) (E S) (F S) (sat S) p)\<close>
 proof (induct p rule: wf_induct [where r=\<open>measure size\<close>])
   case 1
   then show ?case ..
 next
   fix x
 
-  let ?s = \<open>usemantics (terms S) (E S) Fun (sat S)\<close>
+  let ?s = \<open>usemantics (terms S) (E S) (F S) (sat S)\<close>
 
   assume wf: \<open>\<forall>q. (q, x) \<in> measure size \<longrightarrow>
     (q \<in> S \<longrightarrow> \<not> ?s q) \<and> (Neg q \<in> S \<longrightarrow> ?s q)\<close>
@@ -446,11 +461,11 @@ next
         using wf Exi size_sub
         by (metis (no_types, lifting) add.right_neutral add_Suc_right fm.size(12) in_measure lessI)
       then have \<open>\<forall>t \<in> terms S. \<not> usemantics (terms S)
-          (SeCaV.shift (E S) 0 (semantics_term (E S) Fun t)) Fun (sat S) p\<close>
+          (SeCaV.shift (E S) 0 (semantics_term (E S) (F S) t)) (F S) (sat S) p\<close>
         by simp
-      moreover have \<open>\<forall>t \<in> terms S. semantics_term (E S) Fun t = t\<close>
+      moreover have \<open>\<forall>t \<in> terms S. semantics_term (E S) (F S) t = t\<close>
         using usemantics_E(1) woop unfolding list_all_def by blast
-      ultimately have \<open>\<forall>t \<in> terms S. \<not> usemantics (terms S) (SeCaV.shift (E S) 0 t) Fun (sat S) p\<close>
+      ultimately have \<open>\<forall>t \<in> terms S. \<not> usemantics (terms S) (SeCaV.shift (E S) 0 t) (F S) (sat S) p\<close>
         by simp
       then show \<open>\<not> ?s x\<close>
         using Exi by simp
@@ -461,7 +476,7 @@ next
       then have \<open>?s (sub 0 t p)\<close>
         using wf Exi size_sub
         by (metis (no_types, lifting) add.right_neutral add_Suc_right fm.size(12) in_measure lessI)
-      moreover have \<open>semantics_term (E S) Fun t = t\<close>
+      moreover have \<open>semantics_term (E S) (F S) t = t\<close>
         using \<open>t \<in> terms S\<close> usemantics_E(1) woop unfolding list_all_def by blast
       ultimately show \<open>?s x\<close>
         using wf Exi \<open>t \<in> terms S\<close> by auto
@@ -476,7 +491,7 @@ next
       then have \<open>\<not> ?s (sub 0 t p)\<close>
         using wf Uni size_sub
         by (metis (no_types, lifting) add.right_neutral add_Suc_right fm.size(13) in_measure lessI)
-      moreover have \<open>semantics_term (E S) Fun t = t\<close>
+      moreover have \<open>semantics_term (E S) (F S) t = t\<close>
         using \<open>t \<in> terms S\<close> usemantics_E(1) woop unfolding list_all_def by blast
       ultimately show \<open>\<not> ?s x\<close>
         using Uni \<open>t \<in> terms S\<close> by auto
@@ -489,11 +504,11 @@ next
         by (metis (no_types, lifting) Nat.add_0_right add_Suc_right
             fm.size(13) in_measure lessI)
       then have \<open>\<forall>t \<in> terms S. usemantics (terms S)
-          (SeCaV.shift (E S) 0 (semantics_term (E S) Fun t)) Fun (sat S) p\<close>
+          (SeCaV.shift (E S) 0 (semantics_term (E S) (F S) t)) (F S) (sat S) p\<close>
         by simp
-      moreover have \<open>\<forall>t \<in> terms S. semantics_term (E S) Fun t = t\<close>
+      moreover have \<open>\<forall>t \<in> terms S. semantics_term (E S) (F S) t = t\<close>
         using usemantics_E(1) woop unfolding list_all_def by blast
-      ultimately have \<open>\<forall>t \<in> terms S. \<not> usemantics (terms S) (SeCaV.shift (E S) 0 t) Fun (sat S) (Neg p)\<close>
+      ultimately have \<open>\<forall>t \<in> terms S. \<not> usemantics (terms S) (SeCaV.shift (E S) 0 t) (F S) (sat S) (Neg p)\<close>
         by simp
       then show \<open>?s x\<close>
         using wf Uni by fastforce
