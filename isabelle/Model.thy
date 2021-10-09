@@ -190,7 +190,8 @@ qed
 value \<open>subtermTm (Fun 0 [Var 0, Fun 1 [Var 1]])\<close>
 value \<open>subtermFm (Pre 0 [Var 0, Fun 1 [Var 1]])\<close>
 
-abbreviation \<open>terms H \<equiv> {Fun 0 []} \<union> (\<Union>f \<in> H. set (subtermFm f))\<close>
+definition
+  \<open>terms H \<equiv> if (\<Union>f \<in> H. set (subtermFm f)) = {} then {Fun 0 []} else (\<Union>f \<in> H. set (subtermFm f))\<close>
 
 lemma subtermTm_refl [simp]: \<open>t \<in> set (subtermTm t)\<close>
   by (induct t) simp_all
@@ -202,7 +203,7 @@ lemma subterm_Fun_refl: \<open>set ts \<subseteq> set (subtermTm (Fun n ts))\<cl
   by (induct ts) auto
 
 lemma detherlemma: \<open>t \<in> terms S \<Longrightarrow> t = Fun 0 [] \<or> (\<exists>p \<in> S. t \<in> set (subtermFm p))\<close>
-  by blast
+  unfolding terms_def by (simp split: if_splits)
 
 primrec preds :: \<open>fm \<Rightarrow> fm set\<close> where
   \<open>preds (Pre n ts) = {Pre n ts}\<close>
@@ -248,13 +249,19 @@ proof (induct t)
     fix t
     assume *: \<open>t \<in> set ts\<close>
     then show \<open>t \<in> terms S\<close>
-    proof (cases \<open>t = Fun 0 []\<close>)
+    proof (cases \<open>terms S = {Fun 0 []}\<close>)
+      case True
+      then show ?thesis
+        using Fun * by simp
+    next
       case False
       moreover obtain p where p: \<open>p \<in> S\<close> \<open>Fun n ts \<in> set (subtermFm p)\<close>
         using Fun(2) detherlemma * by fastforce
+      then have \<open>set ts \<subseteq> set (subtermFm p)\<close>
+        using ogdether by blast
       ultimately show \<open>t \<in> terms S\<close>
-        using * ogdether by blast
-    qed simp
+        unfolding terms_def using * p(1) by (metis UN_iff in_mono)
+    qed
   qed
   ultimately have \<open>\<forall>t \<in> set ts. set (subtermTm t) \<subseteq> terms S\<close>
     using Fun by meson
@@ -292,6 +299,9 @@ text \<open>Alternate interpretation for environments: if a variable is not pres
 abbreviation \<open>E S n \<equiv> if Var n \<in> terms S then Var n else SOME t. t \<in> terms S\<close>
 
 abbreviation \<open>F S i l \<equiv> if Fun i l \<in> terms S then Fun i l else SOME t. t \<in> terms S\<close>
+
+lemma terms_ne [simp]: \<open>terms S \<noteq> {}\<close>
+  unfolding terms_def by simp
 
 text \<open>If terms are actually in a set of formulas, interpreting the environment over these formulas
 allows for a Herbrand interpretation\<close>
@@ -332,11 +342,7 @@ lemma is_env_E: \<open>is_env (terms S) (E S)\<close>
 proof
   fix n
   show \<open>E S n \<in> terms S\<close>
-  proof (cases \<open>Var n \<in> terms S\<close>)
-    case False
-    then show ?thesis
-      by (meson someI UnCI insertCI)
-  qed simp
+    by (cases \<open>Var n \<in> terms S\<close>) (simp_all add: some_in_eq)
 qed
 
 lemma is_fdenot_F: \<open>is_fdenot (terms S) (F S)\<close>
@@ -345,15 +351,7 @@ proof (intro allI impI)
   fix i l
   assume \<open>list_all (\<lambda>x. x \<in> terms S) l\<close>
   then show \<open>F S i l \<in> terms S\<close>
-  proof (cases \<open>Fun i l \<in> terms S\<close>)
-    case True
-    then show ?thesis
-      by simp
-  next
-    case False
-    then show ?thesis
-      by (meson someI UnCI insertCI)
-  qed
+    by (cases \<open>Var n \<in> terms S\<close>) (simp_all add: some_in_eq)
 qed
 
 text \<open>If S is a Hintikka set containing only closed formulas, then we can construct a countermodel
@@ -383,7 +381,7 @@ next
       then have \<open>Neg (Pre n ts) \<notin> S\<close>
         using assms Pre Hintikka.Basic by blast
       moreover have \<open>list_all (\<lambda>t. t \<in> terms S) ts\<close>
-        using \<open>x \<in> S\<close> Pre subterm_Pre_refl unfolding list_all_def by fast
+        using \<open>x \<in> S\<close> Pre subterm_Pre_refl unfolding terms_def list_all_def by force
       ultimately show \<open>\<not> ?s x\<close>
         using Pre usemantics_E
         by (metis (no_types, lifting) usemantics.simps(1))
@@ -392,7 +390,7 @@ next
       then have \<open>sat S n ts\<close>
         using assms Pre Hintikka.Basic by blast
       moreover have \<open>list_all (\<lambda>t. t \<in> terms S) ts\<close>
-        using \<open>Neg x \<in> S\<close> Pre subterm_Pre_refl unfolding list_all_def by force
+        using \<open>Neg x \<in> S\<close> Pre subterm_Pre_refl unfolding terms_def list_all_def by force
       ultimately show \<open>?s x\<close>
         using Pre usemantics_E
         by (metis (no_types, lifting) usemantics.simps(1))
