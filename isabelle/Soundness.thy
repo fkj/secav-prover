@@ -134,7 +134,8 @@ qed
 theorem prover_soundness:
   fixes t
   assumes f: \<open>tfinite t\<close> and w: \<open>wf t\<close>
-  shows \<open>\<forall>i. ssemantics i (fst (root t))\<close>
-  sorry
+  shows \<open>(\<exists>p \<in> set (fst (fst (root t))). semantics e f g p)\<close>
+  using soundness assms ssemantics.simps UNIV_I eq_fst_iff
+  by metis
 
 end
