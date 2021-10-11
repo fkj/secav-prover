@@ -99,32 +99,6 @@ qed fastforce+
 
 section \<open>Machinery\<close>
 
-(* TODO: remove these? *)
-text \<open>A term is closed wrt. scope m if it contains no variables that have de Bruijn indices at or above m\<close>
-primrec closedt where
-  \<open>closedt m (Var n) = (n < m)\<close>
-| \<open>closedt m (Fun _ ts) = list_all (closedt m) ts\<close>
-
-text \<open>A formula is closed wrt. m if it only contains de Bruijn indices at or above m behind an
-appropriate number of quantifiers\<close>
-primrec closed where
-  \<open>closed m (Pre _ ts) = list_all (closedt m) ts\<close>
-| \<open>closed m (Imp p q) = (closed m p \<and> closed m q)\<close>
-| \<open>closed m (Dis p q) = (closed m p \<and> closed m q)\<close>
-| \<open>closed m (Con p q) = (closed m p \<and> closed m q)\<close>
-| \<open>closed m (Exi p) = (closed (Suc m) p)\<close>
-| \<open>closed m (Uni p) = (closed (Suc m) p)\<close>
-| \<open>closed m (Neg p) = closed m p\<close>
-
-text \<open>If a term is closed wrt. the outer scope, a Herbrand interpretation may be defined for it\<close>
-lemma closedt_usemantics_id [simp]:
-  assumes \<open>closedt 0 t\<close> \<open>list_all (closedt 0) ts\<close>
-  shows
-  \<open>semantics_term e Fun t = t\<close>
-  \<open>semantics_list e Fun ts = ts\<close>
-  using assms by (induct t and ts rule: semantics_term.induct semantics_list.induct)
-    (simp_all add: assms)
-
 text \<open>If t is a term in some argument list ts, t is also in the list of subterms of a function
 applied to those arguments\<close>
 lemma subtermTm_Fun: \<open>t \<in> set ts \<longrightarrow> t \<in> set (subtermTm (Fun i ts))\<close>
@@ -186,10 +160,6 @@ next
   qed
 qed
 
-(* This thing is downwards closed *)
-value \<open>subtermTm (Fun 0 [Var 0, Fun 1 [Var 1]])\<close>
-value \<open>subtermFm (Pre 0 [Var 0, Fun 1 [Var 1]])\<close>
-
 definition
   \<open>terms H \<equiv> if (\<Union>f \<in> H. set (subtermFm f)) = {} then {Fun 0 []} else (\<Union>f \<in> H. set (subtermFm f))\<close>
 
@@ -202,7 +172,7 @@ lemma subterm_Pre_refl: \<open>set ts \<subseteq> set (subtermFm (Pre n ts))\<cl
 lemma subterm_Fun_refl: \<open>set ts \<subseteq> set (subtermTm (Fun n ts))\<close>
   by (induct ts) auto
 
-lemma detherlemma: \<open>t \<in> terms S \<Longrightarrow> t = Fun 0 [] \<or> (\<exists>p \<in> S. t \<in> set (subtermFm p))\<close>
+lemma terms_cases: \<open>t \<in> terms S \<Longrightarrow> t = Fun 0 [] \<or> (\<exists>p \<in> S. t \<in> set (subtermFm p))\<close>
   unfolding terms_def by (simp split: if_splits)
 
 primrec preds :: \<open>fm \<Rightarrow> fm set\<close> where
@@ -223,7 +193,7 @@ lemma preds_shape: \<open>pre \<in> preds p \<Longrightarrow> \<exists>n ts. pre
 lemma subtermTm_le: \<open>t \<in> set (subtermTm s) \<Longrightarrow> set (subtermTm t) \<subseteq> set (subtermTm s)\<close>
   by (induct s) auto
 
-lemma ogdether:
+lemma fun_arguments_subterm:
   assumes \<open>Fun n ts \<in> set (subtermFm p)\<close>
   shows \<open>set ts \<subseteq> set (subtermFm p)\<close>
 proof -
@@ -239,7 +209,7 @@ proof -
     by blast
 qed
 
-lemma woop: \<open>t \<in> terms S \<Longrightarrow> set (subtermTm t) \<subseteq> terms S\<close>
+lemma terms_downwards_closed: \<open>t \<in> terms S \<Longrightarrow> set (subtermTm t) \<subseteq> terms S\<close>
 proof (induct t)
   case (Fun n ts)
   moreover have \<open>\<forall>t \<in> set ts. t \<in> set ts\<close>
@@ -256,9 +226,9 @@ proof (induct t)
     next
       case False
       moreover obtain p where p: \<open>p \<in> S\<close> \<open>Fun n ts \<in> set (subtermFm p)\<close>
-        using Fun(2) detherlemma * by fastforce
+        using Fun(2) terms_cases * by fastforce
       then have \<open>set ts \<subseteq> set (subtermFm p)\<close>
-        using ogdether by blast
+        using fun_arguments_subterm by blast
       ultimately show \<open>t \<in> terms S\<close>
         unfolding terms_def using * p(1) by (metis UN_iff in_mono)
     qed
@@ -314,7 +284,7 @@ proof (induct t and ts arbitrary: ts rule: semantics_term.induct semantics_list.
   moreover have \<open>\<forall>t' \<in> set ts'. t' \<in> set (subtermTm (Fun i ts'))\<close>
     using subtermTm_Fun by blast
   ultimately have \<open>list_all (\<lambda>t. t \<in> terms S) ts'\<close>
-    using woop unfolding list_all_def by (metis (no_types, lifting) subsetD)
+    using terms_downwards_closed unfolding list_all_def by (metis (no_types, lifting) subsetD)
   then show ?case
     using Fun by simp
 next
@@ -457,7 +427,7 @@ next
           (SeCaV.shift (E S) 0 (semantics_term (E S) (F S) t)) (F S) (sat S) p\<close>
         by simp
       moreover have \<open>\<forall>t \<in> terms S. semantics_term (E S) (F S) t = t\<close>
-        using usemantics_E(1) woop unfolding list_all_def by blast
+        using usemantics_E(1) terms_downwards_closed unfolding list_all_def by blast
       ultimately have \<open>\<forall>t \<in> terms S. \<not> usemantics (terms S) (SeCaV.shift (E S) 0 t) (F S) (sat S) p\<close>
         by simp
       then show \<open>\<not> ?s x\<close>
@@ -470,7 +440,7 @@ next
         using wf Exi size_sub
         by (metis (no_types, lifting) add.right_neutral add_Suc_right fm.size(12) in_measure lessI)
       moreover have \<open>semantics_term (E S) (F S) t = t\<close>
-        using \<open>t \<in> terms S\<close> usemantics_E(1) woop unfolding list_all_def by blast
+        using \<open>t \<in> terms S\<close> usemantics_E(1) terms_downwards_closed unfolding list_all_def by blast
       ultimately show \<open>?s x\<close>
         using wf Exi \<open>t \<in> terms S\<close> by auto
     qed
@@ -485,7 +455,7 @@ next
         using wf Uni size_sub
         by (metis (no_types, lifting) add.right_neutral add_Suc_right fm.size(13) in_measure lessI)
       moreover have \<open>semantics_term (E S) (F S) t = t\<close>
-        using \<open>t \<in> terms S\<close> usemantics_E(1) woop unfolding list_all_def by blast
+        using \<open>t \<in> terms S\<close> usemantics_E(1) terms_downwards_closed unfolding list_all_def by blast
       ultimately show \<open>\<not> ?s x\<close>
         using Uni \<open>t \<in> terms S\<close> by auto
     next
@@ -500,7 +470,7 @@ next
           (SeCaV.shift (E S) 0 (semantics_term (E S) (F S) t)) (F S) (sat S) p\<close>
         by simp
       moreover have \<open>\<forall>t \<in> terms S. semantics_term (E S) (F S) t = t\<close>
-        using usemantics_E(1) woop unfolding list_all_def by blast
+        using usemantics_E(1) terms_downwards_closed unfolding list_all_def by blast
       ultimately have \<open>\<forall>t \<in> terms S. \<not> usemantics (terms S) (SeCaV.shift (E S) 0 t) (F S) (sat S) (Neg p)\<close>
         by simp
       then show \<open>?s x\<close>
