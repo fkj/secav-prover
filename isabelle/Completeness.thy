@@ -126,7 +126,7 @@ qed
 
 text \<open>We need some lemmas to prove our main theorem\<close>
 lemma epath_countermodel:
-  assumes \<open>\<exists> steps. fst (fst (shd steps)) = [p] \<and> epath steps \<and> Saturated steps\<close> \<open>closed 0 p\<close>
+  assumes \<open>\<exists> steps. fst (fst (shd steps)) = [p] \<and> epath steps \<and> Saturated steps\<close>
   shows \<open>\<exists>u (e :: nat \<Rightarrow> tm) f g . \<not> usemantics u e f g p \<and> is_env u e \<and> is_fdenot u f\<close>
 proof (rule ccontr)
   assume \<open>\<nexists>u (e :: nat \<Rightarrow> tm) f g. \<not> usemantics u e f g p \<and> is_env u e \<and> is_fdenot u f\<close>
@@ -143,7 +143,7 @@ proof (rule ccontr)
     moreover have \<open>p \<in> tree_fms steps\<close>
       using steps shd_sset unfolding tree_fms_def by force
     then have \<open>\<exists>g. \<not> usemantics (terms ?S) (E ?S) (F ?S) g p\<close>
-      using calculation(2) hintikka_counter_model assms(2) steps by blast
+      using calculation(2) hintikka_counter_model steps by blast
     moreover have \<open>is_env (terms ?S) (E ?S)\<close> \<open>is_fdenot (terms ?S) (F ?S)\<close>
       using is_env_E is_fdenot_F by blast+
     ultimately show False
@@ -158,7 +158,7 @@ lemma epath_lem:
   using assms(2) epath_prover_completeness t_def by blast
 
 lemma epath_contr:
-  assumes \<open>\<tturnstile> [p]\<close> \<open>closed 0 p\<close>
+  assumes \<open>\<tturnstile> [p]\<close>
   shows \<open>\<nexists> steps. fst (fst (shd steps)) = [p] \<and> epath steps \<and> Saturated steps\<close>
 proof (rule ccontr, simp)
   show \<open>\<exists> steps. epath steps \<and> fst (fst (shd steps)) = [p] \<and> Saturated steps \<Longrightarrow> False\<close>
@@ -166,14 +166,14 @@ proof (rule ccontr, simp)
     assume ep: \<open>\<exists> steps. epath steps \<and> fst (fst (shd steps)) = [p] \<and> Saturated steps\<close>
     obtain u f g and e :: \<open>nat \<Rightarrow> tm\<close> where
       \<open>\<not> usemantics u e f g p\<close> \<open>is_env u e\<close> \<open>is_fdenot u f\<close>
-      using ep epath_countermodel assms(2) by blast
+      using ep epath_countermodel  by blast
     with assms show False using sound_usemantics by fastforce
   qed
 qed
 
 text \<open>Finally, we arrive at the main theorem\<close>
 theorem completeness:
-  assumes \<open>\<tturnstile> [p]\<close> \<open>closed 0 p\<close>
+  assumes \<open>\<tturnstile> [p]\<close>
   defines \<open>t \<equiv> secavProver [p]\<close>
   shows \<open>fst (fst (root t)) = [p] \<and> wf t \<and> tfinite t\<close>
   by (simp add: assms epath_contr epath_lem epath_prover_completeness)
