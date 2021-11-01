@@ -321,7 +321,7 @@ proof (intro allI impI)
   fix i l
   assume \<open>list_all (\<lambda>x. x \<in> terms S) l\<close>
   then show \<open>F S i l \<in> terms S\<close>
-    by (cases \<open>Var n \<in> terms S\<close>) (simp_all add: some_in_eq)
+    by (cases \<open>\<forall>n. Var n \<in> terms S\<close>) (simp_all add: some_in_eq)
 qed
 
 text \<open>If S is a Hintikka set containing only closed formulas, then we can construct a countermodel
