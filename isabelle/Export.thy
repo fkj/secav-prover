@@ -23,9 +23,8 @@ code_identifier
 | code_module MaybeExt \<rightharpoonup> (Haskell) Prover
 | code_module Abstract_Completeness \<rightharpoonup> (Haskell) Prover
 
-definition \<open>rhoCode \<equiv> i.fenum rules\<close>
-definition \<open>secavTreeCode \<equiv> i.mkTree effect rhoCode\<close>
-definition \<open>secavProverCode \<equiv> \<lambda>x . secavTreeCode (x, PBasic)\<close>
+definition \<open>secavTreeCode \<equiv> i.mkTree effect rules\<close>
+definition \<open>secavProverCode \<equiv> \<lambda>x . secavTreeCode x\<close>
 
 export_code open secavProverCode in Haskell
 
