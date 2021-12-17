@@ -112,6 +112,7 @@ section \<open>Effects of rules\<close>
 definition new_name :: \<open>tm list \<Rightarrow> nat\<close> where
   \<open>new_name A \<equiv> 1 + foldl max 0 (map maxFunTm A)\<close>
 
+(* TODO: do this on fsets instead if we convert at the end anyway? *)
 definition parts :: \<open>tm list \<Rightarrow> bool \<Rightarrow> rule \<Rightarrow> fm \<Rightarrow> sequent list\<close> where
   \<open>parts A b r f = (case (r, f) of
       (Basic, p) \<Rightarrow> (if b then [] else [[p]])
@@ -168,6 +169,104 @@ interpretation PersistentRuleSystem eff rules UNIV
   unfolding PersistentRuleSystem_def RuleSystem_def PersistentRuleSystem_axioms_def
   by (metis all_rules_enabled enabled_def fair_fenum iso_tuple_UNIV_I per_def rules_def trim_in_R)
 
+primrec next_rule :: \<open>rule \<Rightarrow> rule\<close> where
+  \<open>next_rule Basic = NegNeg\<close>
+| \<open>next_rule NegNeg = AlphaImp\<close>
+| \<open>next_rule AlphaImp = AlphaDis\<close>
+| \<open>next_rule AlphaDis = AlphaCon\<close>
+| \<open>next_rule AlphaCon = DeltaExi\<close>
+| \<open>next_rule DeltaExi = DeltaUni\<close>
+| \<open>next_rule DeltaUni = BetaImp\<close>
+| \<open>next_rule BetaImp = BetaDis\<close>
+| \<open>next_rule BetaDis = BetaCon\<close>
+| \<open>next_rule BetaCon = GammaExi\<close>
+| \<open>next_rule GammaExi = GammaUni\<close>
+| \<open>next_rule GammaUni = Basic\<close>
+
+primrec rule_index :: \<open>rule \<Rightarrow> nat\<close> where
+  \<open>rule_index Basic = 0\<close>
+| \<open>rule_index NegNeg = 1\<close>
+| \<open>rule_index AlphaImp = 2\<close>
+| \<open>rule_index AlphaDis = 3\<close>
+| \<open>rule_index AlphaCon = 4\<close>
+| \<open>rule_index DeltaExi = 5\<close>
+| \<open>rule_index DeltaUni = 6\<close>
+| \<open>rule_index BetaImp = 7\<close>
+| \<open>rule_index BetaDis = 8\<close>
+| \<open>rule_index BetaCon = 9\<close>
+| \<open>rule_index GammaExi = 10\<close>
+| \<open>rule_index GammaUni = 11\<close>
+
+lemma distinct_rulesList: \<open>distinct rulesList\<close>
+  unfolding rulesList_def by simp
+
+lemma cycle_nth: \<open>xs \<noteq> [] \<Longrightarrow> cycle xs !! n = xs ! (n mod length xs)\<close>
+  by (metis cycle.sel(1) hd_rotate_conv_nth rotate_conv_mod sdrop_cycle sdrop_simps(1))
+
+lemma nth_rule_index: \<open>rulesList ! (rule_index r) = r\<close>
+  unfolding rulesList_def by (cases r) simp_all
+
+lemma rule_index_bnd: \<open>rule_index r < length rulesList\<close>
+  unfolding rulesList_def by (cases r) simp_all
+
+lemma unique_rule_index:
+  assumes \<open>n < length rulesList\<close> \<open>rulesList ! n = r\<close>
+  shows \<open>n = rule_index r\<close>
+  using assms nth_rule_index distinct_rulesList rule_index_bnd nth_eq_iff_index_eq by metis
+
+lemma rule_index_mod:
+  assumes \<open>rules !! n = r\<close>
+  shows \<open>n mod length rulesList = rule_index r\<close>
+proof -
+  have *: \<open>rulesList ! (n mod length rulesList) = r\<close>
+    using assms cycle_nth unfolding rules_def rulesList_def by (metis list.distinct(1))
+  then show ?thesis
+    using distinct_rulesList * unique_rule_index
+    by (cases r) (metis length_greater_0_conv list.discI rulesList_def
+        unique_euclidean_semiring_numeral_class.pos_mod_bound)+
+qed
+
+lemma mod_hit:
+  fixes k :: nat
+  assumes \<open>0 < k\<close>
+  shows \<open>\<forall>i < k. \<exists>n > m. n mod k = i\<close>
+proof safe
+  fix i
+  let ?n = \<open>(1 + m) * k + i\<close>
+  assume \<open>i < k\<close>
+  then have \<open>?n mod k = i\<close>
+    by (metis mod_less mod_mult_self3)
+  moreover have \<open>?n > m\<close>
+    using assms
+    by (metis One_nat_def Suc_eq_plus1_left Suc_leI add.commute add_lessD1 less_add_one
+        mult.right_neutral nat_mult_less_cancel1 order_le_less trans_less_add1 zero_less_one)
+  ultimately show \<open>\<exists>n > m. n mod k = i\<close>
+    by fast
+qed
+
+lemma mod_suff:
+  assumes \<open>\<forall>(n :: nat) > m. P (n mod k)\<close> \<open>0 < k\<close>
+  shows \<open>\<forall>i < k. P i\<close>
+  using assms mod_hit by blast
+
+lemma rules_repeat: \<open>\<exists>n > m. rules !! n = r\<close>
+proof (rule ccontr)
+  assume \<open>\<not> (\<exists>n > m. rules !! n = r)\<close>
+  then have \<open>\<not> (\<exists>n > m. n mod length rulesList = rule_index r)\<close>
+    using rule_index_mod nth_rule_index by metis
+  then have \<open>\<forall>n > m. n mod length rulesList \<noteq> rule_index r\<close>
+    by blast
+  moreover have \<open>length rulesList > 0\<close>
+    unfolding rulesList_def by simp
+  ultimately have \<open>\<forall>k < length rulesList. k \<noteq> rule_index r\<close>
+    using mod_suff[where P=\<open>\<lambda>a. a \<noteq> rule_index r\<close>] by blast
+  then show False
+    using rule_index_bnd by blast
+qed
+
+lemma rules_repeat_sdrop: \<open>\<exists>n. (sdrop k rules) !! n = r\<close>
+  using rules_repeat by (metis less_imp_add_positive sdrop_snth)
+
 lemma fair_rules: \<open>fair rules\<close>
 proof -
   { fix r assume \<open>r \<in> R\<close>
@@ -185,9 +284,10 @@ proof -
               by (metis sdrop_simps(2) shift.simps(1) zero_less_Suc)
           qed (auto simp: alw intro: exI[of _ n])
         next
-          show \<open>ev (holds ((=) r)) (rs @- sdrop n rules)\<close>
-            using alw r unfolding ev_holds_sset
-            sorry
+          have \<open>ev (holds ((=) r)) (sdrop n rules)\<close>
+            unfolding ev_holds_sset using rules_repeat_sdrop by (metis snth_sset)
+          then show \<open>ev (holds ((=) r)) (rs @- sdrop n rules)\<close>
+            unfolding ev_holds_sset by simp
         qed
       qed
     }
