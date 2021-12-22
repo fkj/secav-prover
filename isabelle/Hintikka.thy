@@ -45,30 +45,163 @@ lemma hd_ptl_in_pseq: \<open>tl (pseq s) \<noteq> [] \<Longrightarrow> hd (ptl s
 lemma epath_sdrop: \<open>epath steps \<Longrightarrow> epath (sdrop n steps)\<close>
   by (induct n) (auto elim: epath.cases)
 
-fun rule_number :: \<open>rule \<Rightarrow> int\<close> where
-  \<open>rule_number Basic = 0\<close>
-| \<open>rule_number NegNeg = 1\<close>
-| \<open>rule_number AlphaImp = 2\<close>
-| \<open>rule_number AlphaDis = 3\<close>
-| \<open>rule_number AlphaCon = 4\<close>
-| \<open>rule_number DeltaExi = 5\<close>
-| \<open>rule_number DeltaUni = 6\<close>
-| \<open>rule_number BetaImp = 7\<close>
-| \<open>rule_number BetaDis = 8\<close>
-| \<open>rule_number BetaCon = 9\<close>
-| \<open>rule_number GammaExi = 10\<close>
-| \<open>rule_number GammaUni = 11\<close>
+text \<open>Transformation of formulas on an epath\<close>
 
+lemma epath_eff:
+  assumes \<open>epath steps\<close> \<open>eff (snd (shd steps)) (fst (shd steps)) A\<close>
+  shows \<open>fst (shd (stl steps)) |\<in>| A\<close>
+  using assms by (metis (mono_tags, lifting) RuleSystem_Defs.epath.simps eff_def)
+
+lemma epath_effect:
+  assumes \<open>epath steps\<close> \<open>shd steps = (ps, r)\<close>
+  shows \<open>\<exists>qs r'. qs |\<in>| effect r ps \<and> shd (stl steps) = (qs, r')\<close>
+  using assms epath_eff by (metis (mono_tags, lifting) eff_def fst_conv prod.collapse snd_conv)
+
+lemma epath_effect_next_step:
+  assumes \<open>epath steps\<close> \<open>steps !! n = (ps, r)\<close>
+  shows \<open>\<exists>qs r'. qs |\<in>| effect r ps \<and> steps !! (n + 1) = (qs, r')\<close>
+  using assms epath_effect
+  by (metis One_nat_def add.right_neutral add_Suc_right epath_sdrop sdrop_simps(1) sdrop_simps(2))
+
+(* I want to get
+  - Preservation under other rules
+  - Preservation until the first occurrence
+      (cut down an ev P xs into xs = pre @ suf s.t. no element in pre satisfies P and shd suf does) 
+  - I never encounter both a predicate and its negation
+      (should be a simple proof by contradiction using fairness and the effect of Basic)
+  + Effect of the (first) occurrence
+
+  Notes:
+  epath throws away too much information to prove anything about which rule is next
+*)
+(* TODO: rules should be in a nicer order in the datatype... *)
+
+definition affects :: \<open>rule \<Rightarrow> fm \<Rightarrow> bool\<close> where
+  \<open>affects r p \<equiv> case (r, p) of
+    (Basic, _) \<Rightarrow> True
+  | (AlphaDis, Dis _ _) \<Rightarrow> True
+  | (AlphaImp, Imp _ _) \<Rightarrow> True
+  | (AlphaCon, Neg (Con _ _)) \<Rightarrow> True
+  | (BetaCon, Con _ _) \<Rightarrow> True
+  | (BetaImp, Neg (Imp _ _)) \<Rightarrow> True
+  | (BetaDis, Neg (Dis _ _)) \<Rightarrow> True
+  | (DeltaUni, Uni _) \<Rightarrow> True
+  | (DeltaExi, Neg (Exi _)) \<Rightarrow> True
+  | (NegNeg, Neg (Neg _)) \<Rightarrow> True
+  | (GammaExi, Exi _) \<Rightarrow> True
+  | (GammaUni, Neg (Uni _)) \<Rightarrow> True
+  | (_,  _) \<Rightarrow> False\<close>
+                      
+lemma Neg_exhaust:
+  \<open>(\<And>i ts. x = Pre i ts \<Longrightarrow> P) \<Longrightarrow>
+  (\<And>p q. x = Imp p q \<Longrightarrow> P) \<Longrightarrow>
+  (\<And>p q. x = Dis p q \<Longrightarrow> P) \<Longrightarrow>
+  (\<And>p q. x = Con p q \<Longrightarrow> P) \<Longrightarrow>
+  (\<And>p. x = Exi p \<Longrightarrow> P) \<Longrightarrow>
+  (\<And>p. x = Uni p \<Longrightarrow> P) \<Longrightarrow>
+  (\<And>i ts. x = Neg (Pre i ts) \<Longrightarrow> P) \<Longrightarrow>
+  (\<And>p q. x = Neg (Imp p q) \<Longrightarrow> P) \<Longrightarrow>
+  (\<And>p q. x = Neg (Dis p q) \<Longrightarrow> P) \<Longrightarrow>
+  (\<And>p q. x = Neg (Con p q) \<Longrightarrow> P) \<Longrightarrow>
+  (\<And>p. x = Neg (Exi p) \<Longrightarrow> P) \<Longrightarrow>
+  (\<And>p. x = Neg (Uni p) \<Longrightarrow> P) \<Longrightarrow>
+  (\<And>p. x = Neg (Neg p) \<Longrightarrow> P) \<Longrightarrow>
+  P\<close>
+proof (induct x)
+  case (Neg p)
+  then show ?case
+    by (cases p) simp_all
+qed simp_all
+
+lemma parts_preserves_unaffected:
+  assumes \<open>\<not> affects r p\<close> \<open>qs \<in> set (parts A b r p)\<close>
+  shows \<open>p \<in> set qs\<close>
+  using assms unfolding parts_def affects_def
+  by (cases r; cases p rule: Neg_exhaust) simp_all
+
+lemma parts_non_empty: \<open>r \<noteq> Basic \<Longrightarrow> parts A b r p \<noteq> []\<close>
+  unfolding parts_def by (cases r; cases p rule: Neg_exhaust) simp_all
+
+lemma Basic_affects_all: \<open>\<not> affects r p \<Longrightarrow> r \<noteq> Basic\<close>
+  unfolding affects_def by auto
+
+lemma split_maps:
+  assumes \<open>A \<noteq> []\<close> \<open>xs \<in> set (List.maps (\<lambda>tail. map (\<lambda>ps. ps @ tail) A) B)\<close>
+  shows \<open>\<exists>a rest. a \<in> set A \<and> xs = a @ rest\<close>
+  using assms by (induct B) (auto simp: maps_simps)
+
+thm effect'_def
+
+lemma
+  assumes \<open>r \<noteq> Basic\<close>
+  shows \<open>set (effect' A r (p # ps)) = {qs @ ih |qs ih.
+    qs \<in> set (parts A (branchDone (p # ps)) r p) \<and> ih \<in> set (effect' A r (p # ps))}\<close>
+  using assms sorry
+
+lemma
+  assumes \<open>r \<noteq> Basic\<close> \<open>qs \<in> set (effect' A r ps)\<close> \<open>qs' \<in> set (effect' A r (p # ps))\<close>
+  shows \<open>set qs \<subseteq> set qs'\<close>
+  using assms
+proof (induct ps)
+  case Nil
+  then show ?case
+    by simp
+next
+  case (Cons a ps)
+  then show ?case
+    apply simp
+    sorry
+qed
+
+lemma
+  assumes \<open>p \<in> set ps\<close> \<open>\<not> affects r p\<close> \<open>qs \<in> set (effect' A r ps)\<close>
+  shows \<open>p \<in> set qs\<close>
+  using assms
+proof (induct ps arbitrary: qs)
+  case Nil
+  then show ?case
+    by simp
+next
+  case (Cons a ps)
+  show ?case
+  proof (cases \<open>p = a\<close>)
+    case True
+    let ?pss = \<open>parts A (branchDone (a # ps)) r a\<close>
+    have \<open>\<forall>ps \<in> set ?pss. p \<in> set ps\<close>
+      using Cons True parts_preserves_unaffected by blast
+    moreover have \<open>\<exists>ps rest. ps \<in> set ?pss \<and> qs = ps @ rest\<close>
+      using Cons(3, 4) parts_non_empty Basic_affects_all split_maps[where xs=qs] by simp
+    ultimately show ?thesis
+      by auto
+  next
+    case False
+    then have \<open>p \<in> set qs'\<close> if \<open>qs' \<in> set (effect' A r ps)\<close> for qs'
+      using Cons that by simp
+    moreover have \<open>set qs' \<subseteq> set qs\<close> if \<open>qs' \<in> set (effect' A r ps)\<close> for qs'
+      using Cons that
+      apply simp
+      sorry
+    ultimately show ?thesis
+      by (metis Cons.prems(3) effect'.simps(2) list.set_sel(1) maps_simps(2) subsetD)
+  qed
+qed
+
+
+(************** rest of the stuff *********************)
+
+(* TODO: not usable I think, as an epath loses information about the order of rules *)
 definition rule_dist :: \<open>rule \<Rightarrow> rule \<Rightarrow> nat\<close> where
-  \<open>rule_dist r1 r2 = nat \<bar>rule_number r1 - rule_number r2\<bar>\<close>
+  \<open>rule_dist r1 r2 = nat \<bar>int (rule_index r1) - int (rule_index r2)\<bar>\<close>
 
 lemma rule_dist_id[simp]: \<open>rule_dist r r = 0\<close>
   unfolding rule_dist_def by simp
 
-lemma rule_dist_rule: \<open>\<lbrakk>epath steps; Saturated steps\<rbrakk> \<Longrightarrow> prule (steps !! (n + rule_dist (prule (steps !! n)) r)) = r\<close>
+lemma rule_dist_rule:
+  \<open>\<lbrakk>epath steps; Saturated steps\<rbrakk> \<Longrightarrow> prule (steps !! (n + rule_dist (prule (steps !! n)) r)) = r\<close>
   sorry
 
-lemma eff_step: \<open>epath steps \<Longrightarrow> eff (prule (steps !! n)) (pseq (steps !! n)) ss \<Longrightarrow> pseq (steps !! (n + 1)) |\<in>| ss\<close>
+lemma eff_step:
+  \<open>epath steps \<Longrightarrow> eff (prule (steps !! n)) (pseq (steps !! n)) ss \<Longrightarrow> pseq (steps !! (n + 1)) |\<in>| ss\<close>
   sorry
 
 subsection \<open>Facts about the NegNeg rule\<close>

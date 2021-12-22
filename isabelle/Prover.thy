@@ -134,8 +134,11 @@ primrec effect' :: \<open>tm list \<Rightarrow> rule \<Rightarrow> sequent \<Rig
 | \<open>effect' A r (f # z) = (let rest = effect' A r z; pss = parts A (branchDone (f # z)) r f in
     List.maps (\<lambda>s. map (\<lambda>ps. ps @ s) pss) rest)\<close>
 
-definition effect :: \<open>rule \<Rightarrow> sequent \<Rightarrow> sequent fset option\<close> where
-  \<open>effect r s = Some (fset_of_list (effect' (subterms s) r s))\<close>
+(* TODO: either introduce a definition for this use of List.maps
+    or define a primrec that does the same and prove lemmas about it *)
+
+definition effect :: \<open>rule \<Rightarrow> sequent \<Rightarrow> sequent fset\<close> where
+  \<open>effect r s = fset_of_list (effect' (subterms s) r s)\<close>
 
 section \<open>The rule stream\<close>
 
@@ -155,10 +158,10 @@ definition rules where
 section \<open>Abstract completeness\<close>
 
 definition eff where
-  \<open>eff \<equiv> \<lambda>r s ss. effect r s = Some ss\<close>
+  \<open>eff \<equiv> \<lambda>r s ss. effect r s = ss\<close>
 
 lemma all_rules_enabled: \<open>\<forall>sequent. \<forall>r \<in> i.R (cycle rulesList). \<exists>sl. eff r sequent sl\<close>
-  by (meson eff_def effect_def stream.set_sel(1))
+  unfolding eff_def by blast
 
 interpretation RuleSystem eff rules UNIV
   unfolding rules_def RuleSystem_def
