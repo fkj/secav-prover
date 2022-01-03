@@ -113,7 +113,7 @@ definition new_name :: \<open>tm list \<Rightarrow> nat\<close> where
   \<open>new_name A \<equiv> 1 + foldl max 0 (map maxFunTm A)\<close>
 
 (* TODO: do this on fsets instead if we convert at the end anyway? *)
-definition parts :: \<open>tm list \<Rightarrow> bool \<Rightarrow> rule \<Rightarrow> fm \<Rightarrow> sequent list\<close> where
+definition parts :: \<open>tm list \<Rightarrow> bool \<Rightarrow> rule \<Rightarrow> fm \<Rightarrow> fm list list\<close> where
   \<open>parts A b r f = (case (r, f) of
       (Basic, p) \<Rightarrow> (if b then [] else [[p]])
     | (NegNeg, Neg (Neg p)) \<Rightarrow> [[p]]

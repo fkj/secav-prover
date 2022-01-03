@@ -64,17 +64,19 @@ lemma epath_effect_next_step:
   by (metis One_nat_def add.right_neutral add_Suc_right epath_sdrop sdrop_simps(1) sdrop_simps(2))
 
 (* I want to get
-  - Preservation under other rules
   - Preservation until the first occurrence
       (cut down an ev P xs into xs = pre @ suf s.t. no element in pre satisfies P and shd suf does) 
   - I never encounter both a predicate and its negation
       (should be a simple proof by contradiction using fairness and the effect of Basic)
+  + Preservation under other rules
   + Effect of the (first) occurrence
 
   Notes:
   epath throws away too much information to prove anything about which rule is next
 *)
 (* TODO: rules should be in a nicer order in the datatype... *)
+
+text \<open>Unaffected formulas\<close>
 
 definition affects :: \<open>rule \<Rightarrow> fm \<Rightarrow> bool\<close> where
   \<open>affects r p \<equiv> case (r, p) of
@@ -139,6 +141,43 @@ lemma effect'_preserves_unaffected:
   using assms parts_preserves_unaffected set_effect'_Cons
   by (induct ps arbitrary: qs) auto
 
+lemma effect_preserves_unaffected:
+  assumes \<open>p \<in> set ps\<close> \<open>\<not> affects r p\<close> \<open>qs |\<in>| effect r ps\<close>
+  shows \<open>p \<in> set qs\<close>
+  using assms effect'_preserves_unaffected by (metis effect_def fset_of_list_elem)
+
+text \<open>Affected formulas\<close>
+
+(* this b is \<open>branchDone (p # ps')\<close> for whatever ps' is the suffix after p appears *)
+lemma parts_in_effect':
+  assumes \<open>p \<in> set ps\<close> \<open>qs \<in> set (effect' A r ps)\<close>
+  shows \<open>\<exists>b. \<exists>xs \<in> set (parts A b r p). set xs \<subseteq> set qs\<close>
+  using assms
+proof (induct ps arbitrary: qs)
+  case Nil
+  then show ?case
+    by simp
+next
+  case (Cons a ps)
+  then show ?case
+  proof (cases \<open>a = p\<close>)
+    case True
+    then show ?thesis
+      using Cons(3) set_effect'_Cons by fastforce
+  next
+    case False
+    then show ?thesis
+      using Cons set_effect'_Cons
+      by simp (metis Un_iff set_append subsetD subsetI)
+  qed
+qed 
+
+corollary \<open>Neg (Neg p) \<in> set ps \<Longrightarrow> qs \<in> set (effect' A NegNeg ps) \<Longrightarrow> p \<in> set qs\<close>
+  using parts_in_effect' unfolding parts_def by fastforce
+   
+corollary \<open>Neg (Uni p) \<in> set ps \<Longrightarrow> qs \<in> set (effect' A GammaUni ps) \<Longrightarrow>
+    set (map (\<lambda>t. Neg (subst p t 0)) A) \<subseteq> set qs\<close>
+  using parts_in_effect' unfolding parts_def by fastforce
 
 (************** rest of the stuff *********************)
 
