@@ -119,72 +119,25 @@ lemma parts_preserves_unaffected:
   using assms unfolding parts_def affects_def
   by (cases r; cases p rule: Neg_exhaust) simp_all
 
-lemma parts_non_empty: \<open>r \<noteq> Basic \<Longrightarrow> parts A b r p \<noteq> []\<close>
-  unfolding parts_def by (cases r; cases p rule: Neg_exhaust) simp_all
+lemma parts_not_Nil: \<open>r \<noteq> Basic \<Longrightarrow> parts A b r p \<noteq> []\<close>
+  unfolding parts_def by (cases r; cases p rule: Neg_exhaust) auto
+
+lemma parts_all_inhabited: \<open>r \<noteq> Basic \<Longrightarrow> [] \<notin> set (parts A b r p)\<close>
+  unfolding parts_def by (cases r; cases p rule: Neg_exhaust) auto
 
 lemma Basic_affects_all: \<open>\<not> affects r p \<Longrightarrow> r \<noteq> Basic\<close>
   unfolding affects_def by auto
 
-lemma split_maps:
-  assumes \<open>A \<noteq> []\<close> \<open>xs \<in> set (List.maps (\<lambda>tail. map (\<lambda>ps. ps @ tail) A) B)\<close>
-  shows \<open>\<exists>a rest. a \<in> set A \<and> xs = a @ rest\<close>
-  using assms by (induct B) (auto simp: maps_simps)
+lemma set_effect'_Cons:
+  \<open>set (effect' A r (p # ps)) = {hs @ ts |hs ts.
+    hs \<in> set (parts A (branchDone (p # ps)) r p) \<and> ts \<in> set (effect' A r ps)}\<close>
+  using list_prod_is_cartesian by (metis effect'.simps(2))
 
-thm effect'_def
-
-lemma
-  assumes \<open>r \<noteq> Basic\<close>
-  shows \<open>set (effect' A r (p # ps)) = {qs @ ih |qs ih.
-    qs \<in> set (parts A (branchDone (p # ps)) r p) \<and> ih \<in> set (effect' A r (p # ps))}\<close>
-  using assms sorry
-
-lemma
-  assumes \<open>r \<noteq> Basic\<close> \<open>qs \<in> set (effect' A r ps)\<close> \<open>qs' \<in> set (effect' A r (p # ps))\<close>
-  shows \<open>set qs \<subseteq> set qs'\<close>
-  using assms
-proof (induct ps)
-  case Nil
-  then show ?case
-    by simp
-next
-  case (Cons a ps)
-  then show ?case
-    apply simp
-    sorry
-qed
-
-lemma
+lemma effect'_preserves_unaffected:
   assumes \<open>p \<in> set ps\<close> \<open>\<not> affects r p\<close> \<open>qs \<in> set (effect' A r ps)\<close>
   shows \<open>p \<in> set qs\<close>
-  using assms
-proof (induct ps arbitrary: qs)
-  case Nil
-  then show ?case
-    by simp
-next
-  case (Cons a ps)
-  show ?case
-  proof (cases \<open>p = a\<close>)
-    case True
-    let ?pss = \<open>parts A (branchDone (a # ps)) r a\<close>
-    have \<open>\<forall>ps \<in> set ?pss. p \<in> set ps\<close>
-      using Cons True parts_preserves_unaffected by blast
-    moreover have \<open>\<exists>ps rest. ps \<in> set ?pss \<and> qs = ps @ rest\<close>
-      using Cons(3, 4) parts_non_empty Basic_affects_all split_maps[where xs=qs] by simp
-    ultimately show ?thesis
-      by auto
-  next
-    case False
-    then have \<open>p \<in> set qs'\<close> if \<open>qs' \<in> set (effect' A r ps)\<close> for qs'
-      using Cons that by simp
-    moreover have \<open>set qs' \<subseteq> set qs\<close> if \<open>qs' \<in> set (effect' A r ps)\<close> for qs'
-      using Cons that
-      apply simp
-      sorry
-    ultimately show ?thesis
-      by (metis Cons.prems(3) effect'.simps(2) list.set_sel(1) maps_simps(2) subsetD)
-  qed
-qed
+  using assms parts_preserves_unaffected set_effect'_Cons
+  by (induct ps arbitrary: qs) auto
 
 
 (************** rest of the stuff *********************)

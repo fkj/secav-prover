@@ -129,13 +129,19 @@ definition parts :: \<open>tm list \<Rightarrow> bool \<Rightarrow> rule \<Right
     | (GammaUni, Neg (Uni p)) \<Rightarrow> [Neg (Uni p) # map (\<lambda>t. Neg (subst p t 0)) A]
     | _ \<Rightarrow> [[f]])\<close>
 
+primrec list_prod :: \<open>'a list list \<Rightarrow> 'a list list \<Rightarrow> 'a list list\<close> where
+  \<open>list_prod _ [] = []\<close>
+| \<open>list_prod hs (t # ts) = map (\<lambda>h. h @ t) hs @ list_prod hs ts\<close>
+
+lemma list_prod_is_cartesian: \<open>set (list_prod hs ts) = {h @ t |h t. h \<in> set hs \<and> t \<in> set ts}\<close>
+  by (induct ts) auto
+
+lemma list_prod_maps: \<open>list_prod hs ts = List.maps (\<lambda>s. map (\<lambda>ps. ps @ s) hs) ts\<close>
+  by (induct ts) (simp_all add: maps_simps)
+
 primrec effect' :: \<open>tm list \<Rightarrow> rule \<Rightarrow> sequent \<Rightarrow> sequent list\<close> where
   \<open>effect' _ _ [] = [[]]\<close>
-| \<open>effect' A r (f # z) = (let rest = effect' A r z; pss = parts A (branchDone (f # z)) r f in
-    List.maps (\<lambda>s. map (\<lambda>ps. ps @ s) pss) rest)\<close>
-
-(* TODO: either introduce a definition for this use of List.maps
-    or define a primrec that does the same and prove lemmas about it *)
+| \<open>effect' A r (f # z) = list_prod (parts A (branchDone (f # z)) r f) (effect' A r z)\<close>
 
 definition effect :: \<open>rule \<Rightarrow> sequent \<Rightarrow> sequent fset\<close> where
   \<open>effect r s = fset_of_list (effect' (subterms s) r s)\<close>
