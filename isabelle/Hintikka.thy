@@ -176,7 +176,7 @@ corollary \<open>\<not> branchDone ps \<Longrightarrow> Neg (Neg p) \<in> set ps
   using parts_in_effect unfolding parts_def by fastforce
    
 corollary \<open>\<not> branchDone ps \<Longrightarrow> Neg (Uni p) \<in> set ps \<Longrightarrow> qs |\<in>| effect GammaUni ps \<Longrightarrow>
-    set (map (\<lambda>t. Neg (subst p t 0)) (subterms ps)) \<subseteq> set qs\<close>
+    set (map (\<lambda>t. Neg (sub 0 t p)) (subterms ps)) \<subseteq> set qs\<close>
   using parts_in_effect unfolding parts_def by fastforce
 
 text \<open>Preservation on epath\<close>
@@ -591,7 +591,7 @@ next
   moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
     using \<open>epath suf\<close> epath_never_branchDone by blast
 
-  ultimately have \<open>\<forall>t \<in> set (subterms (pseq (shd suf))). subst p t 0 \<in> set qs\<close>
+  ultimately have \<open>\<forall>t \<in> set (subterms (pseq (shd suf))). sub 0 t p \<in> set qs\<close>
     using parts_in_effect unfolding parts_def by fastforce
 
   then show \<open>\<forall>t \<in> terms ?H. sub 0 t p \<in> ?H\<close>
