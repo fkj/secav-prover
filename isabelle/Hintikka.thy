@@ -63,17 +63,6 @@ lemma epath_effect_next_step:
   using assms epath_effect
   by (metis One_nat_def add.right_neutral add_Suc_right epath_sdrop sdrop_simps(1) sdrop_simps(2))
 
-(* I want to get
-  - Preservation until the first occurrence
-      (cut down an ev P xs into xs = pre @ suf s.t. no element in pre satisfies P and shd suf does) 
-  - I never encounter both a predicate and its negation
-      (should be a simple proof by contradiction using fairness and the effect of Basic)
-  + Preservation under other rules
-  + Effect of the (first) occurrence
-
-  Notes:
-  epath throws away too much information to prove anything about which rule is next
-*)
 (* TODO: rules should be in a nicer order in the datatype... *)
 
 text \<open>Unaffected formulas\<close>
@@ -260,17 +249,6 @@ abbreviation \<open>is_rule r step \<equiv> snd step = r\<close>
 
 lemma list_prod_nil: \<open>list_prod [] ts = []\<close>
   by (induct ts) simp_all
-
-(*
-  I don't think we should have a Basic rule as \<open>effect\<close> does not preserve \<open>branchDone\<close>:
-
-  Neg (Dis p q), Dis p q
-  === AlphaDis ==>
-  Neg (Dis p q), p, q
-
-  This makes it tricky to show that we never hit \<open>branchDone\<close> as I do below.
-  It's easier and more efficient to just drop sequents that are axioms.
-*)
 
 lemma epath_never_branchDone:
   assumes \<open>epath steps\<close>
@@ -596,7 +574,11 @@ next
 
   then show \<open>\<forall>t \<in> terms ?H. sub 0 t p \<in> ?H\<close>
     using qs(2) ori pseq_in_tree_fms
-    sorry (* TODO: I need that suf contains all terms on the branch *)
+    sorry
+      (* TODO: I think this is too local, as I don't know all the terms of ?H here, only those
+          in the given sequent.
+         I need that the Gamma formula is preserved so it will be instantiated again to new terms.
+         I'm not sure how this will look. *)
 next
   fix p
   assume \<open>Neg (Uni p) \<in> tree_fms steps\<close> (is \<open>?f \<in> ?H\<close>)
@@ -633,7 +615,7 @@ next
 
   then show \<open>\<forall>t \<in> terms ?H. Neg (sub 0 t p) \<in> ?H\<close>
     using qs(2) ori pseq_in_tree_fms
-    sorry (* TODO: I need that suf contains all terms on the branch *)
+    sorry (* TODO: See above. *)
 next
   fix p
   assume \<open>Uni p \<in> tree_fms steps\<close> (is \<open>?f \<in> ?H\<close>)
@@ -669,10 +651,22 @@ next
   then have *: \<open>sub 0 (Fun (new_name (subterms (pseq (shd suf)))) []) p \<in> ?H\<close>
     using qs(2) ori pseq_in_tree_fms
     by (metis Un_iff fst_conv pseq_def shd_sset sset_sdrop sset_shift stl_sset subset_eq)
-  moreover have \<open>Fun (new_name (subterms (pseq (shd suf)))) [] \<in> terms ?H\<close>
-    sorry (* TODO: does this hold? *)
-  ultimately show \<open>\<exists>t \<in> terms ?H. sub 0 t p \<in> ?H\<close>
-    by blast
+  let ?t = \<open>Fun (new_name (subterms (pseq (shd suf)))) []\<close>
+  show \<open>\<exists>t \<in> terms ?H. sub 0 t p \<in> ?H\<close>
+  proof (cases \<open>sub 0 ?t p = p\<close>)
+    case True
+    then show ?thesis sorry
+        (* TODO: seems like a problem...
+            Maybe tweak the prover to only apply Delta rules to "properly" quantified formulas? *)
+  next
+    case False
+    then have \<open>?t \<in> set (subtermFm (sub 0 ?t p))\<close>
+      sorry (* TODO: should be provable in this case *)
+    then have \<open>?t \<in> terms ?H\<close>
+      unfolding terms_def using * by (metis UN_I empty_iff)
+    then show ?thesis
+      using * by blast
+  qed
 next
   fix p
   assume \<open>Neg (Exi p) \<in> tree_fms steps\<close> (is \<open>?f \<in> ?H\<close>)
@@ -709,7 +703,7 @@ next
     using qs(2) ori pseq_in_tree_fms
     by (metis Un_iff fst_conv pseq_def shd_sset sset_sdrop sset_shift stl_sset subset_eq)
   moreover have \<open>Fun (new_name (subterms (pseq (shd suf)))) [] \<in> terms ?H\<close>
-    sorry (* TODO: does this hold? *)
+    sorry (* TODO: see above *)
   ultimately show \<open>\<exists>t \<in> terms ?H. Neg (sub 0 t p) \<in> ?H\<close>
     by blast
 next
