@@ -80,8 +80,7 @@ text \<open>Unaffected formulas\<close>
 
 definition affects :: \<open>rule \<Rightarrow> fm \<Rightarrow> bool\<close> where
   \<open>affects r p \<equiv> case (r, p) of
-    (Basic, _) \<Rightarrow> True
-  | (AlphaDis, Dis _ _) \<Rightarrow> True
+    (AlphaDis, Dis _ _) \<Rightarrow> True
   | (AlphaImp, Imp _ _) \<Rightarrow> True
   | (AlphaCon, Neg (Con _ _)) \<Rightarrow> True
   | (BetaCon, Con _ _) \<Rightarrow> True
@@ -116,23 +115,20 @@ proof (induct x)
 qed simp_all
 
 lemma parts_preserves_unaffected:
-  assumes \<open>\<not> affects r p\<close> \<open>qs \<in> set (parts A b r p)\<close>
+  assumes \<open>\<not> affects r p\<close> \<open>qs \<in> set (parts A r p)\<close>
   shows \<open>p \<in> set qs\<close>
   using assms unfolding parts_def affects_def
   by (cases r; cases p rule: Neg_exhaust) simp_all
 
-lemma parts_not_Nil: \<open>r \<noteq> Basic \<Longrightarrow> parts A b r p \<noteq> []\<close>
+lemma parts_not_Nil: \<open>parts A r p \<noteq> []\<close>
   unfolding parts_def by (cases r; cases p rule: Neg_exhaust) auto
 
-lemma parts_all_inhabited: \<open>r \<noteq> Basic \<Longrightarrow> [] \<notin> set (parts A b r p)\<close>
+lemma parts_all_inhabited: \<open>[] \<notin> set (parts A r p)\<close>
   unfolding parts_def by (cases r; cases p rule: Neg_exhaust) auto
-
-lemma Basic_affects_all: \<open>\<not> affects r p \<Longrightarrow> r \<noteq> Basic\<close>
-  unfolding affects_def by auto
 
 lemma set_effect'_Cons:
-  \<open>set (effect' A r (p # ps)) = {hs @ ts |hs ts.
-    hs \<in> set (parts A (branchDone (p # ps)) r p) \<and> ts \<in> set (effect' A r ps)}\<close>
+  \<open>set (effect' A r (p # ps)) =
+    {hs @ ts |hs ts. hs \<in> set (parts A r p) \<and> ts \<in> set (effect' A r ps)}\<close>
   using list_prod_is_cartesian by (metis effect'.simps(2))
 
 lemma effect'_preserves_unaffected:
@@ -144,14 +140,13 @@ lemma effect'_preserves_unaffected:
 lemma effect_preserves_unaffected:
   assumes \<open>p \<in> set ps\<close> \<open>\<not> affects r p\<close> \<open>qs |\<in>| effect r ps\<close>
   shows \<open>p \<in> set qs\<close>
-  using assms effect'_preserves_unaffected by (metis effect_def fset_of_list_elem)
+  using assms effect'_preserves_unaffected by (metis fempty_iff effect_def fset_of_list_elem)
 
 text \<open>Affected formulas\<close>
 
-(* this b is \<open>branchDone (p # ps')\<close> for whatever ps' is the suffix after p appears *)
 lemma parts_in_effect':
   assumes \<open>p \<in> set ps\<close> \<open>qs \<in> set (effect' A r ps)\<close>
-  shows \<open>\<exists>b. \<exists>xs \<in> set (parts A b r p). set xs \<subseteq> set qs\<close>
+  shows \<open>\<exists>xs \<in> set (parts A r p). set xs \<subseteq> set qs\<close>
   using assms
 proof (induct ps arbitrary: qs)
   case Nil
@@ -163,7 +158,7 @@ next
   proof (cases \<open>a = p\<close>)
     case True
     then show ?thesis
-      using Cons(3) set_effect'_Cons by fastforce
+      using Cons(3) set_effect'_Cons by auto
   next
     case False
     then show ?thesis
@@ -172,59 +167,59 @@ next
   qed
 qed 
 
-corollary \<open>Neg (Neg p) \<in> set ps \<Longrightarrow> qs \<in> set (effect' A NegNeg ps) \<Longrightarrow> p \<in> set qs\<close>
-  using parts_in_effect' unfolding parts_def by fastforce
+lemma parts_in_effect:
+  assumes \<open>p \<in> set ps\<close> \<open>qs |\<in>| effect r ps\<close> \<open>\<not> branchDone ps\<close>
+  shows \<open>\<exists>xs \<in> set (parts (subterms ps) r p). set xs \<subseteq> set qs\<close>
+  using assms parts_in_effect' by (simp add: effect_def fset_of_list_elem)
+
+corollary \<open>\<not> branchDone ps \<Longrightarrow> Neg (Neg p) \<in> set ps \<Longrightarrow> qs |\<in>| effect NegNeg ps \<Longrightarrow> p \<in> set qs\<close>
+  using parts_in_effect unfolding parts_def by fastforce
    
-corollary \<open>Neg (Uni p) \<in> set ps \<Longrightarrow> qs \<in> set (effect' A GammaUni ps) \<Longrightarrow>
-    set (map (\<lambda>t. Neg (subst p t 0)) A) \<subseteq> set qs\<close>
-  using parts_in_effect' unfolding parts_def by fastforce
+corollary \<open>\<not> branchDone ps \<Longrightarrow> Neg (Uni p) \<in> set ps \<Longrightarrow> qs |\<in>| effect GammaUni ps \<Longrightarrow>
+    set (map (\<lambda>t. Neg (subst p t 0)) (subterms ps)) \<subseteq> set qs\<close>
+  using parts_in_effect unfolding parts_def by fastforce
 
-(************** rest of the stuff *********************)
+text \<open>Preservation on epath\<close>
 
-(* TODO: not usable I think, as an epath loses information about the order of rules *)
-definition rule_dist :: \<open>rule \<Rightarrow> rule \<Rightarrow> nat\<close> where
-  \<open>rule_dist r1 r2 = nat \<bar>int (rule_index r1) - int (rule_index r2)\<bar>\<close>
-
-lemma rule_dist_id[simp]: \<open>rule_dist r r = 0\<close>
-  unfolding rule_dist_def by simp
-
-lemma rule_dist_rule:
-  \<open>\<lbrakk>epath steps; Saturated steps\<rbrakk> \<Longrightarrow> prule (steps !! (n + rule_dist (prule (steps !! n)) r)) = r\<close>
-  sorry
-
-lemma eff_step:
-  \<open>epath steps \<Longrightarrow> eff (prule (steps !! n)) (pseq (steps !! n)) ss \<Longrightarrow> pseq (steps !! (n + 1)) |\<in>| ss\<close>
-  sorry
-
-subsection \<open>Facts about the NegNeg rule\<close>
-text \<open>Similar lemmas are needed about all of the other rules.
-I don't see how to generalize the lemmas since their statements vary quite a lot...\<close>
-
-lemma p_in_NegNeg_branches:
-  fixes steps n
-  defines \<open>sequent \<equiv> pseq (steps !! (n + rule_dist (prule (steps !! n)) NegNeg))\<close>
-  assumes
-    \<open>epath steps\<close>
-    \<open>Saturated steps\<close>
-    \<open>eff NegNeg sequent ss\<close>
-    \<open>Neg (Neg p) \<in> set sequent\<close>
-    \<open>x |\<in>| ss\<close>
-  shows \<open>member p x\<close>
+lemma ev_prefix:
+  assumes \<open>ev (holds P) xs\<close>
+  shows \<open>\<exists>pre suf. list_all (not P) pre \<and> holds P suf \<and> xs = pre @- suf\<close>
   using assms
-(* this is true because Neg (Neg p) is in the sequent and we are applying the NegNeg rule,
-        which means the parts function will return a list of lists containing only a single list
-        containing p when NegNeg is applied to Neg (Neg p).
-       this list is then added to the sequent of step n + ?d, which means that p is in the only branch in ss.
-       actually proving this probably needs some sublemmas about the parts and effect functions... *)
-  sorry
+proof (induct xs)
+  case (base xs)
+  then show ?case
+    by (metis list_all_simps(2) shift.simps(1))
+next
+  case (step xs)
+  then show ?case
+    by (metis holds.elims(1) list.pred_inject(2) list_all_simps(2) shift.simps(1-2) stream.collapse)
+qed
 
-lemma steps_preserve_NegNeg:
-  assumes \<open>epath steps\<close> \<open>Saturated steps\<close> \<open>Neg (Neg p) \<in> set (pseq (steps !! n))\<close> \<open>rule_dist (prule (steps !! n)) NegNeg = k\<close> \<open>m \<le> k\<close>
-  shows \<open>Neg (Neg p) \<in> set (pseq (steps !! (n + m)))\<close>
+lemma always_enabledAtStep: \<open>enabledAtStep r xs\<close>
+  by (simp add: RuleSystem_Defs.enabled_def eff_def)
+
+lemma epath_preserves_unaffected:
+  assumes \<open>p \<in> set (pseq (shd steps))\<close> \<open>epath steps\<close> \<open>steps = pre @- suf\<close>
+    \<open>list_all (not (\<lambda>step. affects (snd step) p)) pre\<close>
+  shows \<open>p \<in> set (pseq (shd suf))\<close>
   using assms
-  sorry
+proof (induct pre arbitrary: steps)
+  case Nil
+  then show ?case
+    by simp
+next
+  case (Cons q pre)
+  from this(3) show ?case
+  proof cases
+    case (epath sl)
+    then show ?thesis
+      using Cons effect_preserves_unaffected unfolding eff_def pseq_def
+      by (metis list.pred_inject(2) list.sel(1) shift.simps(2) shift_simps(1) stream.sel(2))
+  qed
+qed
 
 section \<open>Proving that the formulas on an escape path form a Hintikka set\<close>
+
 definition \<open>tree_fms steps \<equiv> \<Union>fms \<in> sset steps. set (fst fms)\<close>
 
 lemma pseq_in_tree_fms: \<open>\<lbrakk>x \<in> sset steps; p \<in> set (pseq x)\<rbrakk> \<Longrightarrow> p \<in> tree_fms steps\<close>
@@ -244,164 +239,516 @@ lemma sset_sdrop: \<open>sset (sdrop n s) \<subseteq> sset s\<close>
   by (induct n arbitrary: s)
     (simp, metis dual_order.trans equalityE insert_subset sdrop.simps(2) stream.collapse stream.simps(8))
 
+lemma Saturated_sdrop: \<open>Saturated steps \<Longrightarrow> Saturated (sdrop n steps)\<close>
+  by (simp add: RuleSystem_Defs.Saturated_def alw_iff_sdrop saturated_def)
+
+lemma Saturated_ev_rule:
+  assumes \<open>Saturated steps\<close>
+  shows \<open>ev (holds (\<lambda>step. snd step = r)) (sdrop n steps)\<close>
+proof -
+  have \<open>Saturated (sdrop n steps)\<close>
+    using \<open>Saturated steps\<close> Saturated_sdrop by fast
+  moreover have \<open>r \<in> Prover.R\<close>
+    by (metis rules_repeat snth_sset)
+  ultimately have \<open>saturated r (sdrop n steps)\<close>
+    unfolding Saturated_def by fast
+  then show ?thesis
+    unfolding saturated_def using always_enabledAtStep by auto
+qed
+
+abbreviation \<open>is_rule r step \<equiv> snd step = r\<close>
+
+lemma list_prod_nil: \<open>list_prod [] ts = []\<close>
+  by (induct ts) simp_all
+
+(*
+  I don't think we should have a Basic rule as \<open>effect\<close> does not preserve \<open>branchDone\<close>:
+
+  Neg (Dis p q), Dis p q
+  === AlphaDis ==>
+  Neg (Dis p q), p, q
+
+  This makes it tricky to show that we never hit \<open>branchDone\<close> as I do below.
+  It's easier and more efficient to just drop sequents that are axioms.
+*)
+
+lemma epath_never_branchDone:
+  assumes \<open>epath steps\<close>
+  shows \<open>alw (holds (not (branchDone o pseq))) steps\<close>
+proof (rule ccontr)
+  assume \<open>\<not> ?thesis\<close>
+  then have \<open>ev (holds (branchDone o pseq)) steps\<close>
+    by (simp add: alw_iff_sdrop ev_iff_sdrop)
+  then obtain n where n: \<open>holds (branchDone o pseq) (sdrop n steps)\<close>
+    using sdrop_wait by blast
+  let ?suf = \<open>sdrop n steps\<close>
+  have \<open>\<forall>r. effect r (pseq (shd ?suf)) = {||}\<close>
+    unfolding effect_def using n by simp
+  moreover have \<open>epath ?suf\<close>
+    using \<open>epath steps\<close> epath_sdrop by blast
+  then have \<open>\<forall>r. \<exists>qs r'. qs |\<in>| effect r (pseq (shd ?suf)) \<and> shd (stl ?suf) = (qs, r')\<close>
+    using epath_effect by (metis calculation prod.exhaust_sel pseq_def)
+  ultimately show False
+    by blast
+qed
+
 lemma escape_path_Hintikka:
   fixes steps
   assumes \<open>epath steps\<close> \<open>Saturated steps\<close>
   shows \<open>Hintikka (tree_fms steps)\<close> (is \<open>Hintikka ?H\<close>)
 proof
   fix n ts
-  assume pre: \<open>Pre n ts \<in> tree_fms steps\<close>
-  show \<open>Neg (Pre n ts) \<notin> tree_fms steps\<close>
+  assume pre: \<open>Pre n ts \<in> ?H\<close>
+  then obtain m where m: \<open>Pre n ts \<in> set (pseq (shd (sdrop m steps)))\<close>
+    using tree_fms_in_pseq by auto
+
+  show \<open>Neg (Pre n ts) \<notin> ?H\<close>
   proof
-    assume \<open>Neg (Pre n ts) \<in> tree_fms steps\<close>
-    then obtain m where *: \<open>Pre n ts \<in> set (pseq (steps !! m))\<close> \<open>Neg (Pre n ts) \<in> set (pseq (steps !! m))\<close>
-      using tree_fms_in_pseq pre sorry
-    let ?r = \<open>prule (steps !! m)\<close>
-    let ?d = \<open>rule_dist ?r Basic\<close>
-    have \<open>prule (steps !! (m + ?d)) = Basic\<close>
-      by (simp add: rule_dist_rule assms)
-    moreover obtain ss where **: \<open>eff Basic (pseq (steps !! (m + ?d))) ss\<close>
-      by (simp add: eff_def effect_def)
-    moreover have \<open>Pre n ts \<in> set (pseq (steps !! (m + ?d)))\<close> \<open>Neg (Pre n ts) \<in> set (pseq (steps !! (m + ?d)))\<close>
-      using * assms sorry
-    then have \<open>branchDone (pseq (steps !! (m + ?d)))\<close>
-      sorry
-    then have \<open>ss = {||}\<close>
-      sorry
+    assume \<open>Neg (Pre n ts) \<in> ?H\<close>
+    then obtain k where k: \<open>Neg (Pre n ts) \<in> set (pseq (shd (sdrop k steps)))\<close>
+      using tree_fms_in_pseq by auto
+
+    let ?pre = \<open>stake (m + k) steps\<close>
+    let ?suf = \<open>sdrop (m + k) steps\<close>
+    
+    have
+      1: \<open>\<not> affects r (Pre n ts)\<close> and
+      2: \<open>\<not> affects r (Neg (Pre n ts))\<close> for r
+      unfolding affects_def by (cases r, simp_all)+
+    
+    have \<open>list_all (not (\<lambda>step. affects (snd step) (Pre n ts))) ?pre\<close>
+      unfolding list_all_def using 1 by (induct ?pre) simp_all
+    then have p: \<open>Pre n ts \<in> set (pseq (shd ?suf))\<close>
+      using \<open>epath steps\<close> epath_preserves_unaffected m epath_sdrop
+      by (metis (no_types, lifting) list.pred_mono_strong list_all_append
+          sdrop_add stake_add stake_sdrop)
+
+    have \<open>list_all (not (\<lambda>step. affects (snd step) (Neg (Pre n ts)))) ?pre\<close>
+      unfolding list_all_def using 2 by (induct ?pre) simp_all
+    then have np: \<open>Neg (Pre n ts) \<in> set (pseq (shd ?suf))\<close>
+      using \<open>epath steps\<close> epath_preserves_unaffected k epath_sdrop
+      (* TODO: smt *)
+      by (smt (verit, best) add.commute list.pred_mono_strong list_all_append sdrop_add
+          stake_add stake_sdrop)
+
+    have \<open>holds (branchDone o pseq) ?suf\<close>
+      using p np branchDone by simp
+    moreover have \<open>\<not> holds (branchDone o pseq) ?suf\<close>
+      using \<open>epath steps\<close> epath_never_branchDone by (simp add: alw_iff_sdrop)
     ultimately show False
-      using assms eff_step ex_fin_conv
-      by metis
+      by blast
   qed
 next
   fix p q
-  assume \<open>Dis p q \<in> ?H\<close>
-  show \<open>p \<in> ?H \<and> q \<in> ?H\<close>
-    sorry
-next
-  fix p q
-  assume \<open>Imp p q \<in> tree_fms steps\<close>
-  show \<open>Neg p \<in> tree_fms steps \<and> q \<in> tree_fms steps\<close>
-    sorry
-next
-  fix p q
-  assume \<open>Neg (Con p q) \<in> tree_fms steps\<close>
-  then obtain n where *: \<open>Neg (Con p q) \<in> set (pseq (steps !! n))\<close>
+  assume \<open>Dis p q \<in> ?H\<close> (is \<open>?f \<in> ?H\<close>)
+  then obtain n where n: \<open>?f \<in> set (pseq (shd (sdrop n steps)))\<close>
     using tree_fms_in_pseq by auto
-  let ?r = \<open>prule (steps !! n)\<close>
-  let ?d = \<open>rule_dist ?r AlphaCon\<close>
-  have \<open>prule (steps !! (n + ?d)) = AlphaCon\<close>
-    by (simp add: rule_dist_rule assms)
-  moreover obtain ss where **: \<open>eff AlphaCon (pseq (steps !! (n + ?d))) ss\<close>
-    by (simp add: eff_def effect_def)
-  ultimately have \<open>pseq (steps !! (n + ?d + 1)) |\<in>| ss\<close>
-    using eff_step assms by simp
-  moreover have \<open>Neg (Con p q) \<in> (set (pseq (steps !! (n + ?d))))\<close>
-    using * assms sorry
-  then have \<open>\<forall>x. x |\<in>| ss \<longrightarrow> member (Neg p) x \<and> member (Neg q) x\<close>
-    using ** assms sorry
-  ultimately have \<open>Neg p \<in> set (pseq (steps !! (n + ?d + 1)))\<close> \<open>Neg q \<in> set (pseq (steps !! (n + ?d + 1)))\<close>
-    by blast+
-  then show \<open>Neg p \<in> tree_fms steps \<and> Neg q \<in> tree_fms steps\<close>
-    using pseq_in_tree_fms snth_sset by blast
+  let ?steps = \<open>sdrop n steps\<close>
+  let ?r = AlphaDis
+  have \<open>ev (holds (is_rule ?r)) ?steps\<close>
+    using \<open>Saturated steps\<close> Saturated_ev_rule by blast
+  then obtain pre suf where
+    pre: \<open>list_all (not (is_rule ?r)) pre\<close> and
+    suf: \<open>holds (is_rule ?r) suf\<close> and
+    ori: \<open>?steps = pre @- suf\<close>
+    using ev_prefix by blast
+
+  have \<open>affects r ?f \<longleftrightarrow> r = ?r\<close> for r
+    unfolding affects_def by (cases r) simp_all
+  then have \<open>list_all (not (\<lambda>step. affects (snd step) ?f)) pre\<close>
+    using pre by simp
+  moreover have \<open>epath (pre @- suf)\<close>
+    using \<open>epath steps\<close> epath_sdrop ori by metis
+  ultimately have \<open>?f \<in> set (pseq (shd suf))\<close>
+    using epath_preserves_unaffected n ori by metis
+
+  moreover have \<open>epath suf\<close>
+    using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
+  then obtain qs r' where qs: \<open>qs |\<in>| effect ?r (pseq (shd suf))\<close> \<open>shd (stl suf) = (qs, r')\<close>
+    using suf epath_effect by (metis (mono_tags, lifting) holds.elims(2) prod.collapse pseq_def)
+  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
+    using \<open>epath suf\<close> epath_never_branchDone by blast
+
+  ultimately have \<open>p \<in> set qs\<close> \<open>q \<in> set qs\<close>
+    using parts_in_effect unfolding parts_def by fastforce+
+
+  then show \<open>p \<in> ?H \<and> q \<in> ?H\<close>
+    using qs(2) ori pseq_in_tree_fms
+    by (metis Un_iff fst_conv pseq_def shd_sset sset_sdrop sset_shift stl_sset subset_eq)
 next
   fix p q
-  assume \<open>Con p q \<in> tree_fms steps\<close>
-  show \<open>p \<in> tree_fms steps \<or> q \<in> tree_fms steps\<close>
-    sorry
-next
-  fix p q
-  assume \<open>Neg (Imp p q) \<in> tree_fms steps\<close>
-  show \<open>p \<in> tree_fms steps \<or> Neg q \<in> tree_fms steps\<close>
-    sorry
-next
-  fix p q
-  assume \<open>Neg (Dis p q) \<in> tree_fms steps\<close>
-  then obtain n where *: \<open>Neg (Dis p q) \<in> set (pseq (steps !! n))\<close>
+  assume \<open>Imp p q \<in> tree_fms steps\<close> (is \<open>?f \<in> ?H\<close>)
+  then obtain n where n: \<open>?f \<in> set (pseq (shd (sdrop n steps)))\<close>
     using tree_fms_in_pseq by auto
-  let ?r = \<open>prule (steps !! n)\<close>
-  let ?d = \<open>rule_dist ?r BetaDis\<close>
-  have \<open>prule (steps !! (n + ?d)) = BetaDis\<close>
-    by (simp add: rule_dist_rule assms)
-  moreover obtain ss where **: \<open>eff BetaDis (pseq (steps !! (n + ?d))) ss\<close>
-    by (simp add: eff_def effect_def)
-  ultimately have ****: \<open>pseq (steps !! (n + ?d + 1)) |\<in>| ss\<close>
-    using eff_step assms by simp
-  moreover have \<open>Neg (Dis p q) \<in> (set (pseq (steps !! (n + ?d))))\<close>
-    using * assms sorry
-  then have ***: \<open>\<forall>x. x |\<in>| ss \<longrightarrow> member (Neg p) x \<or> member (Neg q) x\<close>
-    using ** assms sorry
-  ultimately show \<open>Neg p \<in> tree_fms steps \<or> Neg q \<in> tree_fms steps\<close>
-    using pseq_in_tree_fms snth_sset
-  proof (cases \<open>member (Neg p) (pseq (steps !! (n + ?d + 1)))\<close>)
-    case True
-    then have \<open>Neg p \<in> set (pseq (steps !! (n + ?d + 1)))\<close>
-      by simp
-    then show ?thesis
-      using pseq_in_tree_fms snth_sset by blast
-  next
-    case False
-    then have \<open>Neg q \<in> set (pseq (steps !! (n + ?d + 1)))\<close>
-      using *** **** by auto
-    then show ?thesis
-      using pseq_in_tree_fms snth_sset by blast
-  qed
+  let ?steps = \<open>sdrop n steps\<close>
+  let ?r = AlphaImp
+  have \<open>ev (holds (is_rule ?r)) ?steps\<close>
+    using \<open>Saturated steps\<close> Saturated_ev_rule by blast
+  then obtain pre suf where
+    pre: \<open>list_all (not (is_rule ?r)) pre\<close> and
+    suf: \<open>holds (is_rule ?r) suf\<close> and
+    ori: \<open>?steps = pre @- suf\<close>
+    using ev_prefix by blast
+
+  have \<open>affects r ?f \<longleftrightarrow> r = ?r\<close> for r
+    unfolding affects_def by (cases r) simp_all
+  then have \<open>list_all (not (\<lambda>step. affects (snd step) ?f)) pre\<close>
+    using pre by simp
+  moreover have \<open>epath (pre @- suf)\<close>
+    using \<open>epath steps\<close> epath_sdrop ori by metis
+  ultimately have \<open>?f \<in> set (pseq (shd suf))\<close>
+    using epath_preserves_unaffected n ori by metis
+
+  moreover have \<open>epath suf\<close>
+    using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
+  then obtain qs r' where qs: \<open>qs |\<in>| effect ?r (pseq (shd suf))\<close> \<open>shd (stl suf) = (qs, r')\<close>
+    using suf epath_effect by (metis (mono_tags, lifting) holds.elims(2) prod.collapse pseq_def)
+  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
+    using \<open>epath suf\<close> epath_never_branchDone by blast
+
+  ultimately have \<open>Neg p \<in> set qs\<close> \<open>q \<in> set qs\<close>
+    using parts_in_effect unfolding parts_def by fastforce+
+
+  then show \<open>Neg p \<in> ?H \<and> q \<in> ?H\<close>
+    using qs(2) ori pseq_in_tree_fms
+    by (metis Un_iff fst_conv pseq_def shd_sset sset_sdrop sset_shift stl_sset subset_eq)
+next
+  fix p q
+  assume \<open>Neg (Con p q) \<in> ?H\<close> (is \<open>?f \<in> ?H\<close>)
+  then obtain n where n: \<open>?f \<in> set (pseq (shd (sdrop n steps)))\<close>
+    using tree_fms_in_pseq by auto
+  let ?steps = \<open>sdrop n steps\<close>
+  let ?r = AlphaCon
+  have \<open>ev (holds (is_rule ?r)) ?steps\<close>
+    using \<open>Saturated steps\<close> Saturated_ev_rule by blast
+  then obtain pre suf where
+    pre: \<open>list_all (not (is_rule ?r)) pre\<close> and
+    suf: \<open>holds (is_rule ?r) suf\<close> and
+    ori: \<open>?steps = pre @- suf\<close>
+    using ev_prefix by blast
+
+  have \<open>affects r ?f \<longleftrightarrow> r = ?r\<close> for r
+    unfolding affects_def by (cases r) simp_all
+  then have \<open>list_all (not (\<lambda>step. affects (snd step) ?f)) pre\<close>
+    using pre by simp
+  moreover have \<open>epath (pre @- suf)\<close>
+    using \<open>epath steps\<close> epath_sdrop ori by metis
+  ultimately have \<open>?f \<in> set (pseq (shd suf))\<close>
+    using epath_preserves_unaffected n ori by metis
+
+  moreover have \<open>epath suf\<close>
+    using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
+  then obtain qs r' where qs: \<open>qs |\<in>| effect ?r (pseq (shd suf))\<close> \<open>shd (stl suf) = (qs, r')\<close>
+    using suf epath_effect by (metis (mono_tags, lifting) holds.elims(2) prod.collapse pseq_def)
+  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
+    using \<open>epath suf\<close> epath_never_branchDone by blast
+
+  ultimately have \<open>Neg p \<in> set qs\<close> \<open>Neg q \<in> set qs\<close>
+    using parts_in_effect unfolding parts_def by fastforce+
+
+  then show \<open>Neg p \<in> ?H \<and> Neg q \<in> ?H\<close>
+    using qs(2) ori pseq_in_tree_fms
+    by (metis Un_iff fst_conv pseq_def shd_sset sset_sdrop sset_shift stl_sset subset_eq)
+next
+  fix p q
+  assume \<open>Con p q \<in> ?H\<close> (is \<open>?f \<in> ?H\<close>)
+  then obtain n where n: \<open>?f \<in> set (pseq (shd (sdrop n steps)))\<close>
+    using tree_fms_in_pseq by auto
+  let ?steps = \<open>sdrop n steps\<close>
+  let ?r = BetaCon
+  have \<open>ev (holds (is_rule ?r)) ?steps\<close>
+    using \<open>Saturated steps\<close> Saturated_ev_rule by blast
+  then obtain pre suf where
+    pre: \<open>list_all (not (is_rule ?r)) pre\<close> and
+    suf: \<open>holds (is_rule ?r) suf\<close> and
+    ori: \<open>?steps = pre @- suf\<close>
+    using ev_prefix by blast
+
+  have \<open>affects r ?f \<longleftrightarrow> r = ?r\<close> for r
+    unfolding affects_def by (cases r) simp_all
+  then have \<open>list_all (not (\<lambda>step. affects (snd step) ?f)) pre\<close>
+    using pre by simp
+  moreover have \<open>epath (pre @- suf)\<close>
+    using \<open>epath steps\<close> epath_sdrop ori by metis
+  ultimately have \<open>?f \<in> set (pseq (shd suf))\<close>
+    using epath_preserves_unaffected n ori by metis
+
+  moreover have \<open>epath suf\<close>
+    using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
+  then obtain qs r' where qs: \<open>qs |\<in>| effect ?r (pseq (shd suf))\<close> \<open>shd (stl suf) = (qs, r')\<close>
+    using suf epath_effect by (metis (mono_tags, lifting) holds.elims(2) prod.collapse pseq_def)
+  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
+    using \<open>epath suf\<close> epath_never_branchDone by blast
+
+  ultimately consider \<open>p \<in> set qs\<close> | \<open>q \<in> set qs\<close>
+    using parts_in_effect unfolding parts_def by fastforce
+
+  then show \<open>p \<in> ?H \<or> q \<in> ?H\<close>
+    using qs(2) ori pseq_in_tree_fms
+    by (metis Un_iff fst_conv pseq_def shd_sset sset_sdrop sset_shift stl_sset subset_eq)
+next
+  fix p q
+  assume \<open>Neg (Imp p q) \<in> ?H\<close> (is \<open>?f \<in> ?H\<close>)
+  then obtain n where n: \<open>?f \<in> set (pseq (shd (sdrop n steps)))\<close>
+    using tree_fms_in_pseq by auto
+  let ?steps = \<open>sdrop n steps\<close>
+  let ?r = BetaImp
+  have \<open>ev (holds (is_rule ?r)) ?steps\<close>
+    using \<open>Saturated steps\<close> Saturated_ev_rule by blast
+  then obtain pre suf where
+    pre: \<open>list_all (not (is_rule ?r)) pre\<close> and
+    suf: \<open>holds (is_rule ?r) suf\<close> and
+    ori: \<open>?steps = pre @- suf\<close>
+    using ev_prefix by blast
+
+  have \<open>affects r ?f \<longleftrightarrow> r = ?r\<close> for r
+    unfolding affects_def by (cases r) simp_all
+  then have \<open>list_all (not (\<lambda>step. affects (snd step) ?f)) pre\<close>
+    using pre by simp
+  moreover have \<open>epath (pre @- suf)\<close>
+    using \<open>epath steps\<close> epath_sdrop ori by metis
+  ultimately have \<open>?f \<in> set (pseq (shd suf))\<close>
+    using epath_preserves_unaffected n ori by metis
+
+  moreover have \<open>epath suf\<close>
+    using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
+  then obtain qs r' where qs: \<open>qs |\<in>| effect ?r (pseq (shd suf))\<close> \<open>shd (stl suf) = (qs, r')\<close>
+    using suf epath_effect by (metis (mono_tags, lifting) holds.elims(2) prod.collapse pseq_def)
+  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
+    using \<open>epath suf\<close> epath_never_branchDone by blast
+
+  ultimately consider \<open>p \<in> set qs\<close> | \<open>Neg q \<in> set qs\<close>
+    using parts_in_effect unfolding parts_def by fastforce
+
+  then show \<open>p \<in> ?H \<or> Neg q \<in> ?H\<close>
+    using qs(2) ori pseq_in_tree_fms
+    by (metis Un_iff fst_conv pseq_def shd_sset sset_sdrop sset_shift stl_sset subset_eq)
+next
+  fix p q
+  assume \<open>Neg (Dis p q) \<in> ?H\<close> (is \<open>?f \<in> ?H\<close>)
+  then obtain n where n: \<open>?f \<in> set (pseq (shd (sdrop n steps)))\<close>
+    using tree_fms_in_pseq by auto
+  let ?steps = \<open>sdrop n steps\<close>
+  let ?r = BetaDis
+  have \<open>ev (holds (is_rule ?r)) ?steps\<close>
+    using \<open>Saturated steps\<close> Saturated_ev_rule by blast
+  then obtain pre suf where
+    pre: \<open>list_all (not (is_rule ?r)) pre\<close> and
+    suf: \<open>holds (is_rule ?r) suf\<close> and
+    ori: \<open>?steps = pre @- suf\<close>
+    using ev_prefix by blast
+
+  have \<open>affects r ?f \<longleftrightarrow> r = ?r\<close> for r
+    unfolding affects_def by (cases r) simp_all
+  then have \<open>list_all (not (\<lambda>step. affects (snd step) ?f)) pre\<close>
+    using pre by simp
+  moreover have \<open>epath (pre @- suf)\<close>
+    using \<open>epath steps\<close> epath_sdrop ori by metis
+  ultimately have \<open>?f \<in> set (pseq (shd suf))\<close>
+    using epath_preserves_unaffected n ori by metis
+
+  moreover have \<open>epath suf\<close>
+    using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
+  then obtain qs r' where qs: \<open>qs |\<in>| effect ?r (pseq (shd suf))\<close> \<open>shd (stl suf) = (qs, r')\<close>
+    using suf epath_effect by (metis (mono_tags, lifting) holds.elims(2) prod.collapse pseq_def)
+  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
+    using \<open>epath suf\<close> epath_never_branchDone by blast
+
+  ultimately consider \<open>Neg p \<in> set qs\<close> | \<open>Neg q \<in> set qs\<close>
+    using parts_in_effect unfolding parts_def by fastforce
+
+  then show \<open>Neg p \<in> ?H \<or> Neg q \<in> ?H\<close>
+    using qs(2) ori pseq_in_tree_fms
+    by (metis Un_iff fst_conv pseq_def shd_sset sset_sdrop sset_shift stl_sset subset_eq)
 next
   fix p
-  assume \<open>Exi p \<in> tree_fms steps\<close>
-  then obtain n where *: \<open>Exi p \<in> set (pseq (steps !! n))\<close>
+  assume \<open>Exi p \<in> ?H\<close> (is \<open>?f \<in> ?H\<close>)
+  then obtain n where n: \<open>?f \<in> set (pseq (shd (sdrop n steps)))\<close>
     using tree_fms_in_pseq by auto
-  let ?r = \<open>prule (steps !! n)\<close>
-  let ?d = \<open>rule_dist ?r DeltaExi\<close>
-  have \<open>prule (steps !! (n + ?d)) = DeltaExi\<close>
-    by (simp add: rule_dist_rule assms)
-  moreover obtain ss where **: \<open>eff DeltaExi (pseq (steps !! (n + ?d))) ss\<close>
-    by (simp add: eff_def effect_def)
-  ultimately have \<open>pseq (steps !! (n + ?d + 1)) |\<in>| ss\<close>
-    using eff_step assms by simp
-  moreover have \<open>Exi p \<in> set (pseq (steps !! (n + ?d)))\<close>
-    using assms * sorry
-  then have \<open>\<forall>x. x |\<in>| ss \<longrightarrow> (\<forall>t \<in> terms (tree_fms steps). member (sub 0 t p) x)\<close>
-    using ** assms sorry
-  ultimately have \<open>\<forall>t \<in> terms (tree_fms steps). sub 0 t p \<in> set (pseq (steps !! (n + ?d + 1)))\<close>
+  let ?steps = \<open>sdrop n steps\<close>
+  let ?r = GammaExi
+  have \<open>ev (holds (is_rule ?r)) ?steps\<close>
+    using \<open>Saturated steps\<close> Saturated_ev_rule by blast
+  then obtain pre suf where
+    pre: \<open>list_all (not (is_rule ?r)) pre\<close> and
+    suf: \<open>holds (is_rule ?r) suf\<close> and
+    ori: \<open>?steps = pre @- suf\<close>
+    using ev_prefix by blast
+
+  have \<open>affects r ?f \<longleftrightarrow> r = ?r\<close> for r
+    unfolding affects_def by (cases r) simp_all
+  then have \<open>list_all (not (\<lambda>step. affects (snd step) ?f)) pre\<close>
+    using pre by simp
+  moreover have \<open>epath (pre @- suf)\<close>
+    using \<open>epath steps\<close> epath_sdrop ori by metis
+  ultimately have \<open>?f \<in> set (pseq (shd suf))\<close>
+    using epath_preserves_unaffected n ori by metis
+
+  moreover have \<open>epath suf\<close>
+    using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
+  then obtain qs r' where qs: \<open>qs |\<in>| effect ?r (pseq (shd suf))\<close> \<open>shd (stl suf) = (qs, r')\<close>
+    using suf epath_effect by (metis (mono_tags, lifting) holds.elims(2) prod.collapse pseq_def)
+  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
+    using \<open>epath suf\<close> epath_never_branchDone by blast
+
+  ultimately have \<open>\<forall>t \<in> set (subterms (pseq (shd suf))). subst p t 0 \<in> set qs\<close>
+    using parts_in_effect unfolding parts_def by fastforce
+
+  then show \<open>\<forall>t \<in> terms ?H. sub 0 t p \<in> ?H\<close>
+    using qs(2) ori pseq_in_tree_fms
+    sorry (* TODO: I need that suf contains all terms on the branch *)
+next
+  fix p
+  assume \<open>Neg (Uni p) \<in> tree_fms steps\<close> (is \<open>?f \<in> ?H\<close>)
+  then obtain n where n: \<open>?f \<in> set (pseq (shd (sdrop n steps)))\<close>
+    using tree_fms_in_pseq by auto
+  let ?steps = \<open>sdrop n steps\<close>
+  let ?r = GammaUni
+  have \<open>ev (holds (is_rule ?r)) ?steps\<close>
+    using \<open>Saturated steps\<close> Saturated_ev_rule by blast
+  then obtain pre suf where
+    pre: \<open>list_all (not (is_rule ?r)) pre\<close> and
+    suf: \<open>holds (is_rule ?r) suf\<close> and
+    ori: \<open>?steps = pre @- suf\<close>
+    using ev_prefix by blast
+
+  have \<open>affects r ?f \<longleftrightarrow> r = ?r\<close> for r
+    unfolding affects_def by (cases r) simp_all
+  then have \<open>list_all (not (\<lambda>step. affects (snd step) ?f)) pre\<close>
+    using pre by simp
+  moreover have \<open>epath (pre @- suf)\<close>
+    using \<open>epath steps\<close> epath_sdrop ori by metis
+  ultimately have \<open>?f \<in> set (pseq (shd suf))\<close>
+    using epath_preserves_unaffected n ori by metis
+
+  moreover have \<open>epath suf\<close>
+    using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
+  then obtain qs r' where qs: \<open>qs |\<in>| effect ?r (pseq (shd suf))\<close> \<open>shd (stl suf) = (qs, r')\<close>
+    using suf epath_effect by (metis (mono_tags, lifting) holds.elims(2) prod.collapse pseq_def)
+  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
+    using \<open>epath suf\<close> epath_never_branchDone by blast
+
+  ultimately have \<open>\<forall>t \<in> set (subterms (pseq (shd suf))). Neg (sub 0 t p) \<in> set qs\<close>
+    using parts_in_effect unfolding parts_def by fastforce
+
+  then show \<open>\<forall>t \<in> terms ?H. Neg (sub 0 t p) \<in> ?H\<close>
+    using qs(2) ori pseq_in_tree_fms
+    sorry (* TODO: I need that suf contains all terms on the branch *)
+next
+  fix p
+  assume \<open>Uni p \<in> tree_fms steps\<close> (is \<open>?f \<in> ?H\<close>)
+  then obtain n where n: \<open>?f \<in> set (pseq (shd (sdrop n steps)))\<close>
+    using tree_fms_in_pseq by auto
+  let ?steps = \<open>sdrop n steps\<close>
+  let ?r = DeltaUni
+  have \<open>ev (holds (is_rule ?r)) ?steps\<close>
+    using \<open>Saturated steps\<close> Saturated_ev_rule by blast
+  then obtain pre suf where
+    pre: \<open>list_all (not (is_rule ?r)) pre\<close> and
+    suf: \<open>holds (is_rule ?r) suf\<close> and
+    ori: \<open>?steps = pre @- suf\<close>
+    using ev_prefix by blast
+
+  have \<open>affects r ?f \<longleftrightarrow> r = ?r\<close> for r
+    unfolding affects_def by (cases r) simp_all
+  then have \<open>list_all (not (\<lambda>step. affects (snd step) ?f)) pre\<close>
+    using pre by simp
+  moreover have \<open>epath (pre @- suf)\<close>
+    using \<open>epath steps\<close> epath_sdrop ori by metis
+  ultimately have \<open>?f \<in> set (pseq (shd suf))\<close>
+    using epath_preserves_unaffected n ori by metis
+
+  moreover have \<open>epath suf\<close>
+    using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
+  then obtain qs r' where qs: \<open>qs |\<in>| effect ?r (pseq (shd suf))\<close> \<open>shd (stl suf) = (qs, r')\<close>
+    using suf epath_effect by (metis (mono_tags, lifting) holds.elims(2) prod.collapse pseq_def)
+  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
+    using \<open>epath suf\<close> epath_never_branchDone by blast
+  ultimately have \<open>sub 0 (Fun (new_name (subterms (pseq (shd suf)))) []) p \<in> set qs\<close>
+    using parts_in_effect unfolding parts_def by fastforce
+  then have *: \<open>sub 0 (Fun (new_name (subterms (pseq (shd suf)))) []) p \<in> ?H\<close>
+    using qs(2) ori pseq_in_tree_fms
+    by (metis Un_iff fst_conv pseq_def shd_sset sset_sdrop sset_shift stl_sset subset_eq)
+  moreover have \<open>Fun (new_name (subterms (pseq (shd suf)))) [] \<in> terms ?H\<close>
+    sorry (* TODO: does this hold? *)
+  ultimately show \<open>\<exists>t \<in> terms ?H. sub 0 t p \<in> ?H\<close>
     by blast
-  then show \<open>\<forall>t \<in> terms (tree_fms steps). sub 0 t p \<in> tree_fms steps\<close>
-    using pseq_in_tree_fms snth_sset by blast
 next
   fix p
-  assume \<open>Neg (Uni p) \<in> tree_fms steps\<close>
-  show \<open>\<forall>t\<in>terms (tree_fms steps). Neg (sub 0 t p) \<in> tree_fms steps\<close>
-    sorry
-next
-  fix p
-  assume \<open>Uni p \<in> tree_fms steps\<close>
-  show \<open>\<exists>t \<in> terms (tree_fms steps). sub 0 t p \<in> tree_fms steps\<close>
-    sorry
-next
-  fix p
-  assume \<open>Neg (Exi p) \<in> tree_fms steps\<close>
-  show \<open>\<exists>t \<in> terms (tree_fms steps). Neg (sub 0 t p) \<in> tree_fms steps\<close>
-    sorry
-next
-  fix p
-  assume \<open>Neg (Neg p) \<in> tree_fms steps\<close>
-  then obtain n where *: \<open>Neg (Neg p) \<in> set (pseq (steps !! n))\<close>
+  assume \<open>Neg (Exi p) \<in> tree_fms steps\<close> (is \<open>?f \<in> ?H\<close>)
+  then obtain n where n: \<open>?f \<in> set (pseq (shd (sdrop n steps)))\<close>
     using tree_fms_in_pseq by auto
-  let ?r = \<open>prule (steps !! n)\<close>
-  let ?d = \<open>rule_dist ?r NegNeg\<close>
-  have \<open>prule (steps !! (n + ?d)) = NegNeg\<close>
-    by (simp add: rule_dist_rule assms)
-  moreover obtain ss where **: \<open>eff NegNeg (pseq (steps !! (n + ?d))) ss\<close>
-    by (simp add: eff_def effect_def)
-  ultimately have \<open>pseq (steps !! (n + ?d + 1)) |\<in>| ss\<close>
-    using eff_step assms by simp
-  moreover have \<open>Neg (Neg p) \<in> set (pseq (steps !! (n + ?d)))\<close>
-    by (simp add: assms * steps_preserve_NegNeg)
-  then have \<open>\<forall>x. x |\<in>| ss \<longrightarrow> member p x\<close>
-    using ** assms p_in_NegNeg_branches by blast
-  ultimately have \<open>p \<in> set (pseq (steps !! (n + ?d + 1)))\<close>
+  let ?steps = \<open>sdrop n steps\<close>
+  let ?r = DeltaExi
+  have \<open>ev (holds (is_rule ?r)) ?steps\<close>
+    using \<open>Saturated steps\<close> Saturated_ev_rule by blast
+  then obtain pre suf where
+    pre: \<open>list_all (not (is_rule ?r)) pre\<close> and
+    suf: \<open>holds (is_rule ?r) suf\<close> and
+    ori: \<open>?steps = pre @- suf\<close>
+    using ev_prefix by blast
+
+  have \<open>affects r ?f \<longleftrightarrow> r = ?r\<close> for r
+    unfolding affects_def by (cases r) simp_all
+  then have \<open>list_all (not (\<lambda>step. affects (snd step) ?f)) pre\<close>
+    using pre by simp
+  moreover have \<open>epath (pre @- suf)\<close>
+    using \<open>epath steps\<close> epath_sdrop ori by metis
+  ultimately have \<open>?f \<in> set (pseq (shd suf))\<close>
+    using epath_preserves_unaffected n ori by metis
+
+  moreover have \<open>epath suf\<close>
+    using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
+  then obtain qs r' where qs: \<open>qs |\<in>| effect ?r (pseq (shd suf))\<close> \<open>shd (stl suf) = (qs, r')\<close>
+    using suf epath_effect by (metis (mono_tags, lifting) holds.elims(2) prod.collapse pseq_def)
+  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
+    using \<open>epath suf\<close> epath_never_branchDone by blast
+  ultimately have \<open>Neg (sub 0 (Fun (new_name (subterms (pseq (shd suf)))) []) p) \<in> set qs\<close>
+    using parts_in_effect unfolding parts_def by fastforce
+  then have *: \<open>Neg (sub 0 (Fun (new_name (subterms (pseq (shd suf)))) []) p) \<in> ?H\<close>
+    using qs(2) ori pseq_in_tree_fms
+    by (metis Un_iff fst_conv pseq_def shd_sset sset_sdrop sset_shift stl_sset subset_eq)
+  moreover have \<open>Fun (new_name (subterms (pseq (shd suf)))) [] \<in> terms ?H\<close>
+    sorry (* TODO: does this hold? *)
+  ultimately show \<open>\<exists>t \<in> terms ?H. Neg (sub 0 t p) \<in> ?H\<close>
     by blast
-  then show \<open>p \<in> tree_fms steps\<close>
-    using pseq_in_tree_fms snth_sset by blast
+next
+  fix p
+  assume \<open>Neg (Neg p) \<in> tree_fms steps\<close> (is \<open>?f \<in> ?H\<close>)
+  then obtain n where n: \<open>?f \<in> set (pseq (shd (sdrop n steps)))\<close>
+    using tree_fms_in_pseq by auto
+  let ?steps = \<open>sdrop n steps\<close>
+  let ?r = NegNeg
+  have \<open>ev (holds (is_rule ?r)) ?steps\<close>
+    using \<open>Saturated steps\<close> Saturated_ev_rule by blast
+  then obtain pre suf where
+    pre: \<open>list_all (not (is_rule ?r)) pre\<close> and
+    suf: \<open>holds (is_rule ?r) suf\<close> and
+    ori: \<open>?steps = pre @- suf\<close>
+    using ev_prefix by blast
+
+  have \<open>affects r ?f \<longleftrightarrow> r = ?r\<close> for r
+    unfolding affects_def by (cases r) simp_all
+  then have \<open>list_all (not (\<lambda>step. affects (snd step) ?f)) pre\<close>
+    using pre by simp
+  moreover have \<open>epath (pre @- suf)\<close>
+    using \<open>epath steps\<close> epath_sdrop ori by metis
+  ultimately have \<open>?f \<in> set (pseq (shd suf))\<close>
+    using epath_preserves_unaffected n ori by metis
+
+  moreover have \<open>epath suf\<close>
+    using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
+  then obtain qs r' where qs: \<open>qs |\<in>| effect ?r (pseq (shd suf))\<close> \<open>shd (stl suf) = (qs, r')\<close>
+    using suf epath_effect by (metis (mono_tags, lifting) holds.elims(2) prod.collapse pseq_def)
+  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
+    using \<open>epath suf\<close> epath_never_branchDone by blast
+
+  ultimately have \<open>p \<in> set qs\<close>
+    using parts_in_effect unfolding parts_def by fastforce
+
+  then show \<open>p \<in> ?H\<close>
+    using qs(2) ori pseq_in_tree_fms
+    by (metis Un_iff fst_conv pseq_def shd_sset sset_sdrop sset_shift stl_sset subset_eq)
 qed
 
 end

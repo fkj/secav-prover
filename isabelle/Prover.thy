@@ -13,9 +13,8 @@ text \<open>A sequent is a list of formulas\<close>
 type_synonym sequent = \<open>fm list\<close>
 
 text \<open>We introduce a number of rules to move between sequents\<close>
-datatype rule =
-  Basic
-  | AlphaDis | AlphaImp  | AlphaCon
+datatype rule
+  = AlphaDis | AlphaImp  | AlphaCon
   | BetaCon | BetaImp | BetaDis
   | DeltaUni | DeltaExi
   | NegNeg
@@ -105,7 +104,10 @@ fun branchDone :: \<open>sequent \<Rightarrow> bool\<close> where
 | \<open>branchDone (p # z) = (Neg p \<in> set z \<or> branchDone z)\<close>
 
 lemma pinz_done: \<open>Neg p \<in> set z \<Longrightarrow> branchDone (p # z)\<close>
-    by (cases p; simp)
+  by (cases p; simp)
+
+lemma branchDone: \<open>p \<in> set ps \<Longrightarrow> Neg p \<in> set ps \<Longrightarrow> branchDone ps\<close>
+  by (induct ps rule: branchDone.induct) auto
 
 section \<open>Effects of rules\<close>
 
@@ -113,20 +115,19 @@ definition new_name :: \<open>tm list \<Rightarrow> nat\<close> where
   \<open>new_name A \<equiv> 1 + foldl max 0 (map maxFunTm A)\<close>
 
 (* TODO: do this on fsets instead if we convert at the end anyway? *)
-definition parts :: \<open>tm list \<Rightarrow> bool \<Rightarrow> rule \<Rightarrow> fm \<Rightarrow> fm list list\<close> where
-  \<open>parts A b r f = (case (r, f) of
-      (Basic, p) \<Rightarrow> (if b then [] else [[p]])
-    | (NegNeg, Neg (Neg p)) \<Rightarrow> [[p]]
+definition parts :: \<open>tm list \<Rightarrow> rule \<Rightarrow> fm \<Rightarrow> fm list list\<close> where
+  \<open>parts A r f = (case (r, f) of
+      (NegNeg, Neg (Neg p)) \<Rightarrow> [[p]]
     | (AlphaImp, Imp p q) \<Rightarrow> [[Neg p, q]]
     | (AlphaDis, Dis p q) \<Rightarrow> [[p, q]]
     | (AlphaCon, Neg (Con p q)) \<Rightarrow> [[Neg p, Neg q]]
     | (BetaImp, Neg (Imp p q)) \<Rightarrow> [[p], [Neg q]]
     | (BetaDis, Neg (Dis p q)) \<Rightarrow> [[Neg p], [Neg q]]
     | (BetaCon, Con p q) \<Rightarrow> [[p], [q]]
-    | (DeltaExi, Neg (Exi p)) \<Rightarrow> [[Neg (subst p (Fun (new_name A) []) 0)]]
-    | (DeltaUni, Uni p) \<Rightarrow> [[subst p (Fun (new_name A) []) 0]]
-    | (GammaExi, Exi p) \<Rightarrow> [Exi p # map (\<lambda>t. subst p t 0) A]
-    | (GammaUni, Neg (Uni p)) \<Rightarrow> [Neg (Uni p) # map (\<lambda>t. Neg (subst p t 0)) A]
+    | (DeltaExi, Neg (Exi p)) \<Rightarrow> [[Neg (sub 0 (Fun (new_name A) []) p)]]
+    | (DeltaUni, Uni p) \<Rightarrow> [[sub 0 (Fun (new_name A) []) p]]
+    | (GammaExi, Exi p) \<Rightarrow> [Exi p # map (\<lambda>t. sub 0 t p) A]
+    | (GammaUni, Neg (Uni p)) \<Rightarrow> [Neg (Uni p) # map (\<lambda>t. Neg (sub 0 t p)) A]
     | _ \<Rightarrow> [[f]])\<close>
 
 primrec list_prod :: \<open>'a list list \<Rightarrow> 'a list list \<Rightarrow> 'a list list\<close> where
@@ -136,21 +137,18 @@ primrec list_prod :: \<open>'a list list \<Rightarrow> 'a list list \<Rightarrow
 lemma list_prod_is_cartesian: \<open>set (list_prod hs ts) = {h @ t |h t. h \<in> set hs \<and> t \<in> set ts}\<close>
   by (induct ts) auto
 
-lemma list_prod_maps: \<open>list_prod hs ts = List.maps (\<lambda>s. map (\<lambda>ps. ps @ s) hs) ts\<close>
-  by (induct ts) (simp_all add: maps_simps)
-
 primrec effect' :: \<open>tm list \<Rightarrow> rule \<Rightarrow> sequent \<Rightarrow> sequent list\<close> where
   \<open>effect' _ _ [] = [[]]\<close>
-| \<open>effect' A r (f # z) = list_prod (parts A (branchDone (f # z)) r f) (effect' A r z)\<close>
+| \<open>effect' A r (f # z) = list_prod (parts A r f) (effect' A r z)\<close>
 
 definition effect :: \<open>rule \<Rightarrow> sequent \<Rightarrow> sequent fset\<close> where
-  \<open>effect r s = fset_of_list (effect' (subterms s) r s)\<close>
+  \<open>effect r s = (if branchDone s then {||} else fset_of_list (effect' (subterms s) r s))\<close>
 
 section \<open>The rule stream\<close>
 
 text \<open>Then the rule stream is just all rules in the order: Alpha, Delta, Beta, Gamma (with Basic rules in between each Alpha, Delta and Beta rule).\<close>
 definition \<open>rulesList \<equiv> [
-  Basic, NegNeg, AlphaImp, AlphaDis, AlphaCon,
+  NegNeg, AlphaImp, AlphaDis, AlphaCon,
   DeltaExi, DeltaUni,
   BetaImp, BetaDis, BetaCon,
   GammaExi, GammaUni
@@ -179,8 +177,7 @@ interpretation PersistentRuleSystem eff rules UNIV
   by (metis all_rules_enabled enabled_def fair_fenum iso_tuple_UNIV_I per_def rules_def trim_in_R)
 
 primrec next_rule :: \<open>rule \<Rightarrow> rule\<close> where
-  \<open>next_rule Basic = NegNeg\<close>
-| \<open>next_rule NegNeg = AlphaImp\<close>
+  \<open>next_rule NegNeg = AlphaImp\<close>
 | \<open>next_rule AlphaImp = AlphaDis\<close>
 | \<open>next_rule AlphaDis = AlphaCon\<close>
 | \<open>next_rule AlphaCon = DeltaExi\<close>
@@ -190,21 +187,20 @@ primrec next_rule :: \<open>rule \<Rightarrow> rule\<close> where
 | \<open>next_rule BetaDis = BetaCon\<close>
 | \<open>next_rule BetaCon = GammaExi\<close>
 | \<open>next_rule GammaExi = GammaUni\<close>
-| \<open>next_rule GammaUni = Basic\<close>
+| \<open>next_rule GammaUni = NegNeg\<close>
 
 primrec rule_index :: \<open>rule \<Rightarrow> nat\<close> where
-  \<open>rule_index Basic = 0\<close>
-| \<open>rule_index NegNeg = 1\<close>
-| \<open>rule_index AlphaImp = 2\<close>
-| \<open>rule_index AlphaDis = 3\<close>
-| \<open>rule_index AlphaCon = 4\<close>
-| \<open>rule_index DeltaExi = 5\<close>
-| \<open>rule_index DeltaUni = 6\<close>
-| \<open>rule_index BetaImp = 7\<close>
-| \<open>rule_index BetaDis = 8\<close>
-| \<open>rule_index BetaCon = 9\<close>
-| \<open>rule_index GammaExi = 10\<close>
-| \<open>rule_index GammaUni = 11\<close>
+  \<open>rule_index NegNeg = 0\<close>
+| \<open>rule_index AlphaImp = 1\<close>
+| \<open>rule_index AlphaDis = 2\<close>
+| \<open>rule_index AlphaCon = 3\<close>
+| \<open>rule_index DeltaExi = 4\<close>
+| \<open>rule_index DeltaUni = 5\<close>
+| \<open>rule_index BetaImp = 6\<close>
+| \<open>rule_index BetaDis = 7\<close>
+| \<open>rule_index BetaCon = 8\<close>
+| \<open>rule_index GammaExi = 9\<close>
+| \<open>rule_index GammaUni = 10\<close>
 
 lemma distinct_rulesList: \<open>distinct rulesList\<close>
   unfolding rulesList_def by simp
@@ -302,7 +298,8 @@ proof -
     }
   }
   thus \<open>fair rules\<close> unfolding fair_def
-    by (metis (full_types) alw_iff_sdrop ev_holds_sset neq0_conv order_refl sdrop.simps(1) stake_sdrop)
+    by (metis (full_types) alw_iff_sdrop ev_holds_sset neq0_conv order_refl sdrop.simps(1)
+        stake_sdrop)
 qed
 
 section \<open>The prover function\<close>
