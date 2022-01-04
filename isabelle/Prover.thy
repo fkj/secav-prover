@@ -141,8 +141,13 @@ primrec effect' :: \<open>tm list \<Rightarrow> rule \<Rightarrow> sequent \<Rig
   \<open>effect' _ _ [] = [[]]\<close>
 | \<open>effect' A r (f # z) = list_prod (parts A r f) (effect' A r z)\<close>
 
-definition effect :: \<open>rule \<Rightarrow> sequent \<Rightarrow> sequent fset\<close> where
-  \<open>effect r s = (if branchDone s then {||} else fset_of_list (effect' (subterms s) r s))\<close>
+(* TODO: maybe the list should be an fset... *)
+type_synonym state = \<open>tm list \<times> sequent\<close>
+
+primrec effect :: \<open>rule \<Rightarrow> state \<Rightarrow> state fset\<close> where
+  \<open>effect r (A, s) =
+  (if branchDone s then {||} else
+    fimage (\<lambda>s'. (remdups (A @ subterms s), s')) (fset_of_list (effect' A r s)))\<close>
 
 section \<open>The rule stream\<close>
 
