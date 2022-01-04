@@ -270,6 +270,49 @@ proof (rule ccontr)
     by blast
 qed
 
+lemma sub_term_const_transfer:
+  \<open>Fun a [] \<notin> set (subtermTm (sub_term m (Fun a []) t)) \<Longrightarrow>
+    sub_term m (Fun a []) t = sub_term m s t\<close>
+  \<open>Fun a [] \<notin> (\<Union>t \<in> set (sub_list m (Fun a []) l). set (subtermTm t)) \<Longrightarrow>
+    sub_list m (Fun a []) l = sub_list m s l\<close>
+ by (induct t and l rule: sub_term.induct sub_list.induct) auto
+
+lemma sub_const_transfer:
+  assumes \<open>Fun a [] \<notin> set (subtermFm (sub m (Fun a []) p))\<close>
+  shows \<open>sub m (Fun a []) p = sub m t p\<close>
+  using assms
+proof (induct p arbitrary: m t)
+  case (Pre i l)
+  then have \<open>Fun a [] \<notin> (\<Union>t \<in> set (sub_list m (Fun a []) l). set (subtermTm t))\<close>
+    by simp
+  then show ?case
+    using sub_term_const_transfer(2) by (metis sub.simps(1))
+next
+  case (Imp p q)
+  then show ?case
+    by (metis Un_iff set_append sub.simps(2) subtermFm.simps(2))
+next
+  case (Dis p1 p2)
+  then show ?case
+    by (metis Un_iff set_append sub.simps(3) subtermFm.simps(3))
+next
+  case (Con p1 p2)
+  then show ?case
+    by (metis Un_iff set_append sub.simps(4) subtermFm.simps(4))
+next
+  case (Exi p)
+  then show ?case
+    by (metis inc_list.simps(1) inc_term.simps(2) sub.simps(5) subtermFm.simps(5))
+next
+  case (Uni p)
+  then show ?case
+    by (metis inc_list.simps(1) inc_term.simps(2) sub.simps(6) subtermFm.simps(6))
+next
+  case (Neg p)
+  then show ?case
+    by (metis sub.simps(7) subtermFm.simps(7))
+qed
+
 lemma escape_path_Hintikka:
   fixes steps
   assumes \<open>epath steps\<close> \<open>Saturated steps\<close>
@@ -653,19 +696,22 @@ next
     by (metis Un_iff fst_conv pseq_def shd_sset sset_sdrop sset_shift stl_sset subset_eq)
   let ?t = \<open>Fun (new_name (subterms (pseq (shd suf)))) []\<close>
   show \<open>\<exists>t \<in> terms ?H. sub 0 t p \<in> ?H\<close>
-  proof (cases \<open>sub 0 ?t p = p\<close>)
+  proof (cases \<open>?t \<in> set (subtermFm (sub 0 ?t p))\<close>)
     case True
-    then show ?thesis sorry
-        (* TODO: seems like a problem...
-            Maybe tweak the prover to only apply Delta rules to "properly" quantified formulas? *)
-  next
-    case False
-    then have \<open>?t \<in> set (subtermFm (sub 0 ?t p))\<close>
-      sorry (* TODO: should be provable in this case *)
     then have \<open>?t \<in> terms ?H\<close>
       unfolding terms_def using * by (metis UN_I empty_iff)
     then show ?thesis
       using * by blast
+  next
+    case False
+    then have \<open>sub 0 t p = sub 0 ?t p\<close> for t
+      using sub_const_transfer by metis
+    moreover have \<open>terms ?H \<noteq> {}\<close>
+      unfolding terms_def by simp
+    then have \<open>\<exists>t. t \<in> terms ?H\<close>
+      by blast
+    ultimately show ?thesis
+      using * by metis
   qed
 next
   fix p
@@ -702,10 +748,25 @@ next
   then have *: \<open>Neg (sub 0 (Fun (new_name (subterms (pseq (shd suf)))) []) p) \<in> ?H\<close>
     using qs(2) ori pseq_in_tree_fms
     by (metis Un_iff fst_conv pseq_def shd_sset sset_sdrop sset_shift stl_sset subset_eq)
-  moreover have \<open>Fun (new_name (subterms (pseq (shd suf)))) [] \<in> terms ?H\<close>
-    sorry (* TODO: see above *)
-  ultimately show \<open>\<exists>t \<in> terms ?H. Neg (sub 0 t p) \<in> ?H\<close>
-    by blast
+  let ?t = \<open>Fun (new_name (subterms (pseq (shd suf)))) []\<close>
+  show \<open>\<exists>t \<in> terms ?H. Neg (sub 0 t p) \<in> ?H\<close>
+  proof (cases \<open>?t \<in> set (subtermFm (Neg (sub 0 ?t p)))\<close>)
+    case True
+    then have \<open>?t \<in> terms ?H\<close>
+      unfolding terms_def using * by (metis UN_I empty_iff)
+    then show ?thesis
+      using * by blast
+  next
+    case False
+    then have \<open>Neg (sub 0 t p) = Neg (sub 0 ?t p)\<close> for t
+      using sub_const_transfer by (metis subtermFm.simps(7))
+    moreover have \<open>terms ?H \<noteq> {}\<close>
+      unfolding terms_def by simp
+    then have \<open>\<exists>t. t \<in> terms ?H\<close>
+      by blast
+    ultimately show ?thesis
+      using * by metis
+  qed
 next
   fix p
   assume \<open>Neg (Neg p) \<in> tree_fms steps\<close> (is \<open>?f \<in> ?H\<close>)

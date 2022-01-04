@@ -53,16 +53,16 @@ fun flatten :: \<open>'a list option list \<Rightarrow> 'a list option\<close> w
                            | Some ys \<Rightarrow> Some (x @ ys))\<close>
 
 text \<open>subtermTm returns a list of all terms occurring within a term\<close>
-fun subtermTm :: \<open>tm \<Rightarrow> tm list\<close> where
+primrec subtermTm :: \<open>tm \<Rightarrow> tm list\<close> where
   \<open>subtermTm (Fun n ts) = Fun n ts # remdups (concat (map subtermTm ts))\<close>
 | \<open>subtermTm (Var n) = [Var n]\<close>
 
 text \<open>subtermFm returns a list of all terms occurring within a formula\<close>
-fun subtermFm :: \<open>fm \<Rightarrow> tm list\<close> where
-  \<open>subtermFm (Pre _ ts) = remdups (concat (map subtermTm ts))\<close>
-| \<open>subtermFm (Imp f1 f2) = remdups (subtermFm f1 @ subtermFm f2)\<close>
-| \<open>subtermFm (Dis f1 f2) = remdups (subtermFm f1 @ subtermFm f2)\<close>
-| \<open>subtermFm (Con f1 f2) = remdups (subtermFm f1 @ subtermFm f2)\<close>
+primrec subtermFm :: \<open>fm \<Rightarrow> tm list\<close> where
+  \<open>subtermFm (Pre _ ts) = concat (map subtermTm ts)\<close>
+| \<open>subtermFm (Imp f1 f2) = subtermFm f1 @ subtermFm f2\<close>
+| \<open>subtermFm (Dis f1 f2) = subtermFm f1 @ subtermFm f2\<close>
+| \<open>subtermFm (Con f1 f2) = subtermFm f1 @ subtermFm f2\<close>
 | \<open>subtermFm (Exi f) = subtermFm f\<close>
 | \<open>subtermFm (Uni f) = subtermFm f\<close>
 | \<open>subtermFm (Neg f) = subtermFm f\<close>
