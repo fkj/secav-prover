@@ -12,7 +12,7 @@ code_printing
   constant the \<rightharpoonup> (Haskell) "MaybeExt.fromJust"
 | constant Option.is_none \<rightharpoonup> (Haskell) "MaybeExt.isNothing"
 
-code_printing code_module "MaybeExt" \<rightharpoonup> (Haskell) 
+code_printing code_module "MaybeExt" \<rightharpoonup> (Haskell)
   \<open>module MaybeExt(fromJust, isNothing) where
      import Data.Maybe(fromJust, isNothing);\<close>
 

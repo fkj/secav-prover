@@ -107,7 +107,7 @@ definition affects :: \<open>rule \<Rightarrow> fm \<Rightarrow> bool\<close> wh
   | (GammaExi, Exi _) \<Rightarrow> False
   | (GammaUni, Neg (Uni _)) \<Rightarrow> False
   | (_,  _) \<Rightarrow> False\<close>
-                      
+
 lemma Neg_exhaust:
   \<open>(\<And>i ts. x = Pre i ts \<Longrightarrow> P) \<Longrightarrow>
   (\<And>p q. x = Imp p q \<Longrightarrow> P) \<Longrightarrow>
@@ -182,7 +182,7 @@ next
       using Cons set_effect'_Cons
       by simp (metis Un_iff set_append subsetD subsetI)
   qed
-qed 
+qed
 
 lemma parts_in_effect:
   assumes \<open>p \<in> set ps\<close> \<open>(B, qs) |\<in>| effect r (A, ps)\<close> \<open>\<not> branchDone ps\<close>
@@ -192,7 +192,7 @@ lemma parts_in_effect:
 corollary \<open>\<not> branchDone ps \<Longrightarrow> Neg (Neg p) \<in> set ps \<Longrightarrow>
     (B, qs) |\<in>| effect NegNeg (A, ps) \<Longrightarrow> p \<in> set qs\<close>
   using parts_in_effect unfolding parts_def by fastforce
-   
+
 corollary \<open>\<not> branchDone ps \<Longrightarrow> Neg (Uni p) \<in> set ps \<Longrightarrow> (B, qs) |\<in>| effect GammaUni (A, ps) \<Longrightarrow>
     set (map (\<lambda>t. Neg (sub 0 t p)) A) \<subseteq> set qs\<close>
   using parts_in_effect unfolding parts_def by fastforce
@@ -380,12 +380,12 @@ proof
 
     let ?pre = \<open>stake (m + k) steps\<close>
     let ?suf = \<open>sdrop (m + k) steps\<close>
-    
+
     have
       1: \<open>\<not> affects r (Pre n ts)\<close> and
       2: \<open>\<not> affects r (Neg (Pre n ts))\<close> for r
       unfolding affects_def by (cases r, simp_all)+
-    
+
     have \<open>list_all (not (\<lambda>step. affects (snd step) (Pre n ts))) ?pre\<close>
       unfolding list_all_def using 1 by (induct ?pre) simp_all
     then have p: \<open>Pre n ts \<in> set (pseq (shd ?suf))\<close>
@@ -740,7 +740,7 @@ next
         using k pseq_in_tree_fms qs(2)
         by (metis Pair_inject in_mono prod.collapse pseq_def shd_sset sset_sdrop stl_sset)
     qed
-  qed 
+  qed
 next
   fix p
   assume \<open>Neg (Uni p) \<in> ?H\<close> (is \<open>?f \<in> ?H\<close>)
@@ -833,7 +833,7 @@ next
         using k pseq_in_tree_fms qs(2)
         by (metis Pair_inject in_mono prod.collapse pseq_def shd_sset sset_sdrop stl_sset)
     qed
-  qed 
+  qed
 next
   fix p
   assume \<open>Uni p \<in> tree_fms steps\<close> (is \<open>?f \<in> ?H\<close>)
