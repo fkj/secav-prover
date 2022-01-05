@@ -1,5 +1,5 @@
 theory Hintikka
-  imports Prover
+  imports ProverLemmas
 begin
 
 section \<open>Definition of a Hintikka set for SeCaV\<close>
@@ -91,112 +91,6 @@ qed
 
 (* TODO: rules should be in a nicer order in the datatype... *)
 
-text \<open>Unaffected formulas\<close>
-
-definition affects :: \<open>rule \<Rightarrow> fm \<Rightarrow> bool\<close> where
-  \<open>affects r p \<equiv> case (r, p) of
-    (AlphaDis, Dis _ _) \<Rightarrow> True
-  | (AlphaImp, Imp _ _) \<Rightarrow> True
-  | (AlphaCon, Neg (Con _ _)) \<Rightarrow> True
-  | (BetaCon, Con _ _) \<Rightarrow> True
-  | (BetaImp, Neg (Imp _ _)) \<Rightarrow> True
-  | (BetaDis, Neg (Dis _ _)) \<Rightarrow> True
-  | (DeltaUni, Uni _) \<Rightarrow> True
-  | (DeltaExi, Neg (Exi _)) \<Rightarrow> True
-  | (NegNeg, Neg (Neg _)) \<Rightarrow> True
-  | (GammaExi, Exi _) \<Rightarrow> False
-  | (GammaUni, Neg (Uni _)) \<Rightarrow> False
-  | (_,  _) \<Rightarrow> False\<close>
-
-lemma Neg_exhaust:
-  \<open>(\<And>i ts. x = Pre i ts \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p q. x = Imp p q \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p q. x = Dis p q \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p q. x = Con p q \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p. x = Exi p \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p. x = Uni p \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>i ts. x = Neg (Pre i ts) \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p q. x = Neg (Imp p q) \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p q. x = Neg (Dis p q) \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p q. x = Neg (Con p q) \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p. x = Neg (Exi p) \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p. x = Neg (Uni p) \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p. x = Neg (Neg p) \<Longrightarrow> P) \<Longrightarrow>
-  P\<close>
-proof (induct x)
-  case (Neg p)
-  then show ?case
-    by (cases p) simp_all
-qed simp_all
-
-lemma parts_preserves_unaffected:
-  assumes \<open>\<not> affects r p\<close> \<open>qs \<in> set (parts A r p)\<close>
-  shows \<open>p \<in> set qs\<close>
-  using assms unfolding parts_def affects_def
-  by (cases r; cases p rule: Neg_exhaust) simp_all
-
-lemma parts_not_Nil: \<open>parts A r p \<noteq> []\<close>
-  unfolding parts_def by (cases r; cases p rule: Neg_exhaust) auto
-
-lemma parts_all_inhabited: \<open>[] \<notin> set (parts A r p)\<close>
-  unfolding parts_def by (cases r; cases p rule: Neg_exhaust) auto
-
-lemma set_effect'_Cons:
-  \<open>set (effect' A r (p # ps)) =
-    {hs @ ts |hs ts. hs \<in> set (parts A r p) \<and> ts \<in> set (effect' A r ps)}\<close>
-  using list_prod_is_cartesian by (metis effect'.simps(2))
-
-lemma effect'_preserves_unaffected:
-  assumes \<open>p \<in> set ps\<close> \<open>\<not> affects r p\<close> \<open>qs \<in> set (effect' A r ps)\<close>
-  shows \<open>p \<in> set qs\<close>
-  using assms parts_preserves_unaffected set_effect'_Cons
-  by (induct ps arbitrary: qs) auto
-
-lemma effect_preserves_unaffected:
-  assumes \<open>p \<in> set ps\<close> \<open>\<not> affects r p\<close> \<open>(B, qs) |\<in>| effect r (A, ps)\<close>
-  shows \<open>p \<in> set qs\<close>
-  using assms effect'_preserves_unaffected
-  unfolding effect_def
-  by (smt (verit, best) Pair_inject femptyE fimageE fset_of_list_elem old.prod.case)
-
-text \<open>Affected formulas\<close>
-
-lemma parts_in_effect':
-  assumes \<open>p \<in> set ps\<close> \<open>qs \<in> set (effect' A r ps)\<close>
-  shows \<open>\<exists>xs \<in> set (parts A r p). set xs \<subseteq> set qs\<close>
-  using assms
-proof (induct ps arbitrary: qs)
-  case Nil
-  then show ?case
-    by simp
-next
-  case (Cons a ps)
-  then show ?case
-  proof (cases \<open>a = p\<close>)
-    case True
-    then show ?thesis
-      using Cons(3) set_effect'_Cons by auto
-  next
-    case False
-    then show ?thesis
-      using Cons set_effect'_Cons
-      by simp (metis Un_iff set_append subsetD subsetI)
-  qed
-qed
-
-lemma parts_in_effect:
-  assumes \<open>p \<in> set ps\<close> \<open>(B, qs) |\<in>| effect r (A, ps)\<close> \<open>\<not> branchDone ps\<close>
-  shows \<open>\<exists>xs \<in> set (parts A r p). set xs \<subseteq> set qs\<close>
-  using assms parts_in_effect' by (auto simp: fset_of_list_elem)
-
-corollary \<open>\<not> branchDone ps \<Longrightarrow> Neg (Neg p) \<in> set ps \<Longrightarrow>
-    (B, qs) |\<in>| effect NegNeg (A, ps) \<Longrightarrow> p \<in> set qs\<close>
-  using parts_in_effect unfolding parts_def by fastforce
-
-corollary \<open>\<not> branchDone ps \<Longrightarrow> Neg (Uni p) \<in> set ps \<Longrightarrow> (B, qs) |\<in>| effect GammaUni (A, ps) \<Longrightarrow>
-    set (map (\<lambda>t. Neg (sub 0 t p)) A) \<subseteq> set qs\<close>
-  using parts_in_effect unfolding parts_def by fastforce
-
 text \<open>Preservation on epath\<close>
 
 lemma ev_prefix_sdrop:
@@ -277,9 +171,6 @@ qed
 
 abbreviation \<open>is_rule r step \<equiv> snd step = r\<close>
 
-lemma list_prod_nil: \<open>list_prod [] ts = []\<close>
-  by (induct ts) simp_all
-
 lemma epath_never_branchDone:
   assumes \<open>epath steps\<close>
   shows \<open>alw (holds (not (branchDone o pseq))) steps\<close>
@@ -298,68 +189,6 @@ proof (rule ccontr)
     using epath_effect by (metis calculation prod.exhaust_sel pseq_def)
   ultimately show False
     by blast
-qed
-
-lemma sub_term_const_transfer:
-  \<open>Fun a [] \<notin> set (subtermTm (sub_term m (Fun a []) t)) \<Longrightarrow>
-    sub_term m (Fun a []) t = sub_term m s t\<close>
-  \<open>Fun a [] \<notin> (\<Union>t \<in> set (sub_list m (Fun a []) l). set (subtermTm t)) \<Longrightarrow>
-    sub_list m (Fun a []) l = sub_list m s l\<close>
- by (induct t and l rule: sub_term.induct sub_list.induct) auto
-
-lemma sub_const_transfer:
-  assumes \<open>Fun a [] \<notin> set (subtermFm (sub m (Fun a []) p))\<close>
-  shows \<open>sub m (Fun a []) p = sub m t p\<close>
-  using assms
-proof (induct p arbitrary: m t)
-  case (Pre i l)
-  then have \<open>Fun a [] \<notin> (\<Union>t \<in> set (sub_list m (Fun a []) l). set (subtermTm t))\<close>
-    by simp
-  then show ?case
-    using sub_term_const_transfer(2) by (metis sub.simps(1))
-next
-  case (Imp p q)
-  then show ?case
-    by (metis Un_iff set_append sub.simps(2) subtermFm.simps(2))
-next
-  case (Dis p1 p2)
-  then show ?case
-    by (metis Un_iff set_append sub.simps(3) subtermFm.simps(3))
-next
-  case (Con p1 p2)
-  then show ?case
-    by (metis Un_iff set_append sub.simps(4) subtermFm.simps(4))
-next
-  case (Exi p)
-  then show ?case
-    by (metis inc_list.simps(1) inc_term.simps(2) sub.simps(5) subtermFm.simps(5))
-next
-  case (Uni p)
-  then show ?case
-    by (metis inc_list.simps(1) inc_term.simps(2) sub.simps(6) subtermFm.simps(6))
-next
-  case (Neg p)
-  then show ?case
-    by (metis sub.simps(7) subtermFm.simps(7))
-qed
-
-lemma set_subterms:
-  fixes ps
-  defines \<open>ts \<equiv> \<Union>p \<in> set ps. set (subtermFm p)\<close>
-  shows \<open>set (subterms ps) = (if ts = {} then {Fun 0 []} else ts)\<close>
-proof -
-  have *: \<open>set (remdups (concat (map subtermFm ps))) = (\<Union>p \<in> set ps. set (subtermFm p))\<close>
-    by (induct ps) auto
-  then show ?thesis
-  proof (cases \<open>ts = {}\<close>)
-    case True
-    then show ?thesis
-      by simp (metis * True list.simps(15) list.simps(4) set_empty2 ts_def)
-  next
-    case False
-    then show ?thesis
-      by simp (metis * empty_set list.exhaust list.simps(5) ts_def)
-  qed
 qed
 
 lemma escape_path_Hintikka:
