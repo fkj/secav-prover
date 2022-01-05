@@ -12,7 +12,7 @@ code_printing
   constant the \<rightharpoonup> (Haskell) "MaybeExt.fromJust"
 | constant Option.is_none \<rightharpoonup> (Haskell) "MaybeExt.isNothing"
 
-code_printing code_module "MaybeExt" \<rightharpoonup> (Haskell)
+code_printing code_module MaybeExt \<rightharpoonup> (Haskell)
   \<open>module MaybeExt(fromJust, isNothing) where
      import Data.Maybe(fromJust, isNothing);\<close>
 
@@ -20,6 +20,7 @@ code_identifier
   code_module Stream \<rightharpoonup> (Haskell) Prover
 | code_module Prover \<rightharpoonup> (Haskell) Prover
 | code_module Export \<rightharpoonup> (Haskell) Prover
+| code_module Option \<rightharpoonup> (Haskell) Prover
 | code_module MaybeExt \<rightharpoonup> (Haskell) Prover
 | code_module Abstract_Completeness \<rightharpoonup> (Haskell) Prover
 
