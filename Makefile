@@ -16,7 +16,7 @@ test:
 	rm -rf test-tmp
 
 $(EXPORT)/%.hs: $(ISABELLE_SOURCES) $(ISABELLE)/ROOT
-	$(ISABELLE_EXE) export -d $(ISABELLE) -x "*:**.hs" -p 3 -O $(EXPORT) -o quick_and_dirty SeCaV_Prover
+	$(ISABELLE_EXE) export -d $(ISABELLE) -x "SeCaV_Prover*:**.hs" -p 3 -O $(EXPORT) -o quick_and_dirty SeCaV_Prover
 
 clean:
 	rm -rf $(EXPORT)

@@ -7,7 +7,7 @@ license-file:        LICENSE
 author:              Frederik Krogsdal Jacobsen
 maintainer:          fkjacobsen@gmail.com
 category:            Math
-description:         A proof search implementation for the SeCaV system of first-order logic.
+description:         An automated theorem prover for the SeCaV system of first-order logic.
 build-type:          Simple
 
 source-repository head
