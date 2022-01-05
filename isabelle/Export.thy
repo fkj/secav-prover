@@ -12,7 +12,7 @@ code_printing
   constant the \<rightharpoonup> (Haskell) "MaybeExt.fromJust"
 | constant Option.is_none \<rightharpoonup> (Haskell) "MaybeExt.isNothing"
 
-code_printing code_module "MaybeExt" \<rightharpoonup> (Haskell) 
+code_printing code_module "MaybeExt" \<rightharpoonup> (Haskell)
   \<open>module MaybeExt(fromJust, isNothing) where
      import Data.Maybe(fromJust, isNothing);\<close>
 
@@ -23,8 +23,8 @@ code_identifier
 | code_module MaybeExt \<rightharpoonup> (Haskell) Prover
 | code_module Abstract_Completeness \<rightharpoonup> (Haskell) Prover
 
-definition \<open>secavTreeCode \<equiv> i.mkTree effect rules\<close>
-definition \<open>secavProverCode \<equiv> \<lambda>x . secavTreeCode x\<close>
+definition \<open>secavTreeCode \<equiv> i.mkTree (\<lambda>r s. Some (effect r s)) rules\<close>
+definition \<open>secavProverCode \<equiv> \<lambda>x . secavTreeCode ([], x)\<close>
 
 export_code open secavProverCode in Haskell
 
