@@ -82,4 +82,10 @@ theorem completeness:
   shows \<open>fst (root t) = (A, [p]) \<and> wf t \<and> tfinite t\<close>
   by (simp add: assms epath_contr epath_lem epath_prover_completeness)
 
+corollary
+  assumes \<open>\<tturnstile> [p]\<close>
+  defines \<open>t \<equiv> secavProver ([], [p])\<close>
+  shows \<open>fst (root t) = ([], [p]) \<and> wf t \<and> tfinite t\<close>
+  using completeness assms by blast
+
 end
