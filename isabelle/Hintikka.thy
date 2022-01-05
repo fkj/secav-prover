@@ -156,8 +156,8 @@ lemma effect_preserves_unaffected:
   assumes \<open>p \<in> set ps\<close> \<open>\<not> affects r p\<close> \<open>(B, qs) |\<in>| effect r (A, ps)\<close>
   shows \<open>p \<in> set qs\<close>
   using assms effect'_preserves_unaffected
-  (* TODO: simp before smt *)
-  by simp (smt (verit, best) fempty_iff fimageE fset_of_list_elem prod.inject)
+  unfolding effect_def
+  by (smt (verit, best) Pair_inject femptyE fimageE fset_of_list_elem old.prod.case)
 
 text \<open>Affected formulas\<close>
 
