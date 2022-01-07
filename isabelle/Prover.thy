@@ -26,24 +26,17 @@ text \<open>
 Before defining what the rules do, we need to define a number of auxiliary functions needed for the
 semantics of the rules.\<close>
 
-text \<open>maxFunTm is the largest index used for functions in a term\<close>
-fun maxFunTm :: \<open>tm \<Rightarrow> nat\<close> where
-  \<open>maxFunTm (Fun n ts) = max n (foldl max 0 (map maxFunTm ts))\<close>
-| \<open>maxFunTm (Var n) = 0\<close>
+text \<open>listFunTm is a list of function and constant names in a term\<close>
+primrec listFunTm :: \<open>tm \<Rightarrow> nat list\<close>
+  and listFunTms :: \<open>tm list \<Rightarrow> nat list\<close>where
+  \<open>listFunTm (Fun n ts) = n # listFunTms ts\<close>
+| \<open>listFunTm (Var n) = []\<close>
+| \<open>listFunTms [] = []\<close>
+| \<open>listFunTms (t # ts) = listFunTm t @ listFunTms ts\<close>
 
-text \<open>maxFun is the largest index used for functions in a formula\<close>
-fun maxFun :: \<open>fm \<Rightarrow> nat\<close> where
-  \<open>maxFun (Pre n ts) = foldl max 0 (map maxFunTm ts)\<close>
-| \<open>maxFun (Imp f1 f2) = max (maxFun f1) (maxFun f2)\<close>
-| \<open>maxFun (Dis f1 f2) = max (maxFun f1) (maxFun f2)\<close>
-| \<open>maxFun (Con f1 f2) = max (maxFun f1) (maxFun f2)\<close>
-| \<open>maxFun (Exi f) = maxFun f\<close>
-| \<open>maxFun (Uni f) = maxFun f\<close>
-| \<open>maxFun (Neg f) = maxFun f\<close>
-
-text \<open>generateNew uses the maxFun function to obtain a fresh function index\<close>
-fun generateNew :: \<open>fm \<Rightarrow> fm list \<Rightarrow> nat\<close> where
-  \<open>generateNew p z = 1 + max (maxFun p) (foldl max 0 (map maxFun z))\<close>
+text \<open>generateNew uses the \<open>listFunTms\<close> function to obtain a fresh function index\<close>
+definition generateNew :: \<open>tm list \<Rightarrow> nat\<close> where
+  \<open>generateNew z \<equiv> 1 + foldr max (listFunTms z) 0\<close>
 
 fun flatten :: \<open>'a list option list \<Rightarrow> 'a list option\<close> where
   \<open>flatten [] = Some []\<close>
@@ -79,21 +72,6 @@ fun subterms :: \<open>sequent \<Rightarrow> tm list\<close> where
                 [] \<Rightarrow> [Fun 0 []]
               | ts \<Rightarrow> ts)\<close>
 
-text \<open>We need to be able to detect when no further ABD-rules can be applied so we know when to end
-      an ABD phase\<close>
-fun abdDone :: \<open>sequent \<Rightarrow> bool\<close> where
-  \<open>abdDone (Dis _ _ # _) = False\<close>
-| \<open>abdDone (Imp _ _ # _) = False\<close>
-| \<open>abdDone (Neg (Con _ _) # _) = False\<close>
-| \<open>abdDone (Con _ _ # _) = False\<close>
-| \<open>abdDone (Neg (Imp _ _) # _) = False\<close>
-| \<open>abdDone (Neg (Dis _ _) # _) = False\<close>
-| \<open>abdDone (Neg (Neg _) # _) = False\<close>
-| \<open>abdDone (Uni _ # _) = False\<close>
-| \<open>abdDone (Neg (Exi _) # _) = False\<close>
-| \<open>abdDone (_ # z) = abdDone z\<close>
-| \<open>abdDone [] = True\<close>
-
 text \<open>We need to be able to detect if a branch can be closed by the Basic rule so we know whether
 to do anything in a Basic phase or just skip it.
 The section \<open>Neg (Neg p) \<in> set z\<close> is not necessary for the prover, but allows us to prove the lemma
@@ -111,9 +89,6 @@ lemma branchDone: \<open>p \<in> set ps \<Longrightarrow> Neg p \<in> set ps \<L
 
 section \<open>Effects of rules\<close>
 
-definition new_name :: \<open>tm list \<Rightarrow> nat\<close> where
-  \<open>new_name A \<equiv> 1 + foldl max 0 (map maxFunTm A)\<close>
-
 (* TODO: do this on fsets instead if we convert at the end anyway? *)
 definition parts :: \<open>tm list \<Rightarrow> rule \<Rightarrow> fm \<Rightarrow> fm list list\<close> where
   \<open>parts A r f = (case (r, f) of
@@ -124,8 +99,8 @@ definition parts :: \<open>tm list \<Rightarrow> rule \<Rightarrow> fm \<Rightar
     | (BetaImp, Neg (Imp p q)) \<Rightarrow> [[p], [Neg q]]
     | (BetaDis, Neg (Dis p q)) \<Rightarrow> [[Neg p], [Neg q]]
     | (BetaCon, Con p q) \<Rightarrow> [[p], [q]]
-    | (DeltaExi, Neg (Exi p)) \<Rightarrow> [[Neg (sub 0 (Fun (new_name A) []) p)]]
-    | (DeltaUni, Uni p) \<Rightarrow> [[sub 0 (Fun (new_name A) []) p]]
+    | (DeltaExi, Neg (Exi p)) \<Rightarrow> [[Neg (sub 0 (Fun (generateNew A) []) p)]]
+    | (DeltaUni, Uni p) \<Rightarrow> [[sub 0 (Fun (generateNew A) []) p]]
     | (GammaExi, Exi p) \<Rightarrow> [Exi p # map (\<lambda>t. sub 0 t p) A]
     | (GammaUni, Neg (Uni p)) \<Rightarrow> [Neg (Uni p) # map (\<lambda>t. Neg (sub 0 t p)) A]
     | _ \<Rightarrow> [[f]])\<close>

@@ -72,8 +72,32 @@ proof (induct p)
     using subtermTm_paramst by simp
 qed auto
 
-lemma new_name_new: \<open>Fun (new_name A) l \<notin> set A\<close>
-  sorry (* TODO ugh *)
+lemma foldr_max:
+  fixes xs :: \<open>nat list\<close>
+  shows \<open>foldr max xs 0 = (if xs = [] then 0 else Max (set xs))\<close>
+  by (induct xs) simp_all
+
+lemma Suc_max_new:
+  fixes xs :: \<open>nat list\<close>
+  shows \<open>Suc (foldr max xs 0) \<notin> set xs\<close>
+proof (cases xs)
+  case Nil
+  then show ?thesis
+    by simp
+next
+  case (Cons x xs)
+  then have \<open>foldr max (x # xs) 0 = Max (set (x # xs))\<close>
+    using foldr_max by simp
+  then show ?thesis
+    using Cons by (metis List.finite_set Max.insert add_0 empty_iff list.set(2) max_0_1(2)
+        n_not_Suc_n nat_add_max_left plus_1_eq_Suc remdups.simps(2) set_remdups)
+qed
+
+lemma listFunTm_paramst: \<open>set (listFunTm t) = paramst t\<close> \<open>set (listFunTms ts) = paramsts ts\<close>
+  by (induct t and ts rule: paramst.induct paramsts.induct) auto
+
+lemma generateNew_new: \<open>Fun (generateNew A) l \<notin> set A\<close>
+  unfolding generateNew_def using Suc_max_new listFunTm_paramst(2) by fastforce
 
 lemma soundness_parts:
   assumes \<open>set (subtermFm p) \<subseteq> set A\<close>
@@ -86,7 +110,7 @@ proof (cases r)
     using assms
   proof (cases p rule: Neg_exhaust)
     case (6 p)
-    let ?i = \<open>new_name A\<close>
+    let ?i = \<open>generateNew A\<close>
     from 6 have \<open>\<forall>f. semantics e f g (sub 0 (Fun ?i []) p)\<close>
       using DeltaUni assms(2) unfolding parts_def by simp
     then have \<open>\<forall>x. semantics e (f(?i := \<lambda>_. x)) g (sub 0 (Fun ?i []) p)\<close>
@@ -97,7 +121,7 @@ proof (cases r)
       then have \<open>\<exists>l. Fun ?i l \<in> set (subtermFm p)\<close>
         using params_subtermFm by blast
       moreover have \<open>\<nexists>l. Fun ?i l \<in> set (subtermFm p)\<close>
-        using 6 assms(1) new_name_new by auto
+        using 6 assms(1) generateNew_new by auto
       ultimately show False
         by blast
     qed
@@ -110,7 +134,7 @@ next
     using assms
   proof (cases p rule: Neg_exhaust)
     case (11 p)
-    let ?i = \<open>new_name A\<close>
+    let ?i = \<open>generateNew A\<close>
     from 11 have \<open>\<forall>f. \<not> semantics e f g (sub 0 (Fun ?i []) p)\<close>
       using DeltaExi assms(2) unfolding parts_def by simp
     then have \<open>\<forall>x. \<not> semantics e (f(?i := \<lambda>_. x)) g (sub 0 (Fun ?i []) p)\<close>
@@ -121,7 +145,7 @@ next
       then have \<open>\<exists>l. Fun ?i l \<in> set (subtermFm p)\<close>
         using params_subtermFm by blast
       moreover have \<open>\<nexists>l. Fun ?i l \<in> set (subtermFm p)\<close>
-        using 11 assms(1) new_name_new by auto
+        using 11 assms(1) generateNew_new by auto
       ultimately show False
         by blast
     qed
