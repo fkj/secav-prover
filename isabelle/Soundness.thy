@@ -99,9 +99,12 @@ lemma listFunTm_paramst: \<open>set (listFunTm t) = paramst t\<close> \<open>set
 lemma generateNew_new: \<open>Fun (generateNew A) l \<notin> set A\<close>
   unfolding generateNew_def using Suc_max_new listFunTm_paramst(2) by fastforce
 
+(*
+  This assumption is too strong in a sense.
+  I'm not going to know the "validity" of parts, but something larger where parts is a head.
+*)
 lemma soundness_parts:
-  assumes \<open>set (subtermFm p) \<subseteq> set A\<close>
-    \<open>\<forall>qs \<in> set (parts A r p). \<exists>q \<in> set qs. \<forall>f. semantics e f g q\<close>
+  assumes \<open>set (subtermFm p) \<subseteq> set A\<close> \<open>\<forall>qs \<in> set (parts A r p). \<forall>f. ssemantics e f g qs\<close>
   shows \<open>semantics e f g p\<close>
   using assms
 proof (cases r)
@@ -154,6 +157,71 @@ next
   qed (fastforce simp: parts_def)+
 qed (cases p rule: Neg_exhaust; fastforce simp: parts_def)+
 
+(*
+  Paper proof:
+
+  Alpha: p, q, ... \<Longrightarrow> Dis p q, ...
+  Either p or q is sat and then Dis p q is, or the shared tail is.
+
+  Beta: p, ... \<Longrightarrow> q, ... \<Longrightarrow> Con p q, ...
+  Either p and q is sat or the shared tail is sat in one branch.
+
+  Delta: p[i/0], ... \<Longrightarrow> i new \<Longrightarrow> Uni p, ...
+  Case:
+  - if p[i/0] holds for all assignments of i, then Uni p holds
+  - otherwise consider an arbitrary assignment of i where p[i/0] does not hold.
+      What then?
+
+*)
+
+thm sound
+
+lemma soundness_effect':
+  assumes \<open>(\<Union>p \<in> set ps. set (subtermFm p)) \<subseteq> set A\<close>
+    \<open>\<forall>qs \<in> set (effect' A r ps). \<forall>f. ssemantics e f g qs\<close>
+  shows \<open>ssemantics e f g ps\<close>
+  using assms
+proof (induct ps arbitrary: f)
+  case Nil
+  then show ?case
+    by simp
+next
+  case (Cons p ps)
+  then have ih: \<open>\<forall>ts \<in> set (effect' A r ps). \<forall>f. ssemantics e f g ts \<Longrightarrow> \<forall>f. ssemantics e f g ps\<close>
+    by simp
+
+  moreover note \<open>\<forall>qs \<in> set (effect' A r (p # ps)). \<forall>f. ssemantics e f g qs\<close>
+  then have \<open>\<forall>qs \<in> set (list_prod (parts A r p) (effect' A r ps)). \<forall>f. ssemantics e f g qs\<close>
+    by simp
+  then have \<open>\<forall>qs \<in> {hs @ ts |hs ts. hs \<in> set (parts A r p) \<and> ts \<in> set (effect' A r ps)}.
+      \<forall>f. ssemantics e f g qs\<close>
+    using list_prod_is_cartesian by blast
+  then have *: \<open>\<forall>hs \<in> set (parts A r p). \<forall>ts \<in> set (effect' A r ps).
+      \<forall>f. ssemantics e f g hs \<or> ssemantics e f g ts\<close>
+    by force
+  (* TODO: would it help to look at the parts right here?
+      thm \<open>sound\<close> cases on \<open>\<forall>x. semantics e (f(i := \<lambda>_. x)) g (sub 0 (Fun i []) p)\<close>
+      in the Delta cases *)
+  then show ?case
+  proof (cases \<open>\<forall>hs \<in> set (parts A r p). \<forall>f. ssemantics e f g hs\<close>)
+    case True
+    then show ?thesis
+      using Cons apply simp by (meson soundness_parts)
+  next
+    case False
+    then obtain hs f where hs: \<open>hs \<in> set (parts A r p)\<close> \<open>\<not> ssemantics e f g hs\<close>
+      by blast
+    then have \<open>\<forall>ts \<in> set (effect' A r ps). ssemantics e f g ts\<close>
+      using * by blast
+    then have \<open>\<forall>ts \<in> set (effect' A r ps). \<forall>f. ssemantics e f g ts\<close>
+      sorry (* I only know this for a particular f but the ih requires all f... *)
+    then have \<open>\<forall>f. ssemantics e f g ps\<close>
+      using ih by blast
+    then show ?thesis
+      by simp
+  qed
+qed
+
 interpretation Soundness eff rules UNIV \<open>\<lambda>(e, f, g) (A, ps). ssemantics e f g ps\<close>
   unfolding Soundness_def
 proof safe
@@ -163,12 +231,15 @@ proof safe
    
   assume \<open>\<forall>s'. s' |\<in>| ss \<longrightarrow> (\<forall>S\<in>(UNIV :: ((nat \<Rightarrow> 'a) \<times> _) set).
       (case S of (e, f, g) \<Rightarrow> \<lambda>(A, ps). ssemantics e f g ps) s')\<close>
-  then have next_sound: \<open>\<forall>B qs. (B, qs) |\<in>| ss \<longrightarrow> (\<forall>(e :: nat \<Rightarrow> 'a) f g. ssemantics e f g qs)\<close>
+  then have next_sound: \<open>\<forall>B qs. (B, qs) |\<in>| ss \<longrightarrow> (\<forall>f. ssemantics e f g qs)\<close>
     by simp
 
-  let ?I = \<open>ssemantics e f g\<close>
+  have A: \<open>(\<Union>p \<in> set ps. set (subtermFm p)) \<subseteq> set A\<close>
+    using r_enabled unfolding eff_def
+    sorry (* TODO: how do I get this assumption in here? I think I need to change an interpretation
+      in Prover.thy such that UNIV is replaced by the set of valid states. *)
 
-  show \<open>?I ps\<close>
+  show \<open>ssemantics e f g ps\<close>
   proof (cases \<open>branchDone ps\<close>)
     case True
     then show ?thesis
@@ -180,12 +251,10 @@ proof safe
       case AlphaDis
       then have \<open>\<forall>qs \<in> set (effect' A r ps). \<exists>B. (B, qs) |\<in>| ss\<close>
         using False r_enabled eff_effect' by blast
-      then have \<open>\<forall>qs \<in> set (effect' A r ps). ?I qs\<close>
+      then have \<open>\<forall>qs \<in> set (effect' A r ps). \<forall>f. ssemantics e f g qs\<close>
         using next_sound by blast
       then show ?thesis
-        apply (induct ps)
-         apply simp
-        sorry
+        using soundness_effect' A by blast
     next
       case AlphaImp
       then show ?thesis sorry
