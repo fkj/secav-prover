@@ -45,20 +45,22 @@ lemma epath_eff:
 
 lemma effect_tms:
   assumes \<open>(B, qs) |\<in>| effect r (A, ps)\<close>
-  shows \<open>B = remdups (A @ subterms ps)\<close>
-  using assms by (metis (mono_tags, lifting) effect.simps fempty_iff fimageE fst_conv)
+  shows \<open>B = remdups (A @ subterms ps @ subterms qs)\<close>
+  using assms by (smt (verit, best) effect.simps fempty_iff fimageE prod.simps(1))
 
 lemma epath_effect:
   assumes \<open>epath steps\<close> \<open>shd steps = ((A, ps), r)\<close>
   shows \<open>\<exists>B qs r'. (B, qs) |\<in>| effect r (A, ps) \<and> shd (stl steps) = ((B, qs), r') \<and>
-          (B = remdups (A @ subterms ps))\<close>
+          (B = remdups (A @ subterms ps @ subterms qs))\<close>
   using assms epath_eff effect_tms
   by (metis (mono_tags, lifting) eff_def fst_conv prod.collapse snd_conv)
 
 lemma epath_stl_ptms:
   assumes \<open>epath steps\<close>
-  shows \<open>ptms (shd (stl steps)) = remdups (ptms (shd steps) @ subterms (pseq (shd steps)))\<close>
-  using assms epath_effect by (metis fst_conv prod.exhaust_sel pseq_def ptms_def)
+  shows \<open>ptms (shd (stl steps)) = remdups (ptms (shd steps) @
+    subterms (pseq (shd steps)) @ subterms (pseq (shd (stl steps))))\<close>
+  using assms epath_effect
+  by (metis (mono_tags) eff_def effect_tms epath_eff pseq_def ptms_def surjective_pairing)
 
 lemma epath_sdrop_ptms:
   assumes \<open>epath steps\<close>
@@ -71,23 +73,6 @@ proof (induct n)
   then show ?case
     using Suc epath_stl_ptms by fastforce
 qed simp
-
-lemma epath_sdrop_Suc_ptms:
-  assumes \<open>epath steps\<close>
-  shows \<open>set (ptms (shd steps) @ subterms (pseq (shd steps))) \<subseteq>
-         set (ptms (shd (sdrop (n + 1) steps)))\<close>
-  using assms
-proof (induct n)
-  case 0
-  then show ?case
-    by (simp add: epath_stl_ptms)
-  next
-    case (Suc n)
-  then have \<open>epath (sdrop (n + 1) steps)\<close>
-    using epath_sdrop by blast
-  then show ?case
-    using Suc epath_stl_ptms by fastforce
-qed
 
 (* TODO: rules should be in a nicer order in the datatype... *)
 

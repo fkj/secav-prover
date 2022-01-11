@@ -121,7 +121,7 @@ type_synonym state = \<open>tm list \<times> sequent\<close>
 primrec effect :: \<open>rule \<Rightarrow> state \<Rightarrow> state fset\<close> where
   \<open>effect r (A, s) =
   (if branchDone s then {||} else
-    fimage (\<lambda>s'. (remdups (A @ subterms s), s')) (fset_of_list (effect' A r s)))\<close>
+    fimage (\<lambda>s'. (remdups (A @ subterms s @ subterms s'), s')) (fset_of_list (effect' A r s)))\<close>
 
 section \<open>The rule stream\<close>
 
