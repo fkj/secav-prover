@@ -48,7 +48,7 @@ fun flatten :: \<open>'a list option list \<Rightarrow> 'a list option\<close> w
 text \<open>subtermTm returns a list of all terms occurring within a term\<close>
 primrec subtermTm :: \<open>tm \<Rightarrow> tm list\<close> where
   \<open>subtermTm (Fun n ts) = Fun n ts # remdups (concat (map subtermTm ts))\<close>
-| \<open>subtermTm (Var n) = [Var n]\<close>
+| \<open>subtermTm (Var n) = []\<close>
 
 text \<open>subtermFm returns a list of all terms occurring within a formula\<close>
 primrec subtermFm :: \<open>fm \<Rightarrow> tm list\<close> where
