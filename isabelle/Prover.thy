@@ -114,7 +114,8 @@ lemma list_prod_is_cartesian: \<open>set (list_prod hs ts) = {h @ t |h t. h \<in
 
 primrec effect' :: \<open>tm list \<Rightarrow> rule \<Rightarrow> sequent \<Rightarrow> sequent list\<close> where
   \<open>effect' _ _ [] = [[]]\<close>
-| \<open>effect' A r (f # z) = list_prod (parts A r f) (effect' A r z)\<close>
+| \<open>effect' A r (f # z) = list_prod (parts A r f)
+    (effect' (A @ List.maps subterms (parts A r f)) r z)\<close>
 
 type_synonym state = \<open>tm list \<times> sequent\<close>
 

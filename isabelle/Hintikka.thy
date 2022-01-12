@@ -680,13 +680,15 @@ next
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
   moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
     using \<open>epath suf\<close> epath_never_branchDone by blast
-  ultimately have \<open>sub 0 (Fun (generateNew (ptms (shd suf))) []) p \<in> set qs\<close>
-    using parts_in_effect unfolding parts_def by fastforce
-  then have *: \<open>sub 0 (Fun (generateNew (ptms (shd suf))) []) p \<in> ?H\<close>
+  ultimately obtain C where
+    C: \<open>set (ptms (shd suf)) \<subseteq> set C\<close> \<open>sub 0 (Fun (generateNew C) []) p \<in> set qs\<close>
+    using parts_in_effect[where B=B and qs=qs and ps=\<open>pseq (shd suf)\<close> and r=\<open>?r\<close> and p=\<open>Uni p\<close>]
+    unfolding parts_def by auto
+  then have *: \<open>sub 0 (Fun (generateNew C) []) p \<in> ?H\<close>
     using qs(2) ori pseq_in_tree_fms
     by (metis (no_types, lifting) Pair_inject Un_iff in_mono prod.collapse pseq_def shd_sset
         sset_sdrop sset_shift stl_sset)
-  let ?t = \<open>Fun (generateNew (ptms (shd suf))) []\<close>
+  let ?t = \<open>Fun (generateNew C) []\<close>
   show \<open>\<exists>t \<in> terms ?H. sub 0 t p \<in> ?H\<close>
   proof (cases \<open>?t \<in> set (subtermFm (sub 0 ?t p))\<close>)
     case True
@@ -737,13 +739,15 @@ next
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
   moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
     using \<open>epath suf\<close> epath_never_branchDone by blast
-  ultimately have \<open>Neg (sub 0 (Fun (generateNew (ptms (shd suf))) []) p) \<in> set qs\<close>
-    using parts_in_effect unfolding parts_def by fastforce
-  then have *: \<open>Neg (sub 0 (Fun (generateNew (ptms (shd suf))) []) p) \<in> ?H\<close>
+  ultimately obtain C where
+    C: \<open>set (ptms (shd suf)) \<subseteq> set C\<close> \<open>Neg (sub 0 (Fun (generateNew C) []) p) \<in> set qs\<close>
+    using parts_in_effect[where B=B and qs=qs and ps=\<open>pseq (shd suf)\<close> and r=\<open>?r\<close> and p=\<open>Neg (Exi p)\<close>]
+    unfolding parts_def by auto
+  then have *: \<open>Neg (sub 0 (Fun (generateNew C) []) p) \<in> ?H\<close>
     using qs(2) ori pseq_in_tree_fms
     by (metis (no_types, lifting) Pair_inject Un_iff in_mono prod.collapse pseq_def shd_sset
         sset_sdrop sset_shift stl_sset)
-  let ?t = \<open>Fun (generateNew (ptms (shd suf))) []\<close>
+  let ?t = \<open>Fun (generateNew C) []\<close>
   show \<open>\<exists>t \<in> terms ?H. Neg (sub 0 t p) \<in> ?H\<close>
   proof (cases \<open>?t \<in> set (subtermFm (Neg (sub 0 ?t p)))\<close>)
     case True
