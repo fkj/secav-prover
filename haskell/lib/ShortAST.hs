@@ -62,6 +62,6 @@ data NameState = NameState
 
 type NameGen a = State NameState a
 
-data BoundNameState = BoundNameState { depth :: Integer }
+newtype BoundNameState = BoundNameState { depth :: Integer }
 
 type BoundNameGen a = State BoundNameState a

@@ -1,5 +1,5 @@
 theory Countermodel
-  imports Prover Hintikka
+  imports Hintikka
 begin
 
 section \<open>Alternative Semantics\<close>

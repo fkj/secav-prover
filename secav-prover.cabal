@@ -1,13 +1,13 @@
 cabal-version:       2.4
 name:                secav-prover
-version:             0.1.0.0
+version:             1.0.0.0
 synopsis:            Prover for the SeCaV system
 license:             GPL-3.0-only
 license-file:        LICENSE
 author:              Frederik Krogsdal Jacobsen
 maintainer:          fkjacobsen@gmail.com
 category:            Math
-description:         A proof search implementation for the SeCaV system of first-order logic.
+description:         An automated theorem prover for the SeCaV system of first-order logic.
 build-type:          Simple
 
 source-repository head
