@@ -6,7 +6,7 @@ import Distribution.TestSuite
     Test (Test),
     TestInstance (TestInstance, name, options, run, setOption, tags),
   )
-import ProofExtractor (initExtract, gammaSurgery)
+import ProofExtractor (initExtract)
 import Prover (secavProverCode)
 import SeCaVTranslator (genInit)
 import ShortParser (programParser, sequentParser)

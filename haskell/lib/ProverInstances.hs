@@ -6,7 +6,7 @@ module ProverInstances where
 
 import Arith(Nat(..))
 import FSet(Fset(..))
-import Prover(PseudoRule(..), Tree(..))
+import Prover(Rule(..), Tree(..))
 import SeCaV(Tm(..), Fm(..))
 import Set(Set(..))
 
@@ -26,21 +26,21 @@ instance Show Fm where
   show (Uni f) = "∀(" <> show f <> ")"
   show (Neg f) = "¬(" <> show f <> ")"
 
-deriving instance Show PseudoRule
+deriving instance Show Rule
 
-instance Show (Set [Fm]) where
+instance Show (Set ([Tm], [Fm])) where
   show (Set s) = show s
   show (Coset s) = show s
 
-instance Show (Set (Tree ([Fm], PseudoRule))) where
+instance Show (Set (Tree (([Tm], [Fm]), Rule))) where
   show (Set s) = show s
   show (Coset s) = show s
 
-instance Show (Fset [Fm]) where
+instance Show (Fset ([Tm], [Fm])) where
   show (Abs_fset s) = show s
 
-instance Show (Fset (Tree ([Fm], PseudoRule))) where
+instance Show (Fset (Tree (([Tm], [Fm]), Rule))) where
   show (Abs_fset s) = show s
 
-instance Show (Tree ([Fm], PseudoRule)) where
+instance Show (Tree (([Tm], [Fm]), Rule)) where
   show (Node (fs, r) t) = show fs <> " " <> show r <> "\n" <> show t
