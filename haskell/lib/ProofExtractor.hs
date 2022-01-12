@@ -199,7 +199,7 @@ expandGammaExi (Node ((t : ts, f : fs), GammaExi) (Abs_fset (Set [current]))) ns
 -- Expansion of GammaUni rule
 -- Here we have a counter for the sequent formulas (ns) and a counter for the terms (nt) since we need to instantiate each formula with each term
 expandGammaUni :: Tree (([Tm], [Fm]), Rule) -> Int -> Int -> Tree ([Fm], SeCaVRule)
-expandGammaUni (Node ((t : ts, Neg (Uni p) : fs), GammaUni) (Abs_fset (Set [current]))) 1 nt =
+expandGammaUni (Node ((t : _, Neg (Uni p) : fs), GammaUni) (Abs_fset (Set [current]))) 1 1 =
   let applied = Neg (SeCaV.sub Arith.zero_nat t p) in
   let extRule = Node (applied : Neg (Uni p) : fs, RExt) (Abs_fset (Set ([expandMultiRules current]))) in
   let gammaRule = Node (Neg (Uni p) : Neg (Uni p) : fs, RGammaUni t) (Abs_fset (Set [extRule])) in
