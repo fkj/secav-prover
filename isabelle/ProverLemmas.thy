@@ -328,7 +328,7 @@ lemma parts_all_inhabited: \<open>[] \<notin> set (parts A r p)\<close>
 lemma set_effect'_Cons:
   \<open>set (effect' A r (p # ps)) =
     {hs @ ts |hs ts. hs \<in> set (parts A r p) \<and>
-      ts \<in> set (effect' (remdups (A @ List.maps subterms (parts A r p))) r ps)}\<close>
+      ts \<in> set (effect' (remdups (A @ subtermFms (concat (parts A r p)))) r ps)}\<close>
   using list_prod_is_cartesian by (metis effect'.simps(2))
 
 lemma effect'_preserves_unaffected:
@@ -373,7 +373,9 @@ qed
 lemma parts_in_effect:
   assumes \<open>p \<in> set ps\<close> \<open>(B, qs) |\<in>| effect r (A, ps)\<close> \<open>\<not> branchDone ps\<close>
   shows \<open>\<exists>C xs. set A \<subseteq> set C \<and> xs \<in> set (parts C r p) \<and> set xs \<subseteq> set qs\<close>
-  using assms parts_in_effect' by (auto simp: fset_of_list_elem)
+  using assms parts_in_effect'
+  by (smt (verit, ccfv_threshold) Pair_inject effect.simps fimageE fset_of_list_elem le_sup_iff
+      set_append set_remdups)
 
 corollary \<open>\<not> branchDone ps \<Longrightarrow> Neg (Neg p) \<in> set ps \<Longrightarrow>
     (B, qs) |\<in>| effect NegNeg (A, ps) \<Longrightarrow> p \<in> set qs\<close>
