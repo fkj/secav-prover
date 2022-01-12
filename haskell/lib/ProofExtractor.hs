@@ -50,125 +50,91 @@ second :: [a] -> [a]
 second [] = []
 second (_ : xs) = first xs
 
--- Expansion of AlphaDis rule
-expandAlphaDis :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandAlphaDis (Node ((terms, f : fs), AlphaDis) (Abs_fset (Set [current]))) n =
-  let applied = case f of
-                  Dis p q -> [p, q]
-                  x -> [x] in
+-- Expansion of the alpha, delta, and double negation elimination rules
+expandAlphaDelta :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
+expandAlphaDelta (Node ((terms, f : fs), rule) (Abs_fset (Set [current]))) n =
+  let (srule, applied) = case (rule, f) of
+                  (AlphaDis, Dis p q) -> (RAlphaDis, [p, q])
+                  (AlphaCon, Neg (Con p q)) -> (RAlphaCon, [Neg p, Neg q])
+                  (AlphaImp, Imp p q) -> (RAlphaImp, [Neg p, q])
+                  (NegNeg, Neg (Neg p)) -> (RNeg, [p])
+                  (DeltaUni, Uni p) -> (RDeltaUni, [SeCaV.sub Arith.zero_nat (SeCaV.Fun (generateNew terms) []) p])
+                  (DeltaExi, Neg (Exi p)) -> (RDeltaExi, [Neg (SeCaV.sub Arith.zero_nat (SeCaV.Fun (generateNew terms) []) p)])
+                  (AlphaDis, x) -> (RAlphaDis, [x])
+                  (AlphaCon, x) -> (RAlphaCon, [x])
+                  (AlphaImp, x) -> (RAlphaImp, [x])
+                  (DeltaUni, x) -> (RDeltaUni, [x])
+                  (DeltaExi, x) -> (RDeltaExi, [x])
+                  (NegNeg, x) -> (RNeg, [x])
+                  _ -> error "expandAlphaDelta must only be called on Alpha, Neg or Delta rules." in
   let extRule = if n == 1
         then Node (applied ++ fs, RExt) (Abs_fset (Set [expandMultiRules current]))
-        else Node (applied ++ fs, RExt) (Abs_fset (Set [expandAlphaDis (Node ((terms, fs ++ applied), AlphaDis) (Abs_fset (Set [current]))) (n - 1)])) in
-  Node (f : fs, RAlphaDis) (Abs_fset (Set [extRule]))
+        else Node (applied ++ fs, RExt) (Abs_fset (Set [expandAlphaDelta (Node ((terms, fs ++ applied), rule) (Abs_fset (Set [current]))) (n - 1)])) in
+  Node (f : fs, srule) (Abs_fset (Set [extRule]))
+expandAlphaDelta (Node ((_, []), _) _) _ = error "The sequent must never be empty."
+expandAlphaDelta (Node ((_, _), _) (Abs_fset (Coset _))) _ = error "The proof tree must not include cosets."
+expandAlphaDelta (Node ((_, _), _) (Abs_fset (Set _))) _ = error "Alpha, Neg, and Delta rules must produce exactly one branch."
 
--- Expansion of AlphaCon rule
-expandAlphaCon :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandAlphaCon (Node ((terms, f : fs), AlphaCon) (Abs_fset (Set [current]))) n =
-  let applied = case f of
-                  Neg (Con p q) -> [Neg p, Neg q]
-                  x -> [x] in
-  let extRule = if n == 1
-        then Node (applied ++ fs, RExt) (Abs_fset (Set [expandMultiRules current]))
-        else Node (applied ++ fs, RExt) (Abs_fset (Set [expandAlphaCon (Node ((terms, fs ++ applied), AlphaCon) (Abs_fset (Set [current]))) (n - 1)])) in
-  Node (f : fs, RAlphaCon) (Abs_fset (Set [extRule]))
+betaNonRuleN :: Rule -> Fm -> [Fm] -> [Tm] -> [Tree (([Tm], [Fm]), Rule)] -> Int -> Tree ([Fm], SeCaVRule)
+betaNonRuleN rule f fs terms rest n = Node (f : fs, RExt) (Abs_fset (Set [expandBeta (Node ((terms, fs ++ [f]), rule) (Abs_fset (Set rest))) (n - 1)]))
 
--- Expansion of AlphaImp rule
-expandAlphaImp :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandAlphaImp (Node ((terms, f : fs), AlphaImp) (Abs_fset (Set [current]))) n =
-  let applied = case f of
-                  Imp p q -> [Neg p, q]
-                  x -> [x] in
-  let extRule = if n == 1
-        then Node (applied ++ fs, RExt) (Abs_fset (Set [expandMultiRules current]))
-        else Node (applied ++ fs, RExt) (Abs_fset (Set [expandAlphaImp (Node ((terms, fs ++ applied), AlphaImp) (Abs_fset (Set [current]))) (n - 1)])) in
-  Node (f : fs, RAlphaImp) (Abs_fset (Set [extRule]))
+betaRuleN :: Rule -> Fm -> [Fm] -> [Tm] -> [Tree (([Tm], [Fm]), Rule)] -> Int -> Tree ([Fm], SeCaVRule)
+betaRuleN rule f fs terms branches n = Node (f : fs, RExt) (Abs_fset (Set [expandBeta (Node ((terms, fs ++ [f]), rule) (Abs_fset (Set branches))) (n - 1)]))
 
--- Expansion of NegNeg rule
-expandNegNeg :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandNegNeg (Node ((terms, f : fs), NegNeg) (Abs_fset (Set [current]))) n =
-  let applied = case f of
-                  Neg (Neg p) -> [p]
-                  x -> [x] in
-  let extRule = if n == 1
-        then Node (applied ++ fs, RExt) (Abs_fset (Set [expandMultiRules current]))
-        else Node (applied ++ fs, RExt) (Abs_fset (Set [expandNegNeg (Node ((terms, fs ++ applied), NegNeg) (Abs_fset (Set [current]))) (n - 1)])) in
-  Node (f : fs, RNeg) (Abs_fset (Set [extRule]))
+betaRule1 :: Fm -> [Fm] -> Tree (([Tm], [Fm]), Rule) -> Tree ([Fm], SeCaVRule)
+betaRule1 f fs branch = Node (f : fs, RExt) (Abs_fset (Set [expandMultiRules branch]))
 
 -- Expansion of BetaCon rule
 -- The prover creates the product of all beta rules as branches, so we need to reassemble the branches into a binary tree
-expandBetaCon :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandBetaCon (Node ((_, Con p q : fs), BetaCon) (Abs_fset (Set [b1, b2]))) 1 =
-  let branch1 = Node (p : fs, RExt) (Abs_fset (Set [expandMultiRules b1])) in
-  let branch2 = Node (q : fs, RExt) (Abs_fset (Set [expandMultiRules b2])) in
+expandBeta :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
+expandBeta (Node ((_, Con p q : fs), BetaCon) (Abs_fset (Set [b1, b2]))) 1 =
+  let branch1 = betaRule1 p fs b1 in
+  let branch2 = betaRule1 q fs b2 in
   Node (Con p q : fs, RBetaCon) (Abs_fset (Set [branch1, branch2]))
-expandBetaCon (Node ((terms, Con p q : fs), BetaCon) (Abs_fset (Set branches))) n =
-  let branch1 = Node (p : fs, RExt) (Abs_fset (Set [expandBetaCon (Node ((terms, fs ++ [p]), BetaCon) (Abs_fset (Set (first branches)))) (n - 1)])) in
-  let branch2 = Node (q : fs, RExt) (Abs_fset (Set [expandBetaCon (Node ((terms, fs ++ [q]), BetaCon) (Abs_fset (Set (second branches)))) (n - 1)])) in
-  Node (Con p q : fs, RBetaCon) (Abs_fset (Set [branch1, branch2]))
-expandBetaCon (Node ((_, f : fs), BetaCon) (Abs_fset (Set [current]))) 1 =
+expandBeta (Node ((_, Neg (Imp p q) : fs), BetaImp) (Abs_fset (Set [b1, b2]))) 1 =
+  let branch1 = betaRule1 p fs b1 in
+  let branch2 = betaRule1 (Neg q) fs b2 in
+  Node (Neg (Imp p q) : fs, RBetaImp) (Abs_fset (Set [branch1, branch2]))
+expandBeta (Node ((_, Neg (Dis p q) : fs), BetaDis) (Abs_fset (Set [b1, b2]))) 1 =
+  let branch1 = betaRule1 (Neg p) fs b1 in
+  let branch2 = betaRule1 (Neg q) fs b2 in
+  Node (Neg (Dis p q) : fs, RBetaDis) (Abs_fset (Set [branch1, branch2]))
+expandBeta (Node ((_, f : fs), BetaCon) (Abs_fset (Set [current]))) 1 =
   let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandMultiRules current])) in
   Node (f : fs, RBetaCon) (Abs_fset (Set [extRule]))
-expandBetaCon (Node ((terms, f : fs), BetaCon) (Abs_fset (Set rest))) n =
-  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandBetaCon (Node ((terms, fs ++ [f]), BetaCon) (Abs_fset (Set rest))) (n - 1)])) in
+expandBeta (Node ((_, f : fs), BetaImp) (Abs_fset (Set [current]))) 1 =
+  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandMultiRules current])) in
+  Node (f : fs, RBetaImp) (Abs_fset (Set [extRule]))
+expandBeta (Node ((_, f : fs), BetaDis) (Abs_fset (Set [current]))) 1 =
+  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandMultiRules current])) in
+  Node (f : fs, RBetaDis) (Abs_fset (Set [extRule]))
+expandBeta (Node ((terms, Con p q : fs), BetaCon) (Abs_fset (Set branches))) n =
+  let branch1 = betaRuleN BetaCon p fs terms (first branches) n in
+  let branch2 = betaRuleN BetaImp q fs terms (second branches) n in
+  Node (Con p q : fs, RBetaCon) (Abs_fset (Set [branch1, branch2]))
+expandBeta (Node ((terms, Neg (Imp p q) : fs), BetaImp) (Abs_fset (Set branches))) n =
+  let branch1 = betaRuleN BetaImp p fs terms (first branches) n in
+  let branch2 = betaRuleN BetaImp (Neg q) fs terms (second branches) n in
+  Node (Neg (Imp p q) : fs, RBetaImp) (Abs_fset (Set [branch1, branch2]))
+expandBeta (Node ((terms, Neg (Dis p q) : fs), BetaDis) (Abs_fset (Set branches))) n =
+  let branch1 = betaRuleN BetaDis (Neg p) fs terms (first branches) n in
+  let branch2 = betaRuleN BetaDis (Neg q) fs terms (second branches) n in
+  Node (Neg (Dis p q) : fs, RBetaDis) (Abs_fset (Set [branch1, branch2]))
+expandBeta (Node ((terms, f : fs), BetaCon) (Abs_fset (Set rest))) n =
+  let extRule = betaNonRuleN BetaCon f fs terms rest n in
   Node (f : fs, RBetaCon) (Abs_fset (Set [extRule]))
-
--- Expansion of BetaImp rule
--- The prover creates the product of all beta rules as branches, so we need to reassemble the branches into a binary tree
-expandBetaImp :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandBetaImp (Node ((_, Neg (Imp p q) : fs), BetaImp) (Abs_fset (Set [b1, b2]))) 1 =
-  let branch1 = Node (p : fs, RExt) (Abs_fset (Set [expandMultiRules b1])) in
-  let branch2 = Node (Neg q : fs, RExt) (Abs_fset (Set [expandMultiRules b2])) in
-  Node (Neg (Imp p q) : fs, RBetaImp) (Abs_fset (Set [branch1, branch2]))
-expandBetaImp (Node ((terms, Neg (Imp p q) : fs), BetaImp) (Abs_fset (Set branches))) n =
-  let branch1 = Node (p : fs, RExt) (Abs_fset (Set [expandBetaImp (Node ((terms, fs ++ [p]), BetaImp) (Abs_fset (Set (first branches)))) (n - 1)])) in
-  let branch2 = Node (Neg q : fs, RExt) (Abs_fset (Set [expandBetaImp (Node ((terms, fs ++ [Neg q]), BetaImp) (Abs_fset (Set (second branches)))) (n - 1)])) in
-  Node (Neg (Imp p q) : fs, RBetaImp) (Abs_fset (Set [branch1, branch2]))
-expandBetaImp (Node ((_, f : fs), BetaImp) (Abs_fset (Set [current]))) 1 =
-  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandMultiRules current])) in
+expandBeta (Node ((terms, f : fs), BetaImp) (Abs_fset (Set rest))) n =
+  let extRule = betaNonRuleN BetaImp f fs terms rest n in
   Node (f : fs, RBetaImp) (Abs_fset (Set [extRule]))
-expandBetaImp (Node ((terms, f : fs), BetaImp) (Abs_fset (Set rest))) n =
-  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandBetaImp (Node ((terms, fs ++ [f]), BetaImp) (Abs_fset (Set rest))) (n - 1)])) in
-  Node (f : fs, RBetaImp) (Abs_fset (Set [extRule]))
-
--- Expansion of BetaDis rule
--- The prover creates the product of all beta rules as branches, so we need to reassemble the branches into a binary tree
-expandBetaDis :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandBetaDis (Node ((_, Neg (Dis p q) : fs), BetaDis) (Abs_fset (Set [b1, b2]))) 1 =
-  let branch1 = Node (Neg p : fs, RExt) (Abs_fset (Set [expandMultiRules b1])) in
-  let branch2 = Node (Neg q : fs, RExt) (Abs_fset (Set [expandMultiRules b2])) in
-  Node (Neg (Dis p q) : fs, RBetaDis) (Abs_fset (Set [branch1, branch2]))
-expandBetaDis (Node ((terms, Neg (Dis p q) : fs), BetaDis) (Abs_fset (Set branches))) n =
-  let branch1 = Node (Neg p : fs, RExt) (Abs_fset (Set [expandBetaDis (Node ((terms, fs ++ [Neg p]), BetaDis) (Abs_fset (Set (first branches)))) (n - 1)])) in
-  let branch2 = Node (Neg q : fs, RExt) (Abs_fset (Set [expandBetaDis (Node ((terms, fs ++ [Neg q]), BetaDis) (Abs_fset (Set (second branches)))) (n - 1)])) in
-  Node (Neg (Dis p q) : fs, RBetaDis) (Abs_fset (Set [branch1, branch2]))
-expandBetaDis (Node ((_, f : fs), BetaDis) (Abs_fset (Set [current]))) 1 =
-  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandMultiRules current])) in
+expandBeta (Node ((terms, f : fs), BetaDis) (Abs_fset (Set rest))) n =
+  let extRule = betaNonRuleN BetaDis f fs terms rest n in
   Node (f : fs, RBetaDis) (Abs_fset (Set [extRule]))
-expandBetaDis (Node ((terms, f : fs), BetaDis) (Abs_fset (Set rest))) n =
-  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandBetaDis (Node ((terms, fs ++ [f]), BetaDis) (Abs_fset (Set rest))) (n - 1)])) in
-  Node (f : fs, RBetaDis) (Abs_fset (Set [extRule]))
-
--- Expansion of DeltaUni rule
-expandDeltaUni :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandDeltaUni (Node ((terms, f : fs), DeltaUni) (Abs_fset (Set [current]))) n =
-  let applied = case f of
-                  Uni p -> [SeCaV.sub Arith.zero_nat (SeCaV.Fun (generateNew terms) []) p]
-                  x -> [x] in
-  let extRule = if n == 1
-        then Node (applied ++ fs, RExt) (Abs_fset (Set [expandMultiRules current]))
-        else Node (applied ++ fs, RExt) (Abs_fset (Set [expandDeltaUni (Node ((terms, fs ++ applied), DeltaUni) (Abs_fset (Set [current]))) (n - 1)])) in
-  Node (f : fs, RDeltaUni) (Abs_fset (Set [extRule]))
-
--- Expansion of DeltaExi rule
-expandDeltaExi :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandDeltaExi (Node ((terms, f : fs), DeltaExi) (Abs_fset (Set [current]))) n =
-  let applied = case f of
-                  Neg (Exi p) -> [Neg (SeCaV.sub Arith.zero_nat (SeCaV.Fun (generateNew terms) []) p)]
-                  x -> [x] in
-  let extRule = if n == 1
-        then Node (applied ++ fs, RExt) (Abs_fset (Set [expandMultiRules current]))
-        else Node (applied ++ fs, RExt) (Abs_fset (Set [expandDeltaExi (Node ((terms, fs ++ applied), DeltaExi) (Abs_fset (Set [current]))) (n - 1)])) in
-  Node (f : fs, RDeltaExi) (Abs_fset (Set [extRule]))
+expandBeta (Node ((_, []), _) _) _ = error "The sequent must never be empty."
+expandBeta (Node ((_, _), _) (Abs_fset (Coset _))) _ = error "The proof tree must not include cosets."
+expandBeta (Node ((_, _), _) (Abs_fset (Set []))) _ = error "Beta rules must always produce at least one branch."
+expandBeta (Node ((_, _), _) (Abs_fset (Set [_]))) _ = error "expandBeta must only be called on Beta rules."
+expandBeta (Node ((_, _), _) (Abs_fset (Set [_, _]))) _ = error "expandBeta must only be called on Beta rules."
+expandBeta (Node ((_, _), _) (Abs_fset (Set (_ : _ : _ : _)))) _ = error "Beta must never produce more than two branches."
 
 -- Expansion of GammaExi rule
 -- Here we have a counter for the sequent formulas (ns) and a counter for the terms (nt) since we need to instantiate each formula with each term
@@ -194,6 +160,11 @@ expandGammaExi (Node ((t : _, f : fs), GammaExi) (Abs_fset (Set [current]))) 1 _
 expandGammaExi (Node ((t : ts, f : fs), GammaExi) (Abs_fset (Set [current]))) ns nt =
   let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandGammaExi (Node ((t : ts, fs ++ [f]), GammaExi) (Abs_fset (Set [current]))) (ns - 1) nt])) in
   Node (f : fs, RGammaExi t) (Abs_fset (Set [extRule]))
+expandGammaExi (Node ((_, []), _) _) _ _ = error "The sequent must never be empty."
+expandGammaExi (Node ((_, _), _) (Abs_fset (Coset _))) _ _ = error "The proof tree must not include cosets."
+expandGammaExi (Node ((_, _), _) (Abs_fset (Set [_]))) _ _ = error "expandGammaExi must only be called on GammaExi rules."
+expandGammaExi (Node ((_, _), _) (Abs_fset (Set []))) _ _ = error "GammaExi rules must produce exactly one branch."
+expandGammaExi (Node ((_, _), _) (Abs_fset (Set (_ : _ : _)))) _ _ = error "GammaExi rules must produce exactly one branch."
 
 -- Expansion of GammaUni rule
 -- Here we have a counter for the sequent formulas (ns) and a counter for the terms (nt) since we need to instantiate each formula with each term
@@ -219,6 +190,11 @@ expandGammaUni (Node ((t : _, f : fs), GammaUni) (Abs_fset (Set [current]))) 1 _
 expandGammaUni (Node ((t : ts, f : fs), GammaUni) (Abs_fset (Set [current]))) ns nt =
   let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandGammaUni (Node ((t : ts, fs ++ [f]), GammaUni) (Abs_fset (Set [current]))) (ns - 1) nt])) in
   Node (f : fs, RGammaUni t) (Abs_fset (Set [extRule]))
+expandGammaUni (Node ((_, []), _) _) _ _ = error "The sequent must never be empty."
+expandGammaUni (Node ((_, _), _) (Abs_fset (Coset _))) _ _ = error "The proof tree must not include cosets."
+expandGammaUni (Node ((_, _), _) (Abs_fset (Set [_]))) _ _ = error "expandGammaUni must only be called on GammaUni rules."
+expandGammaUni (Node ((_, _), _) (Abs_fset (Set []))) _ _ = error "GammaUni rules must produce exactly one branch."
+expandGammaUni (Node ((_, _), _) (Abs_fset (Set (_ : _ : _)))) _ _ = error "GammaUni rules must produce exactly one branch."
 
 -- This function moves the positive part of a Basic pair in the front of the sequent to allow the Basic rule to be applied
 -- WARNING: This will loop forever if there is no Basic pair (P and Neg P) in the sequent
@@ -231,21 +207,23 @@ addBasicRule :: Tree (([Tm], [Fm]), Rule) -> Tree ([Fm], SeCaVRule)
 addBasicRule (Node ((_, sequent), _) (Abs_fset (Set []))) =
   let basicRule = Node (sortSequent sequent, RBasic) (Abs_fset (Set [])) in
     Node (sequent, RExt) (Abs_fset (Set [basicRule]))
+addBasicRule (Node ((_, _), _) (Abs_fset (Coset _))) = error "The proof tree must not include cosets."
+addBasicRule (Node ((_, _), _) (Abs_fset (Set _))) = error "Basic rules must only be used to close branches."
 
 -- This function takes the rules from the prover and expands them into separate SeCaV applications for each formula in the sequent with Ext's in between
 -- Gamma rules are expanded for each formula and for each term
 -- Note that after this function, rules are still applied to all formulas, even those that do not fit the rule
 expandMultiRules :: Tree (([Tm], [Fm]), Rule) -> Tree ([Fm], SeCaVRule)
 expandMultiRules node@(Node _ (Abs_fset (Set []))) = addBasicRule node
-expandMultiRules node@(Node ((_, sequent), AlphaDis) _) = expandAlphaDis node (length sequent)
-expandMultiRules node@(Node ((_, sequent), AlphaCon) _) = expandAlphaCon node (length sequent)
-expandMultiRules node@(Node ((_, sequent), AlphaImp) _) = expandAlphaImp node (length sequent)
-expandMultiRules node@(Node ((_, sequent), NegNeg) _) = expandNegNeg node (length sequent)
-expandMultiRules node@(Node ((_, sequent), BetaCon) _) = expandBetaCon node (length sequent)
-expandMultiRules node@(Node ((_, sequent), BetaImp) _) = expandBetaImp node (length sequent)
-expandMultiRules node@(Node ((_, sequent), BetaDis) _) = expandBetaDis node (length sequent)
-expandMultiRules node@(Node ((_, sequent), DeltaUni) _) = expandDeltaUni node (length sequent)
-expandMultiRules node@(Node ((_, sequent), DeltaExi) _) = expandDeltaExi node (length sequent)
+expandMultiRules node@(Node ((_, sequent), AlphaDis) _) = expandAlphaDelta node (length sequent)
+expandMultiRules node@(Node ((_, sequent), AlphaCon) _) = expandAlphaDelta node (length sequent)
+expandMultiRules node@(Node ((_, sequent), AlphaImp) _) = expandAlphaDelta node (length sequent)
+expandMultiRules node@(Node ((_, sequent), NegNeg) _) = expandAlphaDelta node (length sequent)
+expandMultiRules node@(Node ((_, sequent), BetaCon) _) = expandBeta node (length sequent)
+expandMultiRules node@(Node ((_, sequent), BetaImp) _) = expandBeta node (length sequent)
+expandMultiRules node@(Node ((_, sequent), BetaDis) _) = expandBeta node (length sequent)
+expandMultiRules node@(Node ((_, sequent), DeltaUni) _) = expandAlphaDelta node (length sequent)
+expandMultiRules node@(Node ((_, sequent), DeltaExi) _) = expandAlphaDelta node (length sequent)
 expandMultiRules node@(Node ((terms, sequent), GammaExi) _) = expandGammaExi node (length sequent) (length terms)
 expandMultiRules node@(Node ((terms, sequent), GammaUni) _) = expandGammaUni node (length sequent) (length terms)
 
@@ -258,6 +236,7 @@ removeNoopRules (Node (s1, r1) (Abs_fset (Set [Node (s2, r2) (Abs_fset (Set rest
                                 then removeNoopRules (Node (s2, r2) (Abs_fset (Set rest)))
                                 else Node (s1, r1) (Abs_fset (Set [removeNoopRules (Node (s2, r2) (Abs_fset (Set rest)))]))
 removeNoopRules (Node (s, r) (Abs_fset (Set rest))) = Node (s, r) (Abs_fset (Set (map removeNoopRules rest)))
+removeNoopRules (Node (_, _) (Abs_fset (Coset _))) = error "The proof tree must not include cosets."
 
 -- This function collapses successive applications of the Ext rule to a single application
 -- A lot of these will appear after eliminating rules that are applied to wrong formulas, so this shortens the proof quite a bit
