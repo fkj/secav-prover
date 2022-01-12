@@ -1,4 +1,3 @@
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
 
 module ProofExtractor where
@@ -49,139 +48,139 @@ first (x : xs) = x : second xs
 
 second :: [a] -> [a]
 second [] = []
-second (x : xs) = first xs
+second (_ : xs) = first xs
 
 -- Expansion of AlphaDis rule
 expandAlphaDis :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandAlphaDis (Node ((terms, (f : fs)), AlphaDis) (Abs_fset (Set [current]))) n =
+expandAlphaDis (Node ((terms, f : fs), AlphaDis) (Abs_fset (Set [current]))) n =
   let applied = case f of
                   Dis p q -> [p, q]
                   x -> [x] in
   let extRule = if n == 1
-        then (Node (applied ++ fs, RExt) (Abs_fset (Set ([expandMultiRules current]))))
-        else (Node (applied ++ fs, RExt) (Abs_fset (Set [expandAlphaDis (Node ((terms, (fs ++ applied)), AlphaDis) (Abs_fset (Set [current]))) (n - 1)]))) in
+        then Node (applied ++ fs, RExt) (Abs_fset (Set [expandMultiRules current]))
+        else Node (applied ++ fs, RExt) (Abs_fset (Set [expandAlphaDis (Node ((terms, fs ++ applied), AlphaDis) (Abs_fset (Set [current]))) (n - 1)])) in
   Node (f : fs, RAlphaDis) (Abs_fset (Set [extRule]))
 
 -- Expansion of AlphaCon rule
 expandAlphaCon :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandAlphaCon (Node ((terms, (f : fs)), AlphaCon) (Abs_fset (Set [current]))) n =
+expandAlphaCon (Node ((terms, f : fs), AlphaCon) (Abs_fset (Set [current]))) n =
   let applied = case f of
                   Neg (Con p q) -> [Neg p, Neg q]
                   x -> [x] in
   let extRule = if n == 1
-        then (Node (applied ++ fs, RExt) (Abs_fset (Set ([expandMultiRules current]))))
-        else (Node (applied ++ fs, RExt) (Abs_fset (Set [expandAlphaCon (Node ((terms, (fs ++ applied)), AlphaCon) (Abs_fset (Set [current]))) (n - 1)]))) in
+        then Node (applied ++ fs, RExt) (Abs_fset (Set [expandMultiRules current]))
+        else Node (applied ++ fs, RExt) (Abs_fset (Set [expandAlphaCon (Node ((terms, fs ++ applied), AlphaCon) (Abs_fset (Set [current]))) (n - 1)])) in
   Node (f : fs, RAlphaCon) (Abs_fset (Set [extRule]))
 
 -- Expansion of AlphaImp rule
 expandAlphaImp :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandAlphaImp (Node ((terms, (f : fs)), AlphaImp) (Abs_fset (Set [current]))) n =
+expandAlphaImp (Node ((terms, f : fs), AlphaImp) (Abs_fset (Set [current]))) n =
   let applied = case f of
                   Imp p q -> [Neg p, q]
                   x -> [x] in
   let extRule = if n == 1
-        then (Node (applied ++ fs, RExt) (Abs_fset (Set ([expandMultiRules current]))))
-        else (Node (applied ++ fs, RExt) (Abs_fset (Set [expandAlphaImp (Node ((terms, (fs ++ applied)), AlphaImp) (Abs_fset (Set [current]))) (n - 1)]))) in
+        then Node (applied ++ fs, RExt) (Abs_fset (Set [expandMultiRules current]))
+        else Node (applied ++ fs, RExt) (Abs_fset (Set [expandAlphaImp (Node ((terms, fs ++ applied), AlphaImp) (Abs_fset (Set [current]))) (n - 1)])) in
   Node (f : fs, RAlphaImp) (Abs_fset (Set [extRule]))
 
 -- Expansion of NegNeg rule
 expandNegNeg :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandNegNeg (Node ((terms, (f : fs)), NegNeg) (Abs_fset (Set [current]))) n =
+expandNegNeg (Node ((terms, f : fs), NegNeg) (Abs_fset (Set [current]))) n =
   let applied = case f of
                   Neg (Neg p) -> [p]
                   x -> [x] in
   let extRule = if n == 1
-        then (Node (applied ++ fs, RExt) (Abs_fset (Set ([expandMultiRules current]))))
-        else (Node (applied ++ fs, RExt) (Abs_fset (Set [expandNegNeg (Node ((terms, (fs ++ applied)), NegNeg) (Abs_fset (Set [current]))) (n - 1)]))) in
+        then Node (applied ++ fs, RExt) (Abs_fset (Set [expandMultiRules current]))
+        else Node (applied ++ fs, RExt) (Abs_fset (Set [expandNegNeg (Node ((terms, fs ++ applied), NegNeg) (Abs_fset (Set [current]))) (n - 1)])) in
   Node (f : fs, RNeg) (Abs_fset (Set [extRule]))
 
 -- Expansion of BetaCon rule
 -- The prover creates the product of all beta rules as branches, so we need to reassemble the branches into a binary tree
 expandBetaCon :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandBetaCon (Node ((terms, (Con p q : fs)), BetaCon) (Abs_fset (Set [b1, b2]))) 1 =
-  let branch1 = (Node (p : fs, RExt) (Abs_fset (Set [expandMultiRules b1]))) in
-  let branch2 = (Node (q : fs, RExt) (Abs_fset (Set [expandMultiRules b2]))) in
+expandBetaCon (Node ((_, Con p q : fs), BetaCon) (Abs_fset (Set [b1, b2]))) 1 =
+  let branch1 = Node (p : fs, RExt) (Abs_fset (Set [expandMultiRules b1])) in
+  let branch2 = Node (q : fs, RExt) (Abs_fset (Set [expandMultiRules b2])) in
   Node (Con p q : fs, RBetaCon) (Abs_fset (Set [branch1, branch2]))
-expandBetaCon (Node ((terms, (Con p q : fs)), BetaCon) (Abs_fset (Set branches))) n =
-  let branch1 = (Node (p : fs, RExt) (Abs_fset (Set [expandBetaCon (Node ((terms, (fs ++ [p])), BetaCon) (Abs_fset (Set (first branches)))) (n - 1)]))) in
-  let branch2 = (Node (q : fs, RExt) (Abs_fset (Set [expandBetaCon (Node ((terms, (fs ++ [q])), BetaCon) (Abs_fset (Set (second branches)))) (n - 1)]))) in
+expandBetaCon (Node ((terms, Con p q : fs), BetaCon) (Abs_fset (Set branches))) n =
+  let branch1 = Node (p : fs, RExt) (Abs_fset (Set [expandBetaCon (Node ((terms, fs ++ [p]), BetaCon) (Abs_fset (Set (first branches)))) (n - 1)])) in
+  let branch2 = Node (q : fs, RExt) (Abs_fset (Set [expandBetaCon (Node ((terms, fs ++ [q]), BetaCon) (Abs_fset (Set (second branches)))) (n - 1)])) in
   Node (Con p q : fs, RBetaCon) (Abs_fset (Set [branch1, branch2]))
-expandBetaCon (Node ((terms, (f : fs)), BetaCon) (Abs_fset (Set [current]))) 1 =
-  let extRule = (Node (f : fs, RExt) (Abs_fset (Set ([expandMultiRules current])))) in
+expandBetaCon (Node ((_, f : fs), BetaCon) (Abs_fset (Set [current]))) 1 =
+  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandMultiRules current])) in
   Node (f : fs, RBetaCon) (Abs_fset (Set [extRule]))
-expandBetaCon (Node ((terms, (f : fs)), BetaCon) (Abs_fset (Set rest))) n =
-  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandBetaCon (Node ((terms, (fs ++ [f])), BetaCon) (Abs_fset (Set rest))) (n - 1)])) in
+expandBetaCon (Node ((terms, f : fs), BetaCon) (Abs_fset (Set rest))) n =
+  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandBetaCon (Node ((terms, fs ++ [f]), BetaCon) (Abs_fset (Set rest))) (n - 1)])) in
   Node (f : fs, RBetaCon) (Abs_fset (Set [extRule]))
 
 -- Expansion of BetaImp rule
 -- The prover creates the product of all beta rules as branches, so we need to reassemble the branches into a binary tree
 expandBetaImp :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandBetaImp (Node ((terms, (Neg (Imp p q) : fs)), BetaImp) (Abs_fset (Set [b1, b2]))) 1 =
-  let branch1 = (Node (p : fs, RExt) (Abs_fset (Set [expandMultiRules b1]))) in
-  let branch2 = (Node (Neg q : fs, RExt) (Abs_fset (Set [expandMultiRules b2]))) in
+expandBetaImp (Node ((_, Neg (Imp p q) : fs), BetaImp) (Abs_fset (Set [b1, b2]))) 1 =
+  let branch1 = Node (p : fs, RExt) (Abs_fset (Set [expandMultiRules b1])) in
+  let branch2 = Node (Neg q : fs, RExt) (Abs_fset (Set [expandMultiRules b2])) in
   Node (Neg (Imp p q) : fs, RBetaImp) (Abs_fset (Set [branch1, branch2]))
-expandBetaImp (Node ((terms, (Neg (Imp p q) : fs)), BetaImp) (Abs_fset (Set branches))) n =
-  let branch1 = (Node (p : fs, RExt) (Abs_fset (Set [expandBetaImp (Node ((terms, (fs ++ [p])), BetaImp) (Abs_fset (Set (first branches)))) (n - 1)]))) in
-  let branch2 = (Node (Neg q : fs, RExt) (Abs_fset (Set [expandBetaImp (Node ((terms, (fs ++ [Neg q])), BetaImp) (Abs_fset (Set (second branches)))) (n - 1)]))) in
+expandBetaImp (Node ((terms, Neg (Imp p q) : fs), BetaImp) (Abs_fset (Set branches))) n =
+  let branch1 = Node (p : fs, RExt) (Abs_fset (Set [expandBetaImp (Node ((terms, fs ++ [p]), BetaImp) (Abs_fset (Set (first branches)))) (n - 1)])) in
+  let branch2 = Node (Neg q : fs, RExt) (Abs_fset (Set [expandBetaImp (Node ((terms, fs ++ [Neg q]), BetaImp) (Abs_fset (Set (second branches)))) (n - 1)])) in
   Node (Neg (Imp p q) : fs, RBetaImp) (Abs_fset (Set [branch1, branch2]))
-expandBetaImp (Node ((terms, (f : fs)), BetaImp) (Abs_fset (Set [current]))) 1 =
-  let extRule = (Node (f : fs, RExt) (Abs_fset (Set ([expandMultiRules current])))) in
+expandBetaImp (Node ((_, f : fs), BetaImp) (Abs_fset (Set [current]))) 1 =
+  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandMultiRules current])) in
   Node (f : fs, RBetaImp) (Abs_fset (Set [extRule]))
-expandBetaImp (Node ((terms, (f : fs)), BetaImp) (Abs_fset (Set rest))) n =
-  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandBetaImp (Node ((terms, (fs ++ [f])), BetaImp) (Abs_fset (Set rest))) (n - 1)])) in
+expandBetaImp (Node ((terms, f : fs), BetaImp) (Abs_fset (Set rest))) n =
+  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandBetaImp (Node ((terms, fs ++ [f]), BetaImp) (Abs_fset (Set rest))) (n - 1)])) in
   Node (f : fs, RBetaImp) (Abs_fset (Set [extRule]))
 
 -- Expansion of BetaDis rule
 -- The prover creates the product of all beta rules as branches, so we need to reassemble the branches into a binary tree
 expandBetaDis :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandBetaDis (Node ((terms, (Neg (Dis p q) : fs)), BetaDis) (Abs_fset (Set [b1, b2]))) 1 =
-  let branch1 = (Node (Neg p : fs, RExt) (Abs_fset (Set [expandMultiRules b1]))) in
-  let branch2 = (Node (Neg q : fs, RExt) (Abs_fset (Set [expandMultiRules b2]))) in
+expandBetaDis (Node ((_, Neg (Dis p q) : fs), BetaDis) (Abs_fset (Set [b1, b2]))) 1 =
+  let branch1 = Node (Neg p : fs, RExt) (Abs_fset (Set [expandMultiRules b1])) in
+  let branch2 = Node (Neg q : fs, RExt) (Abs_fset (Set [expandMultiRules b2])) in
   Node (Neg (Dis p q) : fs, RBetaDis) (Abs_fset (Set [branch1, branch2]))
-expandBetaDis (Node ((terms, (Neg (Dis p q) : fs)), BetaDis) (Abs_fset (Set branches))) n =
-  let branch1 = (Node (Neg p : fs, RExt) (Abs_fset (Set [expandBetaDis (Node ((terms, (fs ++ [Neg p])), BetaDis) (Abs_fset (Set (first branches)))) (n - 1)]))) in
-  let branch2 = (Node (Neg q : fs, RExt) (Abs_fset (Set [expandBetaDis (Node ((terms, (fs ++ [Neg q])), BetaDis) (Abs_fset (Set (second branches)))) (n - 1)]))) in
+expandBetaDis (Node ((terms, Neg (Dis p q) : fs), BetaDis) (Abs_fset (Set branches))) n =
+  let branch1 = Node (Neg p : fs, RExt) (Abs_fset (Set [expandBetaDis (Node ((terms, fs ++ [Neg p]), BetaDis) (Abs_fset (Set (first branches)))) (n - 1)])) in
+  let branch2 = Node (Neg q : fs, RExt) (Abs_fset (Set [expandBetaDis (Node ((terms, fs ++ [Neg q]), BetaDis) (Abs_fset (Set (second branches)))) (n - 1)])) in
   Node (Neg (Dis p q) : fs, RBetaDis) (Abs_fset (Set [branch1, branch2]))
-expandBetaDis (Node ((terms, (f : fs)), BetaDis) (Abs_fset (Set [current]))) 1 =
-  let extRule = (Node (f : fs, RExt) (Abs_fset (Set ([expandMultiRules current])))) in
+expandBetaDis (Node ((_, f : fs), BetaDis) (Abs_fset (Set [current]))) 1 =
+  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandMultiRules current])) in
   Node (f : fs, RBetaDis) (Abs_fset (Set [extRule]))
-expandBetaDis (Node ((terms, (f : fs)), BetaDis) (Abs_fset (Set rest))) n =
-  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandBetaDis (Node ((terms, (fs ++ [f])), BetaDis) (Abs_fset (Set rest))) (n - 1)])) in
+expandBetaDis (Node ((terms, f : fs), BetaDis) (Abs_fset (Set rest))) n =
+  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandBetaDis (Node ((terms, fs ++ [f]), BetaDis) (Abs_fset (Set rest))) (n - 1)])) in
   Node (f : fs, RBetaDis) (Abs_fset (Set [extRule]))
 
 -- Expansion of DeltaUni rule
 expandDeltaUni :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandDeltaUni (Node ((terms, (f : fs)), DeltaUni) (Abs_fset (Set [current]))) n =
+expandDeltaUni (Node ((terms, f : fs), DeltaUni) (Abs_fset (Set [current]))) n =
   let applied = case f of
                   Uni p -> [SeCaV.sub Arith.zero_nat (SeCaV.Fun (generateNew terms) []) p]
                   x -> [x] in
   let extRule = if n == 1
-        then (Node (applied ++ fs, RExt) (Abs_fset (Set ([expandMultiRules current]))))
-        else (Node (applied ++ fs, RExt) (Abs_fset (Set [expandDeltaUni (Node ((terms, (fs ++ applied)), DeltaUni) (Abs_fset (Set [current]))) (n - 1)]))) in
+        then Node (applied ++ fs, RExt) (Abs_fset (Set [expandMultiRules current]))
+        else Node (applied ++ fs, RExt) (Abs_fset (Set [expandDeltaUni (Node ((terms, fs ++ applied), DeltaUni) (Abs_fset (Set [current]))) (n - 1)])) in
   Node (f : fs, RDeltaUni) (Abs_fset (Set [extRule]))
 
 -- Expansion of DeltaExi rule
 expandDeltaExi :: Tree (([Tm], [Fm]), Rule) -> Int -> Tree ([Fm], SeCaVRule)
-expandDeltaExi (Node ((terms, (f : fs)), DeltaExi) (Abs_fset (Set [current]))) n =
+expandDeltaExi (Node ((terms, f : fs), DeltaExi) (Abs_fset (Set [current]))) n =
   let applied = case f of
                   Neg (Exi p) -> [Neg (SeCaV.sub Arith.zero_nat (SeCaV.Fun (generateNew terms) []) p)]
                   x -> [x] in
   let extRule = if n == 1
-        then (Node (applied ++ fs, RExt) (Abs_fset (Set ([expandMultiRules current]))))
-        else (Node (applied ++ fs, RExt) (Abs_fset (Set [expandDeltaExi (Node ((terms, (fs ++ applied)), DeltaExi) (Abs_fset (Set [current]))) (n - 1)]))) in
+        then Node (applied ++ fs, RExt) (Abs_fset (Set [expandMultiRules current]))
+        else Node (applied ++ fs, RExt) (Abs_fset (Set [expandDeltaExi (Node ((terms, fs ++ applied), DeltaExi) (Abs_fset (Set [current]))) (n - 1)])) in
   Node (f : fs, RDeltaExi) (Abs_fset (Set [extRule]))
 
 -- Expansion of GammaExi rule
 -- Here we have a counter for the sequent formulas (ns) and a counter for the terms (nt) since we need to instantiate each formula with each term
 expandGammaExi :: Tree (([Tm], [Fm]), Rule) -> Int -> Int -> Tree ([Fm], SeCaVRule)
-expandGammaExi (Node ((t : ts, Exi p : fs), GammaExi) (Abs_fset (Set [current]))) 1 1 =
+expandGammaExi (Node ((t : _, Exi p : fs), GammaExi) (Abs_fset (Set [current]))) 1 1 =
   let applied = SeCaV.sub Arith.zero_nat t p in
-  let extRule = Node (applied : Exi p : fs, RExt) (Abs_fset (Set ([expandMultiRules current]))) in
+  let extRule = Node (applied : Exi p : fs, RExt) (Abs_fset (Set [expandMultiRules current])) in
   let gammaRule = Node (Exi p : Exi p : fs, RGammaExi t) (Abs_fset (Set [extRule])) in
   Node (Exi p : fs, RExt) (Abs_fset (Set [gammaRule]))
-expandGammaExi node@(Node ((t : ts, Exi p : fs), GammaExi) (Abs_fset (Set [current]))) ns 1 =
+expandGammaExi (Node ((t : ts, Exi p : fs), GammaExi) (Abs_fset (Set [current]))) ns 1 =
   let applied = SeCaV.sub Arith.zero_nat t p in
-  let extRule = Node (applied : Exi p : fs, RExt) (Abs_fset (Set [expandGammaExi (Node ((ts ++ [t], (fs ++ [applied, Exi p])), GammaExi) (Abs_fset (Set [current]))) (ns - 1) (length (t : ts))])) in
+  let extRule = Node (applied : Exi p : fs, RExt) (Abs_fset (Set [expandGammaExi (Node ((ts ++ [t], fs ++ [applied, Exi p]), GammaExi) (Abs_fset (Set [current]))) (ns - 1) (length (t : ts))])) in
   let gammaRule = Node (Exi p : Exi p : fs, RGammaExi t) (Abs_fset (Set [extRule])) in
   Node (Exi p : fs, RExt) (Abs_fset (Set [gammaRule]))
 expandGammaExi (Node ((t : ts, Exi p : fs), GammaExi) (Abs_fset (Set [current]))) ns nt =
@@ -189,8 +188,8 @@ expandGammaExi (Node ((t : ts, Exi p : fs), GammaExi) (Abs_fset (Set [current]))
   let extRule = Node (applied : Exi p : fs, RExt) (Abs_fset (Set [expandGammaExi (Node ((ts ++ [t], Exi p : fs ++ [applied]), GammaExi) (Abs_fset (Set [current]))) ns (nt - 1)])) in
   let gammaRule = Node (Exi p : Exi p : fs, RGammaExi t) (Abs_fset (Set [extRule])) in
   Node (Exi p : fs, RExt) (Abs_fset (Set [gammaRule]))
-expandGammaExi (Node ((t : ts, f : fs), GammaExi) (Abs_fset (Set [current]))) 1 nt =
-  let extRule = Node (f : fs, RExt) (Abs_fset (Set ([expandMultiRules current]))) in
+expandGammaExi (Node ((t : _, f : fs), GammaExi) (Abs_fset (Set [current]))) 1 _ =
+  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandMultiRules current])) in
   Node (f : fs, RGammaExi t) (Abs_fset (Set [extRule]))
 expandGammaExi (Node ((t : ts, f : fs), GammaExi) (Abs_fset (Set [current]))) ns nt =
   let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandGammaExi (Node ((t : ts, fs ++ [f]), GammaExi) (Abs_fset (Set [current]))) (ns - 1) nt])) in
@@ -201,12 +200,12 @@ expandGammaExi (Node ((t : ts, f : fs), GammaExi) (Abs_fset (Set [current]))) ns
 expandGammaUni :: Tree (([Tm], [Fm]), Rule) -> Int -> Int -> Tree ([Fm], SeCaVRule)
 expandGammaUni (Node ((t : _, Neg (Uni p) : fs), GammaUni) (Abs_fset (Set [current]))) 1 1 =
   let applied = Neg (SeCaV.sub Arith.zero_nat t p) in
-  let extRule = Node (applied : Neg (Uni p) : fs, RExt) (Abs_fset (Set ([expandMultiRules current]))) in
+  let extRule = Node (applied : Neg (Uni p) : fs, RExt) (Abs_fset (Set [expandMultiRules current])) in
   let gammaRule = Node (Neg (Uni p) : Neg (Uni p) : fs, RGammaUni t) (Abs_fset (Set [extRule])) in
   Node (Neg (Uni p) : fs, RExt) (Abs_fset (Set [gammaRule]))
-expandGammaUni node@(Node ((t : ts, Neg (Uni p) : fs), GammaUni) (Abs_fset (Set [current]))) ns 1 =
+expandGammaUni (Node ((t : ts, Neg (Uni p) : fs), GammaUni) (Abs_fset (Set [current]))) ns 1 =
   let applied = Neg (SeCaV.sub Arith.zero_nat t p) in
-  let extRule = Node (applied : Neg (Uni p) : fs, RExt) (Abs_fset (Set [expandGammaUni (Node ((ts ++ [t], (fs ++ [applied, Neg (Uni p)])), GammaUni) (Abs_fset (Set [current]))) (ns - 1) (length (t : ts))])) in
+  let extRule = Node (applied : Neg (Uni p) : fs, RExt) (Abs_fset (Set [expandGammaUni (Node ((ts ++ [t], fs ++ [applied, Neg (Uni p)]), GammaUni) (Abs_fset (Set [current]))) (ns - 1) (length (t : ts))])) in
   let gammaRule = Node (Neg (Uni p) : Neg (Uni p) : fs, RGammaUni t) (Abs_fset (Set [extRule])) in
   Node (Neg (Uni p) : fs, RExt) (Abs_fset (Set [gammaRule]))
 expandGammaUni (Node ((t : ts, Neg (Uni p) : fs), GammaUni) (Abs_fset (Set [current]))) ns nt =
@@ -214,8 +213,8 @@ expandGammaUni (Node ((t : ts, Neg (Uni p) : fs), GammaUni) (Abs_fset (Set [curr
   let extRule = Node (applied : Neg (Uni p) : fs, RExt) (Abs_fset (Set [expandGammaUni (Node ((ts ++ [t], Neg (Uni p) : fs ++ [applied]), GammaUni) (Abs_fset (Set [current]))) ns (nt - 1)])) in
   let gammaRule = Node (Neg (Uni p) : Neg (Uni p) : fs, RGammaUni t) (Abs_fset (Set [extRule])) in
   Node (Neg (Uni p) : fs, RExt) (Abs_fset (Set [gammaRule]))
-expandGammaUni (Node ((t : ts, f : fs), GammaUni) (Abs_fset (Set [current]))) 1 nt =
-  let extRule = Node (f : fs, RExt) (Abs_fset (Set ([expandMultiRules current]))) in
+expandGammaUni (Node ((t : _, f : fs), GammaUni) (Abs_fset (Set [current]))) 1 _ =
+  let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandMultiRules current])) in
   Node (f : fs, RGammaUni t) (Abs_fset (Set [extRule]))
 expandGammaUni (Node ((t : ts, f : fs), GammaUni) (Abs_fset (Set [current]))) ns nt =
   let extRule = Node (f : fs, RExt) (Abs_fset (Set [expandGammaUni (Node ((t : ts, fs ++ [f]), GammaUni) (Abs_fset (Set [current]))) (ns - 1) nt])) in
@@ -229,7 +228,7 @@ sortSequent (x : xs) = if Neg x `elem` xs then x : xs else sortSequent (xs ++ [x
 
 -- This adds an Ext rule to move the Basic pair in position, then a Basic rule to end a branch
 addBasicRule :: Tree (([Tm], [Fm]), Rule) -> Tree ([Fm], SeCaVRule)
-addBasicRule (Node ((_, sequent), rule) (Abs_fset (Set []))) =
+addBasicRule (Node ((_, sequent), _) (Abs_fset (Set []))) =
   let basicRule = Node (sortSequent sequent, RBasic) (Abs_fset (Set [])) in
     Node (sequent, RExt) (Abs_fset (Set [basicRule]))
 
@@ -237,7 +236,7 @@ addBasicRule (Node ((_, sequent), rule) (Abs_fset (Set []))) =
 -- Gamma rules are expanded for each formula and for each term
 -- Note that after this function, rules are still applied to all formulas, even those that do not fit the rule
 expandMultiRules :: Tree (([Tm], [Fm]), Rule) -> Tree ([Fm], SeCaVRule)
-expandMultiRules node@(Node ((_, sequent), rule) (Abs_fset (Set []))) = addBasicRule node
+expandMultiRules node@(Node _ (Abs_fset (Set []))) = addBasicRule node
 expandMultiRules node@(Node ((_, sequent), AlphaDis) _) = expandAlphaDis node (length sequent)
 expandMultiRules node@(Node ((_, sequent), AlphaCon) _) = expandAlphaCon node (length sequent)
 expandMultiRules node@(Node ((_, sequent), AlphaImp) _) = expandAlphaImp node (length sequent)

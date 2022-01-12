@@ -118,7 +118,7 @@ genNameMap t =
 genProgram :: Program -> String
 genProgram (Program l t) =
   let proofs = genProofInit <$> l in
-  let proofText = intercalate "\n\n" $ proofs in
+  let proofText = intercalate "\n\n" proofs in
   proofText <> "\n\n" <> genIntertexts t
 
 genIntertext :: Intertext -> String

@@ -53,8 +53,7 @@ genTerm (AST.Fun n l) = do
   fName <- genFunName n
   termNames <- traverse genTerm l
   pure $ SeCaV.Fun fName termNames
-genTerm (AST.Var n) = do
-  pure $ SeCaV.Var $ Nat n
+genTerm (AST.Var n) = pure $ SeCaV.Var $ Nat n
 
 genIndex :: Index -> NameGen Nat
 genIndex n = pure $ Nat n

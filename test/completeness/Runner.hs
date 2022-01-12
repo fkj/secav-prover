@@ -29,12 +29,10 @@ tests = do
   pure testResults
 
 setup :: String -> IO ()
-setup testDir = do
-  createDirectoryIfMissing False testDir
+setup = createDirectoryIfMissing False
 
 tearDown :: String -> IO ()
-tearDown testDir = do
-  removeDirectoryRecursive testDir
+tearDown = removeDirectoryRecursive
 
 createTest :: String -> (String, String) -> Test
 createTest topdir (testDir, f) =

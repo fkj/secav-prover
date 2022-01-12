@@ -211,8 +211,7 @@ text = do
   pure $ Text t
 
 intertext :: SParser Intertext
-intertext = do
-  choice [section, text]
+intertext = choice [section, text]
 
 -- Parsing of proofs
 proof :: SParser Proof
