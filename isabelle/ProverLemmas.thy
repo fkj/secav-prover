@@ -328,7 +328,7 @@ lemma parts_all_inhabited: \<open>[] \<notin> set (parts A r p)\<close>
 lemma set_effect'_Cons:
   \<open>set (effect' A r (p # ps)) =
     {hs @ ts |hs ts. hs \<in> set (parts A r p) \<and>
-      ts \<in> set (effect' (remdups (A @ List.maps subterms (parts A r p))) r ps)}\<close>
+      ts \<in> set (effect' (remdups (A @ subtermFms (concat (parts A r p)))) r ps)}\<close>
   using list_prod_is_cartesian by (metis effect'.simps(2))
 
 lemma effect'_preserves_unaffected:

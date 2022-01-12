@@ -99,7 +99,7 @@ lemma listFunTm_paramst: \<open>set (listFunTm t) = paramst t\<close> \<open>set
 lemma generateNew_new: \<open>Fun (generateNew A) l \<notin> set A\<close>
   unfolding generateNew_def using Suc_max_new listFunTm_paramst(2) by fastforce
 
-(* These three kind of belong in SeCaV.thy *)
+(* These kind of belong in a SeCaVLemmas.thy. Probably along with usemantics and stuff. *)
 lemma paramst_liftt [simp]:
   \<open>paramst (liftt t) = paramst t\<close> \<open>paramsts (liftts ts) = paramsts ts\<close>
   by (induct t and ts rule: liftt.induct liftts.induct) auto
@@ -121,317 +121,274 @@ abbreviation \<open>paramss A \<equiv> \<Union>p \<in> set A. params p\<close>
 lemma news_paramss: \<open>news i ps \<longleftrightarrow> i \<notin> paramss ps\<close>
   by (induct ps) auto
 
-(* I can modify effect' to add stuff to A so I know directly that it's there *)
-(*
-  I'm using pre to make the ih apply to more than just ps, since parts p adds formulas in front.
- 
-  I need to know in the Delta cases that ?i (currently \<open>generateNew A\<close>)
-    is new to pre, p and ps.
- 
-  What does pre look like?
-  - In Alpha and Beta cases, I add direct subformulas to pre
-  - In Gamma cases I add Exi p (Neg (Uni p)) and instances p[t/0] for all t in A
-  - In Delta cases I add p[i/0] for an i not in A.
+lemma paramsts_subset: \<open>set A \<subseteq> set B \<Longrightarrow> paramsts A \<subseteq> paramsts B\<close>
+  by (induct A) auto
 
-  In the Delta case, I introduce a new param, so I can't assume
-    that pre only contains subformulas of ps.
-  I can assume that it only contains subformulas and instances but this does not help me,
-    as it tells me nothing about params.
-*)
+lemma subtermFm_subset_params: \<open>set (subtermFm p) \<subseteq> set A \<Longrightarrow> params p \<subseteq> paramsts A\<close>
+  using params_subtermFm by force
 
 lemma SeCaV_effect'_pre:
-  assumes \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ qs)\<close> \<open>paramss ps \<subseteq> paramsts A\<close> 
+  assumes \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ qs)\<close> \<open>paramss (pre @ ps) \<subseteq> paramsts A\<close> 
   shows \<open>\<tturnstile> pre @ ps\<close>
   using assms
-proof (induct ps arbitrary: pre)
+proof (induct ps arbitrary: pre A)
   case Nil
   then show ?case
     by simp
 next
   case (Cons p ps)
-  then have ih: \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ qs) \<Longrightarrow> (\<tturnstile> pre @ ps)\<close> for pre
-    by simp
+  then have ih: \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ qs) \<Longrightarrow> (\<tturnstile> pre @ ps)\<close>
+    if \<open>paramss (pre @ ps) \<subseteq> paramsts A\<close>
+    for pre A
+    using that by simp
 
-  have **: \<open>\<tturnstile> pre @ p # ps\<close> if *: \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ p # qs)\<close> for p
-  proof -
-    have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> (pre @ [p]) @ qs)\<close>
-      using * by simp
-    then have \<open>\<tturnstile> pre @ p # ps\<close>
-      using ih[where pre=\<open>pre @ [p]\<close>] Cons.prems by simp
-    then show ?thesis
-      by blast
-  qed
+  let ?parts = \<open>parts A r p\<close>
+  let ?A = \<open>remdups (A @ subtermFms (concat (parts A r p)))\<close>
 
-  have \<open>\<forall>qs \<in> set (list_prod (parts A r p) (effect' A r ps)). (\<tturnstile> pre @ qs)\<close>
+  have A: \<open>paramss (pre @ p # ps) \<subseteq> paramsts ?A\<close>
+    using paramsts_subset Cons.prems(2) by fastforce
+
+  have \<open>\<forall>qs \<in> set (list_prod ?parts (effect' ?A r ps)). (\<tturnstile> pre @ qs)\<close>
     using Cons.prems by simp
-  then have \<open>\<forall>qs \<in> {hs @ ts |hs ts. hs \<in> set (parts A r p) \<and> ts \<in> set (effect' A r ps)}.
-      (\<tturnstile> pre @ qs)\<close>
+  then have \<open>\<forall>qs \<in> {hs @ ts |hs ts. hs \<in> set ?parts \<and> ts \<in> set (effect' ?A r ps)}. (\<tturnstile> pre @ qs)\<close>
     using list_prod_is_cartesian by blast
-  then have *: \<open>\<forall>hs \<in> set (parts A r p). \<forall>ts \<in> set (effect' A r ps). (\<tturnstile> pre @ hs @ ts)\<close>
+  then have *: \<open>\<forall>hs \<in> set ?parts. \<forall>ts \<in> set (effect' ?A r ps). (\<tturnstile> pre @ hs @ ts)\<close>
     by blast
   then show ?case
-  proof (cases r)
-    case AlphaDis
+  proof (cases r p rule: parts_exhaust)
+    case (AlphaDis p q)
+    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ p # q # qs)\<close>
+      using * unfolding parts_def by simp
+    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [p, q]) @ qs)\<close>
+      by simp
+    then have \<open>\<tturnstile> pre @ p # q # ps\<close>
+      using AlphaDis ih[where pre=\<open>pre @ [p, q]\<close> and A=\<open>?A\<close>] A by simp
+    then have \<open>\<tturnstile> p # q # pre @ ps\<close>
+      using Ext by simp
+    then have \<open>\<tturnstile> Dis p q # pre @ ps\<close>
+      using SeCaV.AlphaDis by blast
     then show ?thesis
-      using *
-    proof (cases p rule: Neg_exhaust)
-      case (3 p q)
-      then have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ p # q # qs)\<close>
-        using AlphaDis * unfolding parts_def by simp
-      then have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> (pre @ [p, q]) @ qs)\<close>
-        by simp
-      then have \<open>\<tturnstile> pre @ p # q # ps\<close>
-        using 3 ih[where pre=\<open>pre @ [p, q]\<close>] by simp
-      then have \<open>\<tturnstile> p # q # pre @ ps\<close>
-        using Ext by simp
-      then have \<open>\<tturnstile> Dis p q # pre @ ps\<close>
-        using SeCaV.AlphaDis by blast
-      then show ?thesis
-        using 3 Ext by simp
-    qed (simp_all add: ** parts_def)
+      using AlphaDis Ext by simp
   next
-    case AlphaImp
+    case (AlphaImp p q)
+    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ Neg p # q # qs)\<close>
+      using * unfolding parts_def by simp
+    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [Neg p, q]) @ qs)\<close>
+      by simp
+    then have \<open>\<tturnstile> pre @ Neg p # q # ps\<close>
+      using AlphaImp ih[where pre=\<open>pre @ [Neg p, q]\<close> and A=\<open>?A\<close>] A by simp
+    then have \<open>\<tturnstile> Neg p # q # pre @ ps\<close>
+      using Ext by simp
+    then have \<open>\<tturnstile> Imp p q # pre @ ps\<close>
+      using SeCaV.AlphaImp by blast
     then show ?thesis
-      using *
-    proof (cases p rule: Neg_exhaust)
-      case (2 p q)
-      then have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ Neg p # q # qs)\<close>
-        using AlphaImp * unfolding parts_def by simp
-      then have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> (pre @ [Neg p, q]) @ qs)\<close>
-        by simp
-      then have \<open>\<tturnstile> pre @ Neg p # q # ps\<close>
-        using 2 ih[where pre=\<open>pre @ [Neg p, q]\<close>] by simp
-      then have \<open>\<tturnstile> Neg p # q # pre @ ps\<close>
-        using Ext by simp
-      then have \<open>\<tturnstile> Imp p q # pre @ ps\<close>
-        using SeCaV.AlphaImp by blast
-      then show ?thesis
-        using 2 Ext by simp
-    qed (simp_all add: ** parts_def)
+      using AlphaImp Ext by simp
   next
-    case AlphaCon
+    case (AlphaCon p q)
+    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ Neg p # Neg q # qs)\<close>
+      using * unfolding parts_def by simp
+    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [Neg p, Neg q]) @ qs)\<close>
+      by simp
+    then have \<open>\<tturnstile> pre @ Neg p # Neg q # ps\<close>
+      using AlphaCon ih[where pre=\<open>pre @ [Neg p, Neg q]\<close> and A=\<open>?A\<close>] A by simp
+    then have \<open>\<tturnstile> Neg p # Neg q # pre @ ps\<close>
+      using Ext by simp
+    then have \<open>\<tturnstile> Neg (Con p q) # pre @ ps\<close>
+      using SeCaV.AlphaCon by blast
     then show ?thesis
-      using *
-    proof (cases p rule: Neg_exhaust)
-      case (10 p q)
-      then have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ Neg p # Neg q # qs)\<close>
-        using AlphaCon * unfolding parts_def by simp
-      then have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> (pre @ [Neg p, Neg q]) @ qs)\<close>
-        by simp
-      then have \<open>\<tturnstile> pre @ Neg p # Neg q # ps\<close>
-        using 10 ih[where pre=\<open>pre @ [Neg p, Neg q]\<close>] by simp
-      then have \<open>\<tturnstile> Neg p # Neg q # pre @ ps\<close>
-        using Ext by simp
-      then have \<open>\<tturnstile> Neg (Con p q) # pre @ ps\<close>
-        using SeCaV.AlphaCon by blast
-      then show ?thesis
-        using 10 Ext by simp
-    qed (simp_all add: ** parts_def)
+      using AlphaCon Ext by simp
   next
-    case BetaCon
+    case (BetaCon p q)
+    then have
+      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ p # qs)\<close>
+      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ q # qs)\<close>
+      using * unfolding parts_def by simp_all
+    then have
+      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [p]) @ qs)\<close>
+      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [q]) @ qs)\<close>
+      by simp_all
+    then have \<open>\<tturnstile> pre @ p # ps\<close> \<open>\<tturnstile> pre @ q # ps\<close>
+      using BetaCon ih[where pre=\<open>pre @ [_]\<close> and A=\<open>?A\<close>] A by simp_all
+    then have \<open>\<tturnstile> p # pre @ ps\<close> \<open>\<tturnstile> q # pre @ ps\<close>
+      using Ext by simp_all
+    then have \<open>\<tturnstile> Con p q # pre @ ps\<close>
+      using SeCaV.BetaCon by blast
     then show ?thesis
-      using *
-    proof (cases p rule: Neg_exhaust)
-      case (4 p q)
-      then have
-        \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ p # qs)\<close>
-        \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ q # qs)\<close>
-        using BetaCon * unfolding parts_def by simp_all
-      then have
-        \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> (pre @ [p]) @ qs)\<close>
-        \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> (pre @ [q]) @ qs)\<close>
-        by simp_all
-      then have \<open>\<tturnstile> pre @ p # ps\<close> \<open>\<tturnstile> pre @ q # ps\<close>
-        using 4 ih[where pre=\<open>pre @ [_]\<close>] by simp_all
-      then have \<open>\<tturnstile> p # pre @ ps\<close> \<open>\<tturnstile> q # pre @ ps\<close>
-        using Ext by simp_all
-      then have \<open>\<tturnstile> Con p q # pre @ ps\<close>
-        using SeCaV.BetaCon by blast
-      then show ?thesis
-        using 4 Ext by simp
-    qed (simp_all add: ** parts_def)
+      using BetaCon Ext by simp
   next
-    case BetaImp
+    case (BetaImp p q)
+    then have
+      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ p # qs)\<close>
+      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ Neg q # qs)\<close>
+      using * unfolding parts_def by simp_all
+    then have
+      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [p]) @ qs)\<close>
+      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [Neg q]) @ qs)\<close>
+      by simp_all
+    then have \<open>\<tturnstile> pre @ p # ps\<close> \<open>\<tturnstile> pre @ Neg q # ps\<close>
+      using BetaImp ih ih[where pre=\<open>pre @ [_]\<close> and A=\<open>?A\<close>] A by simp_all
+    then have \<open>\<tturnstile> p # pre @ ps\<close> \<open>\<tturnstile> Neg q # pre @ ps\<close>
+      using Ext by simp_all
+    then have \<open>\<tturnstile> Neg (Imp p q) # pre @ ps\<close>
+      using SeCaV.BetaImp by blast
     then show ?thesis
-      using *
-    proof (cases p rule: Neg_exhaust)
-      case (8 p q)
-      then have
-        \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ p # qs)\<close>
-        \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ Neg q # qs)\<close>
-        using BetaImp * unfolding parts_def by simp_all
-      then have
-        \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> (pre @ [p]) @ qs)\<close>
-        \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> (pre @ [Neg q]) @ qs)\<close>
-        by simp_all
-      then have \<open>\<tturnstile> pre @ p # ps\<close> \<open>\<tturnstile> pre @ Neg q # ps\<close>
-        using 8 ih ih[where pre=\<open>pre @ [_]\<close>] by simp_all
-      then have \<open>\<tturnstile> p # pre @ ps\<close> \<open>\<tturnstile> Neg q # pre @ ps\<close>
-        using Ext by simp_all
-      then have \<open>\<tturnstile> Neg (Imp p q) # pre @ ps\<close>
-        using SeCaV.BetaImp by blast
-      then show ?thesis
-        using 8 Ext by simp
-    qed (simp_all add: ** parts_def)
+      using BetaImp Ext by simp
   next
-    case BetaDis
+    case (BetaDis p q)
+    then have
+      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ Neg p # qs)\<close>
+      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ Neg q # qs)\<close>
+      using * unfolding parts_def by simp_all
+    then have
+      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [Neg p]) @ qs)\<close>
+      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [Neg q]) @ qs)\<close>
+      by simp_all
+    then have \<open>\<tturnstile> pre @ Neg p # ps\<close> \<open>\<tturnstile> pre @ Neg q # ps\<close>
+      using BetaDis ih[where pre=\<open>pre @ [_]\<close> and A=\<open>?A\<close>] A by simp_all
+    then have \<open>\<tturnstile> Neg p # pre @ ps\<close> \<open>\<tturnstile> Neg q # pre @ ps\<close>
+      using Ext by simp_all
+    then have \<open>\<tturnstile> Neg (Dis p q) # pre @ ps\<close>
+      using SeCaV.BetaDis by blast
     then show ?thesis
-      using *
-    proof (cases p rule: Neg_exhaust)
-      case (9 p q)
-      then have
-        \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ Neg p # qs)\<close>
-        \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ Neg q # qs)\<close>
-        using BetaDis * unfolding parts_def by simp_all
-      then have
-        \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> (pre @ [Neg p]) @ qs)\<close>
-        \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> (pre @ [Neg q]) @ qs)\<close>
-        by simp_all
-      then have \<open>\<tturnstile> pre @ Neg p # ps\<close> \<open>\<tturnstile> pre @ Neg q # ps\<close>
-        using 9 ih[where pre=\<open>pre @ [_]\<close>] by simp_all
-      then have \<open>\<tturnstile> Neg p # pre @ ps\<close> \<open>\<tturnstile> Neg q # pre @ ps\<close>
-        using Ext by simp_all
-      then have \<open>\<tturnstile> Neg (Dis p q) # pre @ ps\<close>
-        using SeCaV.BetaDis by blast
-      then show ?thesis
-        using 9 Ext by simp
-    qed (simp_all add: ** parts_def)
+      using BetaDis Ext by simp
   next
-    case DeltaUni
+    case (DeltaUni p)
+    let ?i = \<open>generateNew A\<close>
+    have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ sub 0 (Fun ?i []) p # qs)\<close>
+      using DeltaUni * unfolding parts_def by simp
+    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [sub 0 (Fun ?i []) p]) @ qs)\<close>
+      by simp
+    moreover have \<open>set (subtermFm (sub 0 (Fun ?i []) p)) \<subseteq> set ?A\<close>
+      using DeltaUni unfolding parts_def by simp
+    then have \<open>params (sub 0 (Fun ?i []) p) \<subseteq> paramsts ?A\<close>
+      using subtermFm_subset_params by blast
+    ultimately have \<open>\<tturnstile> pre @ sub 0 (Fun ?i []) p # ps\<close>
+      using DeltaUni ih[where pre=\<open>pre @ [_]\<close> and A=\<open>?A\<close>] A by simp 
+    then have \<open>\<tturnstile> sub 0 (Fun ?i []) p # pre @ ps\<close>
+      using Ext by simp
+    moreover have \<open>?i \<notin> paramsts A\<close>
+      by (induct A) (metis Suc_max_new generateNew_def listFunTm_paramst(2) plus_1_eq_Suc)+
+    then have \<open>news ?i (p # pre @ ps)\<close>
+      using DeltaUni Cons.prems(2) news_paramss by auto
+    ultimately have \<open>\<tturnstile> Uni p # pre @ ps\<close>
+      using SeCaV.DeltaUni by blast
     then show ?thesis
-      using *
-    proof (cases p rule: Neg_exhaust)
-      case (6 p)
-      let ?i = \<open>generateNew A\<close>
-      from 6 have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ sub 0 (Fun ?i []) p # qs)\<close>
-        using DeltaUni * unfolding parts_def by simp
-      then have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> (pre @ [sub 0 (Fun ?i []) p]) @ qs)\<close>
-        by simp
-      then have \<open>\<tturnstile> pre @ sub 0 (Fun ?i []) p # ps\<close>
-        using 6 ih[where pre=\<open>pre @ [_]\<close>] by simp (* Right here pre must be allowed to contain ?i *)
-      then have \<open>\<tturnstile> sub 0 (Fun ?i []) p # pre @ ps\<close>
-        using Ext by simp
-      moreover have \<open>?i \<notin> paramsts A\<close>
-        by (induct A) (metis Suc_max_new generateNew_def listFunTm_paramst(2) plus_1_eq_Suc)+
-      then have \<open>news ?i (p # ps)\<close> (* Right here pre must not *)
-        using 6 Cons.prems(2) news_paramss by auto
-      then have \<open>news ?i (p # pre @ ps)\<close>
-        using Cons.prems
-        sorry (* TODO: pre fucks me up *)
-      ultimately have \<open>\<tturnstile> Uni p # pre @ ps\<close>
-        using SeCaV.DeltaUni by blast
-      then show ?thesis
-        using 6 Ext by simp
-    qed (simp_all add: ** parts_def)
+      using DeltaUni Ext by simp
   next
-    case DeltaExi
+    case (DeltaExi p)
+    let ?i = \<open>generateNew A\<close>
+    have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ Neg (sub 0 (Fun ?i []) p) # qs)\<close>
+      using DeltaExi * unfolding parts_def by simp
+    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [Neg (sub 0 (Fun ?i []) p)]) @ qs)\<close>
+      by simp
+    moreover have \<open>set (subtermFm (sub 0 (Fun ?i []) p)) \<subseteq> set ?A\<close>
+      using DeltaExi unfolding parts_def by simp
+    then have \<open>params (sub 0 (Fun ?i []) p) \<subseteq> paramsts ?A\<close>
+      using subtermFm_subset_params by blast
+    ultimately have \<open>\<tturnstile> pre @ Neg (sub 0 (Fun ?i []) p) # ps\<close>
+      using DeltaExi ih[where pre=\<open>pre @ [_]\<close> and A=\<open>?A\<close>] A by simp
+    then have \<open>\<tturnstile> Neg (sub 0 (Fun ?i []) p) # pre @ ps\<close>
+      using Ext by simp
+    moreover have \<open>?i \<notin> paramsts A\<close>
+      by (induct A) (metis Suc_max_new generateNew_def listFunTm_paramst(2) plus_1_eq_Suc)+
+    then have \<open>news ?i (p # pre @ ps)\<close>
+      using DeltaExi Cons.prems(2) news_paramss by auto
+   ultimately have \<open>\<tturnstile> Neg (Exi p) # pre @ ps\<close>
+      using SeCaV.DeltaExi by blast
     then show ?thesis
-      using *
-    proof (cases p rule: Neg_exhaust)
-      case (11 p)
-      let ?i = \<open>generateNew A\<close>
-      from 11 have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ Neg (sub 0 (Fun ?i []) p) # qs)\<close>
-        using DeltaExi * unfolding parts_def by simp
-      then have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> (pre @ [Neg (sub 0 (Fun ?i []) p)]) @ qs)\<close>
-        by simp
-      then have \<open>\<tturnstile> pre @ Neg (sub 0 (Fun ?i []) p) # ps\<close>
-        using 11 ih[where pre=\<open>pre @ [_]\<close>] sorry (* TODO *)
-      then have \<open>\<tturnstile> Neg (sub 0 (Fun ?i []) p) # pre @ ps\<close>
-        using Ext by simp
-      moreover have \<open>news ?i (p # pre @ ps)\<close>
-        sorry (* TODO: need to ensure this *)
-      ultimately have \<open>\<tturnstile> Neg (Exi p) # pre @ ps\<close>
-        using SeCaV.DeltaExi by blast
-      then show ?thesis
-        using 11 Ext by simp
-    qed (simp_all add: ** parts_def)
+      using DeltaExi Ext by simp
   next
-    case NegNeg
+    case (NegNeg p)
+    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ p # qs)\<close>
+      using * unfolding parts_def by simp
+    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [p]) @ qs)\<close>
+      by simp
+    then have \<open>\<tturnstile> pre @ p # ps\<close>
+      using NegNeg ih[where pre=\<open>pre @ [_]\<close> and A=\<open>?A\<close>] A by simp
+    then have \<open>\<tturnstile> p # pre @ ps\<close>
+      using Ext by simp
+    then have \<open>\<tturnstile> Neg (Neg p) # pre @ ps\<close>
+      using SeCaV.Neg by blast
     then show ?thesis
-      using *
-    proof (cases p rule: Neg_exhaust)
-      case (13 p)
-      then have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ p # qs)\<close>
-        using NegNeg * unfolding parts_def by simp
-      then have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> (pre @ [p]) @ qs)\<close>
-        by simp
-      then have \<open>\<tturnstile> pre @ p # ps\<close>
-        using 13 ih[where pre=\<open>pre @ [_]\<close>] by simp
-      then have \<open>\<tturnstile> p # pre @ ps\<close>
-        using Ext by simp
-      then have \<open>\<tturnstile> Neg (Neg p) # pre @ ps\<close>
-        using SeCaV.Neg by blast
-      then show ?thesis
-        using 13 Ext by simp
-    qed (simp_all add: ** parts_def)
+      using NegNeg Ext by simp
   next
-    case GammaExi
-    then show ?thesis
-      using *
-    proof (cases p rule: Neg_exhaust)
-      case (5 p)
-      then have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ Exi p # map (\<lambda>t. sub 0 t p) A @ qs)\<close>
-        using GammaExi * unfolding parts_def by simp
-      then have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> ((pre @ Exi p # map (\<lambda>t. sub 0 t p) A) @ qs))\<close>
-        by simp
-      then have \<open>\<tturnstile> pre @ Exi p # map (\<lambda>t. sub 0 t p) A @ ps\<close>
-        using 5 ih[where pre=\<open>pre @ Exi p # map _ A\<close>] by simp
-      moreover have \<open>ext (map (\<lambda>t. sub 0 t p) A @ Exi p # pre @ ps)
+    case (GammaExi p)
+    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ Exi p # map (\<lambda>t. sub 0 t p) A @ qs)\<close>
+      using * unfolding parts_def by simp
+    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> ((pre @ Exi p # map (\<lambda>t. sub 0 t p) A) @ qs))\<close>
+      by simp
+    moreover have \<open>\<forall>t \<in> set A. params (sub 0 t p) \<subseteq> paramsts A \<union> params p\<close>
+      using params_sub by fastforce
+    then have \<open>\<forall>t \<in> set A. params (sub 0 t p) \<subseteq> paramsts ?A\<close>
+        using GammaExi A by fastforce
+    then have \<open>paramss (map (\<lambda>t. sub 0 t p) A) \<subseteq> paramsts ?A\<close>
+      by auto
+    ultimately have \<open>\<tturnstile> pre @ Exi p # map (\<lambda>t. sub 0 t p) A @ ps\<close>
+      using GammaExi ih[where pre=\<open>pre @ Exi p # map _ A\<close> and A=\<open>?A\<close>] A by simp
+    moreover have \<open>ext (map (\<lambda>t. sub 0 t p) A @ Exi p # pre @ ps)
           (pre @ Exi p # map (\<lambda>t. sub 0 t p) A @ ps)\<close>
-        by auto
-      ultimately have \<open>\<tturnstile> map (\<lambda>t. sub 0 t p) A @ Exi p # pre @ ps\<close>
-        using Ext by blast
-      then have \<open>\<tturnstile> Exi p # pre @ ps\<close>
-      proof (induct A)
-        case Nil
-        then show ?case
-          by simp
-      next
-        case (Cons a A)
-        then have \<open>\<tturnstile> Exi p # map (\<lambda>t. sub 0 t p) A @ Exi p # pre @ ps\<close>
-          using SeCaV.GammaExi by simp
-        then have \<open>\<tturnstile> map (\<lambda>t. sub 0 t p) A @ Exi p # pre @ ps\<close>
-          using Ext by simp
-        then show ?case
-          using Cons.hyps by blast
-      qed
-      then show ?thesis
-        using 5 Ext by simp
-    qed (simp_all add: ** parts_def)
-  next
-    case GammaUni
-    then show ?thesis
-      using *
-    proof (cases p rule: Neg_exhaust)
-      case (12 p)
-      then have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ Neg (Uni p) # map (\<lambda>t. Neg (sub 0 t p)) A @ qs)\<close>
-        using GammaUni * unfolding parts_def by simp
-      then have \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> ((pre @ Neg (Uni p) # map (\<lambda>t. Neg (sub 0 t p)) A) @ qs))\<close>
+      by auto
+    ultimately have \<open>\<tturnstile> map (\<lambda>t. sub 0 t p) A @ Exi p # pre @ ps\<close>
+      using Ext by blast
+    then have \<open>\<tturnstile> Exi p # pre @ ps\<close>
+    proof (induct A)
+      case Nil
+      then show ?case
         by simp
-      then have \<open>\<tturnstile> pre @ Neg (Uni p) # map (\<lambda>t. Neg (sub 0 t p)) A @ ps\<close>
-        using 12 ih[where pre=\<open>pre @ Neg (Uni p) # map _ A\<close>] by simp
-      moreover have \<open>ext (map (\<lambda>t. Neg (sub 0 t p)) A @ Neg (Uni p) # pre @ ps)
+    next
+      case (Cons a A)
+      then have \<open>\<tturnstile> Exi p # map (\<lambda>t. sub 0 t p) A @ Exi p # pre @ ps\<close>
+        using SeCaV.GammaExi by simp
+      then have \<open>\<tturnstile> map (\<lambda>t. sub 0 t p) A @ Exi p # pre @ ps\<close>
+        using Ext by simp
+      then show ?case
+        using Cons.hyps by blast
+    qed
+    then show ?thesis
+      using GammaExi Ext by simp
+  next
+    case (GammaUni p)
+    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ Neg (Uni p) # map (\<lambda>t. Neg (sub 0 t p)) A @ qs)\<close>
+      using * unfolding parts_def by simp
+    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> ((pre @ Neg (Uni p) # map (\<lambda>t. Neg (sub 0 t p)) A) @ qs))\<close>
+      by simp
+    moreover have \<open>\<forall>t \<in> set A. params (sub 0 t p) \<subseteq> paramsts A \<union> params p\<close>
+      using params_sub by fastforce
+    then have \<open>\<forall>t \<in> set A. params (sub 0 t p) \<subseteq> paramsts ?A\<close>
+        using GammaUni A by fastforce
+    then have \<open>paramss (map (\<lambda>t. sub 0 t p) A) \<subseteq> paramsts ?A\<close>
+      by auto
+    ultimately have \<open>\<tturnstile> pre @ Neg (Uni p) # map (\<lambda>t. Neg (sub 0 t p)) A @ ps\<close>
+      using GammaUni ih[where pre=\<open>pre @ Neg (Uni p) # map _ A\<close> and A=\<open>?A\<close>] A by simp
+    moreover have \<open>ext (map (\<lambda>t. Neg (sub 0 t p)) A @ Neg (Uni p) # pre @ ps)
           (pre @ Neg (Uni p) # map (\<lambda>t. Neg (sub 0 t p)) A @ ps)\<close>
-        by auto
-      ultimately have \<open>\<tturnstile> map (\<lambda>t. Neg (sub 0 t p)) A @ Neg (Uni p) # pre @ ps\<close>
-        using Ext by blast
-      then have \<open>\<tturnstile> Neg (Uni p) # pre @ ps\<close>
-      proof (induct A)
-        case Nil
-        then show ?case
-          by simp
-      next
-        case (Cons a A)
-        then have \<open>\<tturnstile> Neg (Uni p) # map (\<lambda>t. Neg (sub 0 t p)) A @ Neg (Uni p) # pre @ ps\<close>
-          using SeCaV.GammaUni by simp
-        then have \<open>\<tturnstile> map (\<lambda>t. Neg (sub 0 t p)) A @ Neg (Uni p) # pre @ ps\<close>
-          using Ext by simp
-        then show ?case
-          using Cons.hyps by blast
-      qed
-      then show ?thesis
-        using 12 Ext by simp
-    qed (simp_all add: ** parts_def)
+      by auto
+    ultimately have \<open>\<tturnstile> map (\<lambda>t. Neg (sub 0 t p)) A @ Neg (Uni p) # pre @ ps\<close>
+      using Ext by blast
+    then have \<open>\<tturnstile> Neg (Uni p) # pre @ ps\<close>
+    proof (induct A)
+      case Nil
+      then show ?case
+        by simp
+    next
+      case (Cons a A)
+      then have \<open>\<tturnstile> Neg (Uni p) # map (\<lambda>t. Neg (sub 0 t p)) A @ Neg (Uni p) # pre @ ps\<close>
+        using SeCaV.GammaUni by simp
+      then have \<open>\<tturnstile> map (\<lambda>t. Neg (sub 0 t p)) A @ Neg (Uni p) # pre @ ps\<close>
+        using Ext by simp
+      then show ?case
+        using Cons.hyps by blast
+    qed
+    then show ?thesis
+      using GammaUni Ext by simp
+  next
+    case Other
+    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [p]) @ qs)\<close>
+      using * by simp
+    then have \<open>\<tturnstile> pre @ p # ps\<close>
+      using ih[where pre=\<open>pre @ [p]\<close> and A=\<open>?A\<close>] A by simp
+    then show ?thesis
+      by blast
   qed
 qed
 
@@ -444,17 +401,13 @@ interpretation Soundness eff rules UNIV \<open>\<lambda>_ (A, ps). (\<tturnstile
   unfolding Soundness_def
 proof safe
   fix r A ps ss S
-  assume r_rule: \<open>r \<in> R\<close> and r_enabled: \<open>eff r (A, ps) ss\<close>
+  assume r_enabled: \<open>eff r (A, ps) ss\<close>
 
   assume \<open>\<forall>s'. s' |\<in>| ss \<longrightarrow> (\<forall>S \<in> UNIV. case s' of (A, ps) \<Rightarrow> \<tturnstile> ps)\<close>
   then have next_sound: \<open>\<forall>B qs. (B, qs) |\<in>| ss \<longrightarrow> (\<tturnstile> qs)\<close>
     by simp
 
-  have \<open>(\<Union>p \<in> set ps. set (subtermFm p)) \<subseteq> set A\<close>
-    sorry
-  then have A: \<open>paramss ps \<subseteq> paramsts A\<close>
-    sorry
-
+  (* TODO: I think you can solve this by having effect add the subterms of the sequent to A *)
   show \<open>\<tturnstile> ps\<close>
   proof (cases \<open>branchDone ps\<close>)
     case True
@@ -464,7 +417,16 @@ proof safe
       using Ext Basic by fastforce
   next
     case False
-    then show ?thesis
+    then have \<open>(\<Union>p \<in> set ps. set (subtermFm p)) \<subseteq> set A\<close>
+    using r_enabled unfolding eff_def
+    apply simp
+    sorry
+
+  then have A: \<open>paramss ps \<subseteq> paramsts A\<close>
+    sorry
+
+
+    show ?thesis
       using False A r_enabled eff_effect' next_sound SeCaV_effect' by metis
   qed
 qed
