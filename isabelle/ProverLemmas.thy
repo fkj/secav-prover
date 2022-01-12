@@ -230,17 +230,100 @@ proof (induct x)
     by (cases p) simp_all
 qed simp_all
 
+lemma parts_exhaust
+  [case_names AlphaDis AlphaImp AlphaCon BetaDis BetaImp BetaCon
+    DeltaUni DeltaExi NegNeg GammaExi GammaUni Other]:
+  assumes
+    \<open>\<And>p q. r = AlphaDis \<Longrightarrow> x = Dis p q \<Longrightarrow> P\<close>
+    \<open>\<And>p q. r = AlphaImp \<Longrightarrow> x = Imp p q \<Longrightarrow> P\<close>
+    \<open>\<And>p q. r = AlphaCon \<Longrightarrow> x = Neg (Con p q) \<Longrightarrow> P\<close>
+    \<open>\<And>p q. r = BetaDis \<Longrightarrow> x = Neg (Dis p q) \<Longrightarrow> P\<close>
+    \<open>\<And>p q. r = BetaImp \<Longrightarrow> x = Neg (Imp p q) \<Longrightarrow> P\<close>
+    \<open>\<And>p q. r = BetaCon \<Longrightarrow> x = Con p q \<Longrightarrow> P\<close>
+    \<open>\<And>p. r = DeltaUni \<Longrightarrow> x = Uni p \<Longrightarrow> P\<close>
+    \<open>\<And>p. r = DeltaExi \<Longrightarrow> x = Neg (Exi p) \<Longrightarrow> P\<close>
+    \<open>\<And>p. r = NegNeg \<Longrightarrow> x = Neg (Neg p) \<Longrightarrow> P\<close>
+    \<open>\<And>p. r = GammaExi \<Longrightarrow> x = Exi p \<Longrightarrow> P\<close>
+    \<open>\<And>p. r = GammaUni \<Longrightarrow> x = Neg (Uni p) \<Longrightarrow> P\<close>
+    \<open>\<forall>A. parts A r x = [[x]] \<Longrightarrow> P\<close>
+  shows P
+  using assms
+proof (cases r)
+  case BetaCon
+  then show ?thesis
+    using assms
+  proof (cases x rule: Neg_exhaust)
+    case (4 p q)
+    then show ?thesis
+      using BetaCon assms by blast
+  qed (simp_all add: parts_def)
+next
+  case BetaImp
+  then show ?thesis
+    using assms
+  proof (cases x rule: Neg_exhaust)
+    case (8 p q)
+    then show ?thesis
+      using BetaImp assms by blast
+  qed (simp_all add: parts_def)
+next
+  case DeltaUni
+  then show ?thesis
+    using assms
+  proof (cases x rule: Neg_exhaust)
+    case (6 p)
+    then show ?thesis
+      using DeltaUni assms by fast
+  qed (simp_all add: parts_def)
+next
+  case DeltaExi
+  then show ?thesis
+    using assms
+  proof (cases x rule: Neg_exhaust)
+    case (11 p)
+    then show ?thesis
+      using DeltaExi assms by fast
+  qed (simp_all add: parts_def)
+next
+  case NegNeg
+  then show ?thesis
+    using assms
+  proof (cases x rule: Neg_exhaust)
+    case (13 p)
+    then show ?thesis
+      using NegNeg assms by fast
+  qed (simp_all add: parts_def)
+next
+  case GammaExi
+  then show ?thesis
+    using assms
+  proof (cases x rule: Neg_exhaust)
+    case (5 p)
+    then show ?thesis
+      using GammaExi assms by fast
+  qed (simp_all add: parts_def)
+next
+  case GammaUni
+  then show ?thesis
+    using assms
+  proof (cases x rule: Neg_exhaust)
+    case (12 p)
+    then show ?thesis
+      using GammaUni assms by fast
+  qed (simp_all add: parts_def)
+qed (cases x rule: Neg_exhaust, simp_all add: parts_def)+
+
 lemma parts_preserves_unaffected:
   assumes \<open>\<not> affects r p\<close> \<open>qs \<in> set (parts A r p)\<close>
   shows \<open>p \<in> set qs\<close>
-  using assms unfolding parts_def affects_def
-  by (cases r; cases p rule: Neg_exhaust) simp_all
+  using assms unfolding affects_def
+  by (cases r p rule: parts_exhaust) (simp_all add: parts_def)
 
 lemma parts_not_Nil: \<open>parts A r p \<noteq> []\<close>
-  unfolding parts_def by (cases r; cases p rule: Neg_exhaust) auto
+  by (cases r p rule: parts_exhaust) (simp_all add: parts_def)
 
 lemma parts_all_inhabited: \<open>[] \<notin> set (parts A r p)\<close>
-  unfolding parts_def by (cases r; cases p rule: Neg_exhaust) auto
+  by (cases r p rule: parts_exhaust) (simp_all add: parts_def)
 
 lemma set_effect'_Cons:
   \<open>set (effect' A r (p # ps)) =
