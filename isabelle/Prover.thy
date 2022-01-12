@@ -124,7 +124,8 @@ type_synonym state = \<open>tm list \<times> sequent\<close>
 primrec effect :: \<open>rule \<Rightarrow> state \<Rightarrow> state fset\<close> where
   \<open>effect r (A, s) =
   (if branchDone s then {||} else
-    fimage (\<lambda>s'. (remdups (A @ subterms s @ subterms s'), s')) (fset_of_list (effect' A r s)))\<close>
+    fimage (\<lambda>s'. (remdups (A @ subterms s @ subterms s'), s'))
+    (fset_of_list (effect' (remdups (A @ subtermFms s)) r s)))\<close>
 
 section \<open>The rule stream\<close>
 
@@ -146,18 +147,12 @@ section \<open>Abstract completeness\<close>
 definition eff where
   \<open>eff \<equiv> \<lambda>r s ss. effect r s = ss\<close>
 
-definition \<open>valid_states \<equiv> {(A, ps) |A ps. (\<Union>p \<in> set ps. set (subtermFm p)) \<subseteq> set A}\<close>
-
 lemma all_rules_enabled: \<open>\<forall>st. \<forall>r \<in> i.R (cycle rulesList). \<exists>sl. eff r st sl\<close>
   unfolding eff_def by blast
 
-lemma woop: \<open>st |\<in>| effect r (A, ps) \<Longrightarrow> st \<in> valid_states\<close>
-  unfolding valid_states_def oops
-
-interpretation RuleSystem eff rules UNIV (* valid_states *)
+interpretation RuleSystem eff rules UNIV
   unfolding rules_def RuleSystem_def
   using all_rules_enabled stream.set_sel(1)
-  (* oops by (metis (full_types) eff_def prod.collapse) *)
   by blast
 
 interpretation PersistentRuleSystem eff rules UNIV

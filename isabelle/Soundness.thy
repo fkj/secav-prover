@@ -45,7 +45,7 @@ qed
 
 lemma eff_effect':
   assumes \<open>\<not> branchDone ps\<close> \<open>eff r (A, ps) ss\<close>
-  shows \<open>\<forall>qs \<in> set (effect' A r ps). \<exists>B. (B, qs) |\<in>| ss\<close>
+  shows \<open>\<forall>qs \<in> set (effect' (remdups (A @ subtermFms ps)) r ps). \<exists>B. (B, qs) |\<in>| ss\<close>
   using assms unfolding eff_def using fset_of_list_elem by fastforce
 
 lemma paramst_subtermTm:
@@ -407,7 +407,6 @@ proof safe
   then have next_sound: \<open>\<forall>B qs. (B, qs) |\<in>| ss \<longrightarrow> (\<tturnstile> qs)\<close>
     by simp
 
-  (* TODO: I think you can solve this by having effect add the subterms of the sequent to A *)
   show \<open>\<tturnstile> ps\<close>
   proof (cases \<open>branchDone ps\<close>)
     case True
@@ -417,17 +416,15 @@ proof safe
       using Ext Basic by fastforce
   next
     case False
-    then have \<open>(\<Union>p \<in> set ps. set (subtermFm p)) \<subseteq> set A\<close>
-    using r_enabled unfolding eff_def
-    apply simp
-    sorry
-
-  then have A: \<open>paramss ps \<subseteq> paramsts A\<close>
-    sorry
-
-
-    show ?thesis
-      using False A r_enabled eff_effect' next_sound SeCaV_effect' by metis
+    let ?A = \<open>remdups (A @ subtermFms ps)\<close>
+    have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> qs)\<close>
+      using False r_enabled eff_effect' next_sound by blast
+    moreover have \<open>set (subtermFms ps) \<subseteq> set ?A\<close>
+      by simp
+    then have \<open>paramss ps \<subseteq> paramsts ?A\<close>
+      using subtermFm_subset_params by fastforce
+    ultimately show \<open>\<tturnstile> ps\<close>
+      using SeCaV_effect' by blast
   qed
 qed
 
