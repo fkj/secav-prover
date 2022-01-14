@@ -1,7 +1,7 @@
 # SeCaV Prover
 This is an automated theorem prover for the SeCaV system for first-order logic with functions.
 
-It has been formally verified to be sound and complete, which means that it will never pretend to have proven an invalid formula, and that it will prove any provable formula if given enough time.
+It has been formally verified to be sound and complete, which means that it will never pretend to have proven an invalid formula, and that it will prove any valid formula if given enough time.
 The SeCaV Prover produces human-readable proofs in the SeCaV system, which means that users can verify the proofs by hand, and study them to understand why a formula is valid.
 
 The prover is implemented and verified in Isabelle, with some supporting functions implemented in Haskell.
@@ -52,7 +52,7 @@ secav-prover "Imp P P"
 If the formula is valid, the prover will then output a proof of the formula in SeCaV Unshortener syntax on standard output.
 If the formula is not valid, the prover will loop forever, possibly printing parts of the failed proof tree as it goes.
 For proof-theoretical reasons, there is generally no way to determine whether the prover is working on a proof that may still finish or is in an infinite loop.
-For small formulas, however, the prover should finish very quickly if the formula is provable.
+For small formulas, however, the prover should finish very quickly if the formula is valid.
 
 If you would like the proof in Isabelle syntax instead, you may give a filename to write an Isabelle proof to using the `-i` (or `--isabelle`) switch, e.g.:
 ```
