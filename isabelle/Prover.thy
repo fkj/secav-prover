@@ -27,8 +27,7 @@ Before defining what the rules do, we need to define a number of auxiliary funct
 semantics of the rules.\<close>
 
 text \<open>listFunTm is a list of function and constant names in a term\<close>
-primrec listFunTm :: \<open>tm \<Rightarrow> nat list\<close>
-  and listFunTms :: \<open>tm list \<Rightarrow> nat list\<close>where
+primrec listFunTm :: \<open>tm \<Rightarrow> nat list\<close> and listFunTms :: \<open>tm list \<Rightarrow> nat list\<close>where
   \<open>listFunTm (Fun n ts) = n # listFunTms ts\<close>
 | \<open>listFunTm (Var n) = []\<close>
 | \<open>listFunTms [] = []\<close>
@@ -37,13 +36,6 @@ primrec listFunTm :: \<open>tm \<Rightarrow> nat list\<close>
 text \<open>generateNew uses the \<open>listFunTms\<close> function to obtain a fresh function index\<close>
 definition generateNew :: \<open>tm list \<Rightarrow> nat\<close> where
   \<open>generateNew z \<equiv> 1 + foldr max (listFunTms z) 0\<close>
-
-fun flatten :: \<open>'a list option list \<Rightarrow> 'a list option\<close> where
-  \<open>flatten [] = Some []\<close>
-| \<open>flatten (None # _) = None\<close>
-| \<open>flatten (Some x # xs) = (case flatten xs of
-                             None \<Rightarrow> None
-                           | Some ys \<Rightarrow> Some (x @ ys))\<close>
 
 text \<open>subtermTm returns a list of all terms occurring within a term\<close>
 primrec subtermTm :: \<open>tm \<Rightarrow> tm list\<close> where
@@ -60,6 +52,8 @@ primrec subtermFm :: \<open>fm \<Rightarrow> tm list\<close> where
 | \<open>subtermFm (Uni f) = subtermFm f\<close>
 | \<open>subtermFm (Neg f) = subtermFm f\<close>
 
+abbreviation \<open>subtermFms ps \<equiv> concat (map subtermFm ps)\<close>
+
 text \<open>subterms returns a list of all terms occurring within a sequent.
       This is used to determine which terms to instantiate Gamma-formulas with.
       We must always be able to instantiate Gamma-formulas, so if there are no terms in the sequent,
@@ -67,10 +61,10 @@ text \<open>subterms returns a list of all terms occurring within a sequent.
   (* This needs to do even more: functions of bound variables should also not be instantiated - I think?
    Check Grandfather proof to see why - it creates new free variables
    We have functions unlike Ben-Ari, so we need to handle functions of bound variables as well *)
-fun subterms :: \<open>sequent \<Rightarrow> tm list\<close> where
-  \<open>subterms s = (case remdups (concat (map subtermFm s)) of
+definition subterms :: \<open>sequent \<Rightarrow> tm list\<close> where
+  \<open>subterms s \<equiv> case remdups (concat (map subtermFm s)) of
                 [] \<Rightarrow> [Fun 0 []]
-              | ts \<Rightarrow> ts)\<close>
+              | ts \<Rightarrow> ts\<close>
 
 text \<open>We need to be able to detect if a branch can be closed by the Basic rule so we know whether
 to do anything in a Basic phase or just skip it.
@@ -81,15 +75,8 @@ fun branchDone :: \<open>sequent \<Rightarrow> bool\<close> where
 | \<open>branchDone (Neg p # z) = (p \<in> set z \<or> Neg (Neg p) \<in> set z \<or> branchDone z)\<close>
 | \<open>branchDone (p # z) = (Neg p \<in> set z \<or> branchDone z)\<close>
 
-lemma pinz_done: \<open>Neg p \<in> set z \<Longrightarrow> branchDone (p # z)\<close>
-  by (cases p; simp)
-
-lemma branchDone: \<open>p \<in> set ps \<Longrightarrow> Neg p \<in> set ps \<Longrightarrow> branchDone ps\<close>
-  by (induct ps rule: branchDone.induct) auto
-
 section \<open>Effects of rules\<close>
 
-(* TODO: do this on fsets instead if we convert at the end anyway? *)
 definition parts :: \<open>tm list \<Rightarrow> rule \<Rightarrow> fm \<Rightarrow> fm list list\<close> where
   \<open>parts A r f = (case (r, f) of
       (NegNeg, Neg (Neg p)) \<Rightarrow> [[p]]
@@ -109,15 +96,11 @@ primrec list_prod :: \<open>'a list list \<Rightarrow> 'a list list \<Rightarrow
   \<open>list_prod _ [] = []\<close>
 | \<open>list_prod hs (t # ts) = map (\<lambda>h. h @ t) hs @ list_prod hs ts\<close>
 
-lemma list_prod_is_cartesian: \<open>set (list_prod hs ts) = {h @ t |h t. h \<in> set hs \<and> t \<in> set ts}\<close>
-  by (induct ts) auto
-
-abbreviation \<open>subtermFms ps \<equiv> concat (map subtermFm ps)\<close>
-
 primrec effect' :: \<open>tm list \<Rightarrow> rule \<Rightarrow> sequent \<Rightarrow> sequent list\<close> where
   \<open>effect' _ _ [] = [[]]\<close>
-| \<open>effect' A r (f # z) = list_prod (parts A r f)
-    (effect' (remdups (A @ subtermFms (concat (parts A r f)))) r z)\<close>
+| \<open>effect' A r (f # z) =
+  (let hs = parts A r f; A' = remdups (A @ subtermFms (concat (parts A r f)))
+   in list_prod hs (effect' A' r z))\<close>
 
 type_synonym state = \<open>tm list \<times> sequent\<close>
 
@@ -161,5 +144,7 @@ interpretation PersistentRuleSystem eff rules UNIV
 
 section \<open>The prover function\<close>
 definition \<open>secavProver \<equiv> mkTree rules\<close>
+
+(* TODO: abbreviations here? *)
 
 end

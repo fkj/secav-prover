@@ -1,6 +1,37 @@
 theory ProverLemmas imports Prover begin
 
-text \<open>Fairness\<close>
+section \<open>SeCaV Lemmas\<close>
+
+lemma paramst_liftt [simp]:
+  \<open>paramst (liftt t) = paramst t\<close> \<open>paramsts (liftts ts) = paramsts ts\<close>
+  by (induct t and ts rule: liftt.induct liftts.induct) auto
+
+lemma paramst_sub_term:
+  \<open>paramst (sub_term m s t) \<subseteq> paramst s \<union> paramst t\<close>
+  \<open>paramsts (sub_list m s l) \<subseteq> paramst s \<union> paramsts l\<close>
+  by (induct t and l rule: sub_term.induct sub_list.induct) auto
+
+lemma params_sub: \<open>params (sub m t p) \<subseteq> paramst t \<union> params p\<close>
+proof (induct p arbitrary: m t)
+  case (Pre x1 x2)
+  then show ?case
+    using paramst_sub_term(2) by simp
+qed fastforce+
+
+abbreviation \<open>paramss A \<equiv> \<Union>p \<in> set A. params p\<close>
+
+lemma news_paramss: \<open>news i ps \<longleftrightarrow> i \<notin> paramss ps\<close>
+  by (induct ps) auto
+
+lemma paramsts_subset: \<open>set A \<subseteq> set B \<Longrightarrow> paramsts A \<subseteq> paramsts B\<close>
+  by (induct A) auto
+
+text \<open>Substituting a variable by a term does not change the depth of a formula
+(only the term size changes)\<close>
+lemma size_sub [simp]: \<open>size (sub i t p) = size p\<close>
+  by (induct p arbitrary: i t) auto
+
+section \<open>Fairness\<close>
 
 primrec next_rule :: \<open>rule \<Rightarrow> rule\<close> where
   \<open>next_rule NegNeg = AlphaImp\<close>
@@ -104,14 +135,14 @@ proof -
     then obtain m where r: \<open>r = rules !! m\<close> unfolding sset_range by blast
     { fix n :: nat and rs let ?rules = \<open>\<lambda>n. sdrop n rules\<close>
       assume \<open>n > 0\<close>
-      hence \<open>alw (ev (holds ((=) r))) (rs @- ?rules n)\<close>
+      then have \<open>alw (ev (holds ((=) r))) (rs @- ?rules n)\<close>
       proof (coinduction arbitrary: n rs)
         case alw
         show ?case
         proof (rule exI[of _ \<open>rs @- ?rules n\<close>], safe)
           show \<open>\<exists>n' rs'. stl (rs @- ?rules n) = rs' @- ?rules n' \<and> n' > 0\<close>
           proof (cases rs)
-            case Nil thus ?thesis unfolding alw
+            case Nil then show ?thesis unfolding alw
               by (metis sdrop_simps(2) shift.simps(1) zero_less_Suc)
           qed (auto simp: alw intro: exI[of _ n])
         next
@@ -123,12 +154,15 @@ proof -
       qed
     }
   }
-  thus \<open>fair rules\<close> unfolding fair_def
+  then show \<open>fair rules\<close> unfolding fair_def
     by (metis (full_types) alw_iff_sdrop ev_holds_sset neq0_conv order_refl sdrop.simps(1)
         stake_sdrop)
 qed
 
-text \<open>Substitution\<close>
+section \<open>Substitution\<close>
+
+lemma subtermTm_le: \<open>t \<in> set (subtermTm s) \<Longrightarrow> set (subtermTm t) \<subseteq> set (subtermTm s)\<close>
+  by (induct s) auto
 
 lemma sub_term_const_transfer:
   \<open>Fun a [] \<notin> set (subtermTm (sub_term m (Fun a []) t)) \<Longrightarrow>
@@ -184,30 +218,44 @@ proof -
   proof (cases \<open>ts = {}\<close>)
     case True
     then show ?thesis
-      by simp (metis * True list.simps(15) list.simps(4) set_empty2 ts_def)
+      unfolding subterms_def ts_def using *
+      by (metis list.simps(15) list.simps(4) set_empty)
   next
     case False
     then show ?thesis
-      by simp (metis * empty_set list.exhaust list.simps(5) ts_def)
+      unfolding subterms_def ts_def using *
+      by (metis empty_set list.exhaust list.simps(5))
   qed
 qed
 
-text \<open>Unaffected formulas\<close>
+lemma paramst_subtermTm:
+  \<open>\<forall>i \<in> paramst t. \<exists>l. Fun i l \<in> set (subtermTm t)\<close>
+  \<open>\<forall>i \<in> paramsts ts. \<exists>l. Fun i l \<in> (\<Union>t \<in> set ts. set (subtermTm t))\<close>
+  by (induct t and ts rule: paramst.induct paramsts.induct) fastforce+
 
-definition affects :: \<open>rule \<Rightarrow> fm \<Rightarrow> bool\<close> where
-  \<open>affects r p \<equiv> case (r, p) of
-    (AlphaDis, Dis _ _) \<Rightarrow> True
-  | (AlphaImp, Imp _ _) \<Rightarrow> True
-  | (AlphaCon, Neg (Con _ _)) \<Rightarrow> True
-  | (BetaCon, Con _ _) \<Rightarrow> True
-  | (BetaImp, Neg (Imp _ _)) \<Rightarrow> True
-  | (BetaDis, Neg (Dis _ _)) \<Rightarrow> True
-  | (DeltaUni, Uni _) \<Rightarrow> True
-  | (DeltaExi, Neg (Exi _)) \<Rightarrow> True
-  | (NegNeg, Neg (Neg _)) \<Rightarrow> True
-  | (GammaExi, Exi _) \<Rightarrow> False
-  | (GammaUni, Neg (Uni _)) \<Rightarrow> False
-  | (_,  _) \<Rightarrow> False\<close>
+lemma params_subtermFm: \<open>\<forall>i \<in> params p. \<exists>l. Fun i l \<in> set (subtermFm p)\<close>
+proof (induct p)
+  case (Pre x1 x2)
+  then show ?case
+    using paramst_subtermTm by simp
+qed auto
+
+lemma subtermTm_paramst:
+  \<open>\<forall>s \<in> set (subtermTm t). s = Fun i l \<longrightarrow> i \<in> paramst t\<close>
+  \<open>\<forall>s \<in> (\<Union>t \<in> set ts. set (subtermTm t)). s = Fun i l \<longrightarrow> i \<in> paramsts ts\<close>
+  by (induct t and ts rule: paramst.induct paramsts.induct) auto
+
+lemma subtermFm_params: \<open>\<forall>t \<in> set (subtermFm p). t = Fun i l \<longrightarrow> i \<in> params p\<close>
+proof (induct p)
+  case (Pre x1 x2)
+  then show ?case
+    using subtermTm_paramst by simp
+qed auto
+
+lemma subtermFm_subset_params: \<open>set (subtermFm p) \<subseteq> set A \<Longrightarrow> params p \<subseteq> paramsts A\<close>
+  using params_subtermFm by force
+
+section \<open>Custom cases\<close>
 
 lemma Neg_exhaust:
   \<open>(\<And>i ts. x = Pre i ts \<Longrightarrow> P) \<Longrightarrow>
@@ -313,6 +361,23 @@ next
   qed (simp_all add: parts_def)
 qed (cases x rule: Neg_exhaust, simp_all add: parts_def)+
 
+section \<open>Unaffected formulas\<close>
+
+definition affects :: \<open>rule \<Rightarrow> fm \<Rightarrow> bool\<close> where
+  \<open>affects r p \<equiv> case (r, p) of
+    (AlphaDis, Dis _ _) \<Rightarrow> True
+  | (AlphaImp, Imp _ _) \<Rightarrow> True
+  | (AlphaCon, Neg (Con _ _)) \<Rightarrow> True
+  | (BetaCon, Con _ _) \<Rightarrow> True
+  | (BetaImp, Neg (Imp _ _)) \<Rightarrow> True
+  | (BetaDis, Neg (Dis _ _)) \<Rightarrow> True
+  | (DeltaUni, Uni _) \<Rightarrow> True
+  | (DeltaExi, Neg (Exi _)) \<Rightarrow> True
+  | (NegNeg, Neg (Neg _)) \<Rightarrow> True
+  | (GammaExi, Exi _) \<Rightarrow> False
+  | (GammaUni, Neg (Uni _)) \<Rightarrow> False
+  | (_,  _) \<Rightarrow> False\<close>
+
 lemma parts_preserves_unaffected:
   assumes \<open>\<not> affects r p\<close> \<open>qs \<in> set (parts A r p)\<close>
   shows \<open>p \<in> set qs\<close>
@@ -324,6 +389,9 @@ lemma parts_not_Nil: \<open>parts A r p \<noteq> []\<close>
 
 lemma parts_all_inhabited: \<open>[] \<notin> set (parts A r p)\<close>
   by (cases r p rule: parts_exhaust) (simp_all add: parts_def)
+
+lemma list_prod_is_cartesian: \<open>set (list_prod hs ts) = {h @ t |h t. h \<in> set hs \<and> t \<in> set ts}\<close>
+  by (induct ts) auto
 
 lemma set_effect'_Cons:
   \<open>set (effect' A r (p # ps)) =
@@ -344,7 +412,7 @@ lemma effect_preserves_unaffected:
   unfolding effect_def
   by (smt (verit, best) Pair_inject femptyE fimageE fset_of_list_elem old.prod.case)
 
-text \<open>Affected formulas\<close>
+section \<open>Affected formulas\<close>
 
 lemma parts_in_effect':
   assumes \<open>p \<in> set ps\<close> \<open>qs \<in> set (effect' A r ps)\<close>
@@ -365,8 +433,7 @@ next
     case False
     then show ?thesis
       using Cons set_effect'_Cons
-      apply (simp add: subset_code(1))
-      by (metis (mono_tags, lifting) Un_iff set_append set_remdups)
+      by (smt (verit, del_insts) le_sup_iff mem_Collect_eq set_ConsD set_append set_remdups subset_trans sup_ge2)
   qed
 qed
 
@@ -384,5 +451,101 @@ corollary \<open>\<not> branchDone ps \<Longrightarrow> Neg (Neg p) \<in> set ps
 corollary \<open>\<not> branchDone ps \<Longrightarrow> Neg (Uni p) \<in> set ps \<Longrightarrow> (B, qs) |\<in>| effect GammaUni (A, ps) \<Longrightarrow>
     set (map (\<lambda>t. Neg (sub 0 t p)) A) \<subseteq> set qs\<close>
   using parts_in_effect unfolding parts_def by fastforce
+
+lemma eff_effect':
+  assumes \<open>\<not> branchDone ps\<close> \<open>eff r (A, ps) ss\<close>
+  shows \<open>\<forall>qs \<in> set (effect' (remdups (A @ subtermFms ps)) r ps). \<exists>B. (B, qs) |\<in>| ss\<close>
+  using assms unfolding eff_def using fset_of_list_elem by fastforce
+
+lemma eff_preserves_Nil:
+  assumes \<open>eff r (A, []) sl\<close> \<open>(B, s) |\<in>| sl\<close>
+  shows \<open>s = []\<close>
+  using assms unfolding eff_def effect_def by auto
+
+lemma eff_Nil_not_empty:
+  assumes \<open>eff r (A, []) sl\<close>
+  shows \<open>sl \<noteq> {||}\<close>
+  using assms unfolding eff_def effect_def by auto
+
+section \<open>generateNew\<close>
+
+lemma foldr_max:
+  fixes xs :: \<open>nat list\<close>
+  shows \<open>foldr max xs 0 = (if xs = [] then 0 else Max (set xs))\<close>
+  by (induct xs) simp_all
+
+lemma Suc_max_new:
+  fixes xs :: \<open>nat list\<close>
+  shows \<open>Suc (foldr max xs 0) \<notin> set xs\<close>
+proof (cases xs)
+  case Nil
+  then show ?thesis
+    by simp
+next
+  case (Cons x xs)
+  then have \<open>foldr max (x # xs) 0 = Max (set (x # xs))\<close>
+    using foldr_max by simp
+  then show ?thesis
+    using Cons by (metis List.finite_set Max.insert add_0 empty_iff list.set(2) max_0_1(2)
+        n_not_Suc_n nat_add_max_left plus_1_eq_Suc remdups.simps(2) set_remdups)
+qed
+
+lemma listFunTm_paramst: \<open>set (listFunTm t) = paramst t\<close> \<open>set (listFunTms ts) = paramsts ts\<close>
+  by (induct t and ts rule: paramst.induct paramsts.induct) auto
+
+lemma generateNew_new: \<open>Fun (generateNew A) l \<notin> set A\<close>
+  unfolding generateNew_def using Suc_max_new listFunTm_paramst(2) by fastforce
+
+section \<open>branchDone\<close>
+
+lemma branchDone_contradiction: \<open>branchDone ps \<longleftrightarrow>  (\<exists>p. p \<in> set ps \<and> Neg p \<in> set ps)\<close>
+  by (induct ps rule: branchDone.induct) auto
+
+section \<open>Subterms\<close>
+
+lemma subtermTm_refl [simp]: \<open>t \<in> set (subtermTm t)\<close>
+  by (induct t) simp_all
+
+lemma subterm_Pre_refl: \<open>set ts \<subseteq> set (subtermFm (Pre n ts))\<close>
+  by (induct ts) auto
+
+lemma subterm_Fun_refl: \<open>set ts \<subseteq> set (subtermTm (Fun n ts))\<close>
+  by (induct ts) auto
+
+lemma subtermTm_Fun:
+  assumes \<open>t \<in> set ts\<close>
+  shows \<open>t \<in> set (subtermTm (Fun i ts))\<close>
+  using assms by (meson subset_eq subterm_Fun_refl)
+
+primrec preds :: \<open>fm \<Rightarrow> fm set\<close> where
+  \<open>preds (Pre n ts) = {Pre n ts}\<close>
+| \<open>preds (Imp f1 f2) = preds f1 \<union> preds f2\<close>
+| \<open>preds (Dis f1 f2) = preds f1 \<union> preds f2\<close>
+| \<open>preds (Con f1 f2) = preds f1 \<union> preds f2\<close>
+| \<open>preds (Exi f) = preds f\<close>
+| \<open>preds (Uni f) = preds f\<close>
+| \<open>preds (Neg f) = preds f\<close>
+
+lemma subtermFm_preds: \<open>t \<in> set (subtermFm p) \<longleftrightarrow> (\<exists>pre \<in> preds p. t \<in> set (subtermFm pre))\<close>
+  by (induct p) auto
+
+lemma preds_shape: \<open>pre \<in> preds p \<Longrightarrow> \<exists>n ts. pre = Pre n ts\<close>
+  by (induct p) auto
+
+lemma fun_arguments_subterm:
+  assumes \<open>Fun n ts \<in> set (subtermFm p)\<close>
+  shows \<open>set ts \<subseteq> set (subtermFm p)\<close>
+proof -
+  obtain pre where pre: \<open>pre \<in> preds p\<close> \<open>Fun n ts \<in> set (subtermFm pre)\<close>
+    using assms subtermFm_preds by blast
+  then obtain n' ts' where \<open>pre = Pre n' ts'\<close>
+    using preds_shape by blast
+  then have \<open>set ts \<subseteq> set (subtermFm pre)\<close>
+    using subtermTm_le pre by force
+  then have \<open>set ts \<subseteq> set (subtermFm p)\<close>
+    using pre subtermFm_preds by blast
+  then show ?thesis
+    by blast
+qed
 
 end
