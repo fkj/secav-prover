@@ -1,15 +1,16 @@
 chapter SeCaV
 
 session SeCaV_Prover = "HOL-Library" +
-  options [document = pdf, document_output = "output", timeout = 100000]
+  options [timeout = 300]
   sessions
     Collections
     Abstract_Completeness
     Abstract_Soundness
+    FOL_Seq_Calc1
   theories
-    Abstract_Completeness.Abstract_Completeness
-    Abstract_Soundness.Finite_Proof_Soundness
     SeCaV
+    Sequent1
+    Sequent_Calculus_Verifier
     Prover
     ProverLemmas
     Export
@@ -17,5 +18,3 @@ session SeCaV_Prover = "HOL-Library" +
     Countermodel
     Soundness
     Completeness
-  document_files
-    "root.tex"
