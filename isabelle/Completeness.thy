@@ -61,31 +61,36 @@ lemma epath_lem:
   using assms epath_prover_completeness t_def by blast
 
 lemma epath_contr:
-  assumes \<open>\<tturnstile> [p]\<close>
+  assumes \<open>\<forall>(u :: tm set) e f g. is_env u e \<longrightarrow> is_fdenot u f \<longrightarrow> usemantics u e f g p\<close>
   shows \<open>\<nexists> steps. fst (shd steps) = (A, [p]) \<and> epath steps \<and> Saturated steps\<close>
-proof (rule ccontr, simp)
-  show \<open>\<exists> steps. epath steps \<and> fst (shd steps) = (A, [p]) \<and> Saturated steps \<Longrightarrow> False\<close>
-  proof -
-    assume ep: \<open>\<exists> steps. epath steps \<and> fst (shd steps) = (A, [p]) \<and> Saturated steps\<close>
-    obtain u f g and e :: \<open>nat \<Rightarrow> tm\<close> where
-      \<open>\<not> usemantics u e f g p\<close> \<open>is_env u e\<close> \<open>is_fdenot u f\<close>
-      using ep epath_countermodel by blast
-    with assms show False using sound_usemantics by fastforce
-  qed
+proof (rule ccontr, safe)
+  fix steps
+  assume \<open>fst (shd steps) = (A, [p])\<close> \<open>epath steps\<close> \<open>Saturated steps\<close>
+  then obtain u f g and e :: \<open>nat \<Rightarrow> tm\<close> where
+    \<open>\<not> usemantics u e f g p\<close> \<open>is_env u e\<close> \<open>is_fdenot u f\<close>
+    using epath_countermodel by blast
+  with assms show False
+    by simp
 qed
 
 text \<open>Finally, we arrive at the main theorem\<close>
 theorem completeness:
   fixes A :: \<open>tm list\<close>
-  assumes \<open>\<tturnstile> [p]\<close>
+  assumes \<open>\<forall>(u :: tm set) e f g. is_env u e \<longrightarrow> is_fdenot u f \<longrightarrow> usemantics u e f g p\<close>
   defines \<open>t \<equiv> secavProver (A, [p])\<close>
   shows \<open>fst (root t) = (A, [p]) \<and> wf t \<and> tfinite t\<close>
   by (simp add: assms epath_contr epath_lem epath_prover_completeness)
 
-corollary
+corollary completeness_SeCaV:
+  fixes A :: \<open>tm list\<close>
   assumes \<open>\<tturnstile> [p]\<close>
-  defines \<open>t \<equiv> secavProver ([], [p])\<close>
-  shows \<open>fst (root t) = ([], [p]) \<and> wf t \<and> tfinite t\<close>
-  using completeness assms by blast
+  defines \<open>t \<equiv> secavProver (A, [p])\<close>
+  shows \<open>fst (root t) = (A, [p]) \<and> wf t \<and> tfinite t\<close>
+proof -
+  have \<open>\<forall>(u :: tm set) e f g. is_env u e \<longrightarrow> is_fdenot u f \<longrightarrow> usemantics u e f g p\<close>
+    using assms sound_usemantics by fastforce
+  then show ?thesis
+    using assms completeness by blast
+qed
 
 end
