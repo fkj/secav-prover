@@ -1,5 +1,5 @@
 theory Completeness
-  imports Countermodel "HOL-Library.BNF_Corec"
+  imports Countermodel "Sequent_Calculus_Verifier" "HOL-Library.BNF_Corec"
 begin
 
 section \<open>Completeness of the prover\<close>
@@ -74,7 +74,8 @@ proof (rule ccontr, safe)
 qed
 
 text \<open>Finally, we arrive at the main theorem\<close>
-theorem completeness:
+
+theorem completeness_usemantics:
   fixes A :: \<open>tm list\<close>
   assumes \<open>\<forall>(u :: tm set) e f g. is_env u e \<longrightarrow> is_fdenot u f \<longrightarrow> usemantics u e f g p\<close>
   defines \<open>t \<equiv> secavProver (A, [p])\<close>
@@ -90,7 +91,19 @@ proof -
   have \<open>\<forall>(u :: tm set) e f g. is_env u e \<longrightarrow> is_fdenot u f \<longrightarrow> usemantics u e f g p\<close>
     using assms sound_usemantics by fastforce
   then show ?thesis
-    using assms completeness by blast
+    using assms completeness_usemantics by blast
+qed
+
+corollary completeness_semantics:
+  fixes A :: \<open>tm list\<close>
+  assumes \<open>\<forall>(e :: nat \<Rightarrow> nat hterm) f g. semantics e f g p\<close>
+  defines \<open>t \<equiv> secavProver (A, [p])\<close>
+  shows \<open>fst (root t) = (A, [p]) \<and> wf t \<and> tfinite t\<close>
+proof -
+  have \<open>\<tturnstile> [p]\<close>
+    using assms complete_sound(1) by blast
+  then show ?thesis
+    using assms completeness_SeCaV by blast
 qed
 
 end

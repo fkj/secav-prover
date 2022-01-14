@@ -424,24 +424,19 @@ proof safe
   qed
 qed
 
-theorem prover_soundness:
+theorem prover_soundness_SeCaV:
+  assumes \<open>tfinite t\<close> \<open>wf t\<close>
+  shows \<open>\<tturnstile> (snd (fst (root t)))\<close>
+  using assms soundness prod.exhaust by fastforce
+
+corollary prover_soundness_usemantics:
   assumes \<open>tfinite t\<close> \<open>wf t\<close> \<open>is_env u e\<close> \<open>is_fdenot u f\<close>
   shows \<open>\<exists>p \<in> set (snd (fst (root t))). usemantics u e f g p\<close>
-proof -
-  have \<open>\<tturnstile> (snd (fst (root t)))\<close>
-    using soundness assms prod.exhaust by fastforce
-  then show ?thesis
-    using assms sound_usemantics by blast
-qed
+  using assms prover_soundness_SeCaV sound_usemantics by blast
 
 corollary prover_soundness_semantics:
   assumes \<open>tfinite t\<close> \<open>wf t\<close>
   shows \<open>\<exists>p \<in> set (snd (fst (root t))). semantics e f g p\<close>
-proof -
-  have \<open>\<tturnstile> (snd (fst (root t)))\<close>
-    using soundness assms prod.exhaust by fastforce
-  then show ?thesis
-    using sound by blast
-qed
+  using assms prover_soundness_SeCaV sound by blast
 
 end
