@@ -1,12 +1,8 @@
 theory Soundness
-  imports ProverLemmas
+  imports ProverLemmas Countermodel (* TODO: move usemantics so we don't have to import this  *)
 begin
 
 section \<open>Soundness of the prover\<close>
-
-abbreviation ssemantics
-  :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> (nat \<Rightarrow> 'a list \<Rightarrow> 'a) \<Rightarrow> (nat \<Rightarrow> 'a list \<Rightarrow> bool) \<Rightarrow> sequent \<Rightarrow> bool\<close>
-  where \<open>ssemantics e f g ps \<equiv> \<exists>p \<in> set ps. semantics e f g p\<close>
 
 lemma eff_preserves_Nil:
   assumes \<open>eff r (A, []) sl\<close> \<open>(B, s) |\<in>| sl\<close>
@@ -429,9 +425,18 @@ proof safe
 qed
 
 theorem prover_soundness:
-  fixes t
-  assumes f: \<open>tfinite t\<close> and w: \<open>wf t\<close>
-  shows \<open>ssemantics e f g (snd (fst (root t)))\<close>
+  assumes \<open>tfinite t\<close> \<open>wf t\<close> \<open>is_env u e\<close> \<open>is_fdenot u f\<close>
+  shows \<open>\<exists>p \<in> set (snd (fst (root t))). usemantics u e f g p\<close>
+proof -
+  have \<open>\<tturnstile> (snd (fst (root t)))\<close>
+    using soundness assms prod.exhaust by fastforce
+  then show ?thesis
+    using assms sound_usemantics by blast
+qed
+
+corollary prover_soundness_semantics:
+  assumes \<open>tfinite t\<close> \<open>wf t\<close>
+  shows \<open>\<exists>p \<in> set (snd (fst (root t))). semantics e f g p\<close>
 proof -
   have \<open>\<tturnstile> (snd (fst (root t)))\<close>
     using soundness assms prod.exhaust by fastforce
