@@ -99,7 +99,7 @@ primrec list_prod :: \<open>'a list list \<Rightarrow> 'a list list \<Rightarrow
 primrec effect' :: \<open>tm list \<Rightarrow> rule \<Rightarrow> sequent \<Rightarrow> sequent list\<close> where
   \<open>effect' _ _ [] = [[]]\<close>
 | \<open>effect' A r (f # z) =
-  (let hs = parts A r f; A' = remdups (A @ subtermFms (concat (parts A r f)))
+  (let hs = parts A r f; A' = remdups (A @ subtermFms (concat hs))
    in list_prod hs (effect' A' r z))\<close>
 
 type_synonym state = \<open>tm list \<times> sequent\<close>

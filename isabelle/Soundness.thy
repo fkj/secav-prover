@@ -26,7 +26,7 @@ next
     using paramsts_subset Cons.prems(2) by fastforce
 
   have \<open>\<forall>qs \<in> set (list_prod ?parts (effect' ?A r ps)). (\<tturnstile> pre @ qs)\<close>
-    using Cons.prems by simp
+    using Cons.prems by (metis effect'.simps(2))
   then have \<open>\<forall>qs \<in> {hs @ ts |hs ts. hs \<in> set ?parts \<and> ts \<in> set (effect' ?A r ps)}. (\<tturnstile> pre @ qs)\<close>
     using list_prod_is_cartesian by blast
   then have *: \<open>\<forall>hs \<in> set ?parts. \<forall>ts \<in> set (effect' ?A r ps). (\<tturnstile> pre @ hs @ ts)\<close>
