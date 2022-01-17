@@ -3,7 +3,12 @@ theory Hintikka
 begin
 
 section \<open>Definition of a Hintikka set for SeCaV\<close>
+text \<open>In this theory, we define the concept of a Hintikka set for SeCaV formulas.
+  The definition mirrors the SeCaV proof system such that Hintikka sets are downwards closed with
+  respect to the proof system.\<close>
 
+text \<open>This defines the set of all terms in a set of formulas (containing \<open>Fun 0 []\<close> if it would
+  otherwise be empty).\<close>
 definition
   \<open>terms H \<equiv> if (\<Union>p \<in> H. set (subtermFm p)) = {} then {Fun 0 []} else (\<Union>p \<in> H. set (subtermFm p))\<close>
 

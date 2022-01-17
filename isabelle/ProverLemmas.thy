@@ -1,16 +1,23 @@
 theory ProverLemmas imports Prover begin
 
-section \<open>SeCaV Lemmas\<close>
+text \<open>This theory contains a number of lemmas about the prover.
+We will need these when proving soundness and completeness.\<close>
 
+section \<open>SeCaV Lemmas\<close>
+text \<open>We need a few lemmas about the SeCaV system.\<close>
+
+text \<open>Incrementing variable indices does not change the function names in term or a list of terms.\<close>
 lemma paramst_liftt [simp]:
   \<open>paramst (liftt t) = paramst t\<close> \<open>paramsts (liftts ts) = paramsts ts\<close>
   by (induct t and ts rule: liftt.induct liftts.induct) auto
 
+text \<open>Subterms do not contain any functions except those in the original term\<close>
 lemma paramst_sub_term:
   \<open>paramst (sub_term m s t) \<subseteq> paramst s \<union> paramst t\<close>
   \<open>paramsts (sub_list m s l) \<subseteq> paramst s \<union> paramsts l\<close>
   by (induct t and l rule: sub_term.induct sub_list.induct) auto
 
+text \<open>Substituting a variable for a term does not introduce function names not in that term\<close>
 lemma params_sub: \<open>params (sub m t p) \<subseteq> paramst t \<union> params p\<close>
 proof (induct p arbitrary: m t)
   case (Pre x1 x2)
@@ -18,11 +25,13 @@ proof (induct p arbitrary: m t)
     using paramst_sub_term(2) by simp
 qed fastforce+
 
-abbreviation \<open>paramss A \<equiv> \<Union>p \<in> set A. params p\<close>
+abbreviation \<open>paramss z \<equiv> \<Union>p \<in> set z. params p\<close>
 
+text \<open>If a function name is fresh, it is not in the list of function names in the sequent\<close>
 lemma news_paramss: \<open>news i z \<longleftrightarrow> i \<notin> paramss z\<close>
   by (induct z) auto
 
+text \<open>If a list of terms is a subset of another, the set of function names in it is too\<close>
 lemma paramsts_subset: \<open>set A \<subseteq> set B \<Longrightarrow> paramsts A \<subseteq> paramsts B\<close>
   by (induct A) auto
 
@@ -32,7 +41,10 @@ lemma size_sub [simp]: \<open>size (sub i t p) = size p\<close>
   by (induct p arbitrary: i t) auto
 
 section \<open>Fairness\<close>
+text \<open>While fairness of the rule stream should be pretty trivial (since we are simply repeating a
+static list of rules forever), the proof is a bit involved.\<close>
 
+text \<open>This function tells us what rule comes next in the stream.\<close>
 primrec next_rule :: \<open>rule \<Rightarrow> rule\<close> where
   \<open>next_rule NegNeg = AlphaImp\<close>
 | \<open>next_rule AlphaImp = AlphaDis\<close>
@@ -46,6 +58,7 @@ primrec next_rule :: \<open>rule \<Rightarrow> rule\<close> where
 | \<open>next_rule GammaExi = GammaUni\<close>
 | \<open>next_rule GammaUni = NegNeg\<close>
 
+text \<open>This function tells us the index of a rule in the list of rules to repeat.\<close>
 primrec rule_index :: \<open>rule \<Rightarrow> nat\<close> where
   \<open>rule_index NegNeg = 0\<close>
 | \<open>rule_index AlphaImp = 1\<close>
@@ -59,12 +72,16 @@ primrec rule_index :: \<open>rule \<Rightarrow> nat\<close> where
 | \<open>rule_index GammaExi = 9\<close>
 | \<open>rule_index GammaUni = 10\<close>
 
+text \<open>The list of rules does not have any duplicates.
+This is important because we can then look up rules by their index.\<close>
 lemma distinct_rulesList: \<open>distinct rulesList\<close>
   unfolding rulesList_def by simp
 
+text \<open>If you cycle a list, it repeats every \<open>length\<close> elements.\<close>
 lemma cycle_nth: \<open>xs \<noteq> [] \<Longrightarrow> cycle xs !! n = xs ! (n mod length xs)\<close>
   by (metis cycle.sel(1) hd_rotate_conv_nth rotate_conv_mod sdrop_cycle sdrop_simps(1))
 
+text \<open>The rule index function can actually be used to look up rules in the list.\<close>
 lemma nth_rule_index: \<open>rulesList ! (rule_index r) = r\<close>
   unfolding rulesList_def by (cases r) simp_all
 
@@ -76,6 +93,7 @@ lemma unique_rule_index:
   shows \<open>n = rule_index r\<close>
   using assms nth_rule_index distinct_rulesList rule_index_bnd nth_eq_iff_index_eq by metis
 
+text \<open>The rule indices repeat in the stream each cycle.\<close>
 lemma rule_index_mod:
   assumes \<open>rules !! n = r\<close>
   shows \<open>n mod length rulesList = rule_index r\<close>
@@ -88,6 +106,7 @@ proof -
         unique_euclidean_semiring_numeral_class.pos_mod_bound)+
 qed
 
+text \<open>We need some lemmas about the modulo function to show that the rules repeat at the right rate.\<close>
 lemma mod_hit:
   fixes k :: nat
   assumes \<open>0 < k\<close>
@@ -111,6 +130,7 @@ lemma mod_suff:
   shows \<open>\<forall>i < k. P i\<close>
   using assms mod_hit by blast
 
+text \<open>It is possible to find an index that results in any given rule.\<close>
 lemma rules_repeat: \<open>\<exists>n > m. rules !! n = r\<close>
 proof (rule ccontr)
   assume \<open>\<not> (\<exists>n > m. rules !! n = r)\<close>
@@ -126,9 +146,11 @@ proof (rule ccontr)
     using rule_index_bnd by blast
 qed
 
+text \<open>It is possible to find such an index no matter where in the stream we start.\<close>
 lemma rules_repeat_sdrop: \<open>\<exists>n. (sdrop k rules) !! n = r\<close>
   using rules_repeat by (metis less_imp_add_positive sdrop_snth)
 
+text \<open>Using the lemma above, we prove that the stream of rules is fair by coinduction.\<close>
 lemma fair_rules: \<open>fair rules\<close>
 proof -
   { fix r assume \<open>r \<in> R\<close>
@@ -160,10 +182,13 @@ proof -
 qed
 
 section \<open>Substitution\<close>
+text \<open>We need some lemmas about substitution of variables for terms for the delta- and gamma-rules.\<close>
 
+text \<open>If a term is a subterm of another, so are all of its subterms.\<close>
 lemma subtermTm_le: \<open>t \<in> set (subtermTm s) \<Longrightarrow> set (subtermTm t) \<subseteq> set (subtermTm s)\<close>
   by (induct s) auto
 
+text \<open>Trying to substitute a variable that is not in the term (or list of terms) does nothing.\<close>
 lemma sub_term_const_transfer:
   \<open>Fun a [] \<notin> set (subtermTm (sub_term m (Fun a []) t)) \<Longrightarrow>
     sub_term m (Fun a []) t = sub_term m s t\<close>
@@ -171,6 +196,7 @@ lemma sub_term_const_transfer:
     sub_list m (Fun a []) ts = sub_list m s ts\<close>
  by (induct t and ts rule: sub_term.induct sub_list.induct) auto
 
+text \<open>Trying to substitute a variable that is not in the formula does nothing.\<close>
 lemma sub_const_transfer:
   assumes \<open>Fun a [] \<notin> set (subtermFm (sub m (Fun a []) p))\<close>
   shows \<open>sub m (Fun a []) p = sub m t p\<close>
@@ -207,6 +233,7 @@ next
     by (metis sub.simps(7) subtermFm.simps(7))
 qed
 
+text \<open>If the list of subterms is empty for all formulas in a sequent, constant 0 is used instead.\<close>
 lemma set_subterms:
   fixes z
   defines \<open>ts \<equiv> \<Union>p \<in> set z. set (subtermFm p)\<close>
@@ -228,6 +255,7 @@ proof -
   qed
 qed
 
+text \<open>The parameters and the subterm functions respect each other.\<close>
 lemma paramst_subtermTm:
   \<open>\<forall>i \<in> paramst t. \<exists>l. Fun i l \<in> set (subtermTm t)\<close>
   \<open>\<forall>i \<in> paramsts ts. \<exists>l. Fun i l \<in> (\<Union>t \<in> set ts. set (subtermTm t))\<close>
@@ -256,6 +284,7 @@ lemma subtermFm_subset_params: \<open>set (subtermFm p) \<subseteq> set A \<Long
   using params_subtermFm by force
 
 section \<open>Custom cases\<close>
+text \<open>Some proofs are more efficient with some custom case lemmas.\<close>
 
 lemma Neg_exhaust:
   \<open>(\<And>i ts. x = Pre i ts \<Longrightarrow> P) \<Longrightarrow>
@@ -362,7 +391,9 @@ next
 qed (cases x rule: Neg_exhaust, simp_all add: parts_def)+
 
 section \<open>Unaffected formulas\<close>
+text \<open>We need some lemmas to show that formulas to which rules do not apply are not lost.\<close>
 
+text \<open>This function returns True if the rule applies to the formula, and False otherwise.\<close>
 definition affects :: \<open>rule \<Rightarrow> fm \<Rightarrow> bool\<close> where
   \<open>affects r p \<equiv> case (r, p) of
     (AlphaDis, Dis _ _) \<Rightarrow> True
@@ -378,33 +409,42 @@ definition affects :: \<open>rule \<Rightarrow> fm \<Rightarrow> bool\<close> wh
   | (GammaUni, Neg (Uni _)) \<Rightarrow> False
   | (_,  _) \<Rightarrow> False\<close>
 
+text \<open>If a rule does not affect a formula, that formula will be in the sequent obtained after
+  applying the rule.\<close>
 lemma parts_preserves_unaffected:
   assumes \<open>\<not> affects r p\<close> \<open>z' \<in> set (parts A r p)\<close>
   shows \<open>p \<in> set z'\<close>
   using assms unfolding affects_def
   by (cases r p rule: parts_exhaust) (simp_all add: parts_def)
 
+text \<open>Applying a rule to a formula never results in an empty list of branches.\<close>
 lemma parts_not_Nil: \<open>parts A r p \<noteq> []\<close>
   by (cases r p rule: parts_exhaust) (simp_all add: parts_def)
 
+text \<open>Applying a rule to a formula never results in a branch with an empty sequent.\<close>
 lemma parts_all_inhabited: \<open>[] \<notin> set (parts A r p)\<close>
   by (cases r p rule: parts_exhaust) (simp_all add: parts_def)
 
+text \<open>The \<open>list_prod\<close> function computes the Cartesian product.\<close>
 lemma list_prod_is_cartesian: \<open>set (list_prod hs ts) = {h @ t |h t. h \<in> set hs \<and> t \<in> set ts}\<close>
   by (induct ts) auto
 
+text \<open>The \<open>children\<close> function produces the Cartesian product of the branches from the first formula
+and the branches from the rest of the sequent.\<close>
 lemma set_children_Cons:
   \<open>set (children A r (p # z)) =
     {hs @ ts |hs ts. hs \<in> set (parts A r p) \<and>
       ts \<in> set (children (remdups (A @ subtermFms (concat (parts A r p)))) r z)}\<close>
   using list_prod_is_cartesian by (metis children.simps(2))
 
+text \<open>The \<open>children\<close> function does not change unaffected formulas.\<close>
 lemma children_preserves_unaffected:
   assumes \<open>p \<in> set z\<close> \<open>\<not> affects r p\<close> \<open>z' \<in> set (children A r z)\<close>
   shows \<open>p \<in> set z'\<close>
   using assms parts_preserves_unaffected set_children_Cons
   by (induct z arbitrary: A z') auto
 
+text \<open>The \<open>effect\<close> function does not change unaffected formulas.\<close>
 lemma effect_preserves_unaffected:
   assumes \<open>p \<in> set z\<close> \<open>\<not> affects r p\<close> \<open>(B, z') |\<in>| effect r (A, z)\<close>
   shows \<open>p \<in> set z'\<close>
@@ -413,7 +453,11 @@ lemma effect_preserves_unaffected:
   by (smt (verit, best) Pair_inject femptyE fimageE fset_of_list_elem old.prod.case)
 
 section \<open>Affected formulas\<close>
+text \<open>We need some lemmas to show that formulas to which rules do apply are decomposed into their
+  constituent parts correctly.\<close>
 
+text \<open>If a formula occurs in a sequent on a child branch generated by \<open>children\<close>, it was part of
+  the current sequent.\<close>
 lemma parts_in_children:
   assumes \<open>p \<in> set z\<close> \<open>z' \<in> set (children A r z)\<close>
   shows \<open>\<exists>B xs. set A \<subseteq> set B \<and> xs \<in> set (parts B r p) \<and> set xs \<subseteq> set z'\<close>
@@ -437,6 +481,8 @@ next
   qed
 qed
 
+text \<open>The \<open>effect\<close> function decomposes formulas in the sequent using the \<open>parts\<close> function.
+(Unless the sequent is an axiom, in which case no child branches are generated.)\<close>
 lemma parts_in_effect:
   assumes \<open>p \<in> set z\<close> \<open>(B, z') |\<in>| effect r (A, z)\<close> \<open>\<not> branchDone z\<close>
   shows \<open>\<exists>C xs. set A \<subseteq> set C \<and> xs \<in> set (parts C r p) \<and> set xs \<subseteq> set z'\<close>
@@ -444,6 +490,7 @@ lemma parts_in_effect:
   by (smt (verit, ccfv_threshold) Pair_inject effect.simps fimageE fset_of_list_elem le_sup_iff
       set_append set_remdups)
 
+text \<open>Specifically, this applied to the double negation elimination rule and the GammaUni rule.\<close>
 corollary \<open>\<not> branchDone z \<Longrightarrow> Neg (Neg p) \<in> set z \<Longrightarrow>
     (B, z') |\<in>| effect NegNeg (A, z) \<Longrightarrow> p \<in> set z'\<close>
   using parts_in_effect unfolding parts_def by fastforce
@@ -452,22 +499,28 @@ corollary \<open>\<not> branchDone z \<Longrightarrow> Neg (Uni p) \<in> set z \
     set (map (\<lambda>t. Neg (sub 0 t p)) A) \<subseteq> set z'\<close>
   using parts_in_effect unfolding parts_def by fastforce
 
+text \<open>If the sequent is not an axiom, and the rule and sequent match, all of the child branches
+generated by \<open>children\<close> will be included in the proof tree.\<close>
 lemma eff_children:
   assumes \<open>\<not> branchDone z\<close> \<open>eff r (A, z) ss\<close>
   shows \<open>\<forall>z' \<in> set (children (remdups (A @ subtermFms z)) r z). \<exists>B. (B, z') |\<in>| ss\<close>
   using assms unfolding eff_def using fset_of_list_elem by fastforce
 
+text \<open>If the current sequent is empty, so are all later sequents.\<close>
 lemma eff_preserves_Nil:
   assumes \<open>eff r (A, []) sl\<close> \<open>(B, z) |\<in>| sl\<close>
   shows \<open>z = []\<close>
   using assms unfolding eff_def effect_def by auto
 
+text \<open>If the current sequent is empty, this branch of the proof tree does not end.\<close>
 lemma eff_Nil_not_empty:
   assumes \<open>eff r (A, []) sl\<close>
   shows \<open>sl \<noteq> {||}\<close>
   using assms unfolding eff_def effect_def by auto
 
 section \<open>generateNew\<close>
+text \<open>We need to show that the \<open>generateNew\<close> function actually generates new function names.
+  This requires a few lemmas about the interplay between \<open>max\<close> and \<open>foldr\<close>.\<close>
 
 lemma foldr_max:
   fixes xs :: \<open>nat list\<close>
@@ -498,25 +551,33 @@ lemma generateNew_new: \<open>Fun (generateNew A) ts \<notin> set A\<close>
 
 section \<open>branchDone\<close>
 
+text \<open>The \<open>branchDone\<close> function correctly determines whether a sequent is an axiom.\<close>
 lemma branchDone_contradiction: \<open>branchDone z \<longleftrightarrow> (\<exists>p. p \<in> set z \<and> Neg p \<in> set z)\<close>
   by (induct z rule: branchDone.induct) auto
 
 section \<open>Subterms\<close>
+text \<open>We need a few lemmas about the behaviour of our subterm functions.\<close>
 
+text \<open>Any term is a subterm of itself.\<close>
 lemma subtermTm_refl [simp]: \<open>t \<in> set (subtermTm t)\<close>
   by (induct t) simp_all
 
+text \<open>The arguments of a predicate are subterms of it.\<close>
 lemma subterm_Pre_refl: \<open>set ts \<subseteq> set (subtermFm (Pre n ts))\<close>
   by (induct ts) auto
 
+text \<open>The arguments of function are subterms of it.\<close>
 lemma subterm_Fun_refl: \<open>set ts \<subseteq> set (subtermTm (Fun n ts))\<close>
   by (induct ts) auto
 
+text \<open>A single argument of a function is a subterm of it.\<close>
 lemma subtermTm_Fun:
   assumes \<open>t \<in> set ts\<close>
   shows \<open>t \<in> set (subtermTm (Fun i ts))\<close>
   using assms by (meson subset_eq subterm_Fun_refl)
 
+text \<open>This function computes the predicates in a formula.
+  We will use this function to help prove the final lemma in this section.\<close>
 primrec preds :: \<open>fm \<Rightarrow> fm set\<close> where
   \<open>preds (Pre n ts) = {Pre n ts}\<close>
 | \<open>preds (Imp p q) = preds p \<union> preds q\<close>
@@ -526,12 +587,14 @@ primrec preds :: \<open>fm \<Rightarrow> fm set\<close> where
 | \<open>preds (Uni p) = preds p\<close>
 | \<open>preds (Neg p) = preds p\<close>
 
+text \<open>If a term is a subterm of a formula, it is a subterm of some predicate in the formula.\<close>
 lemma subtermFm_preds: \<open>t \<in> set (subtermFm p) \<longleftrightarrow> (\<exists>pre \<in> preds p. t \<in> set (subtermFm pre))\<close>
   by (induct p) auto
 
 lemma preds_shape: \<open>pre \<in> preds p \<Longrightarrow> \<exists>n ts. pre = Pre n ts\<close>
   by (induct p) auto
 
+text \<open>If a function is a subterm of a formula, so are the arguments of that function.\<close>
 lemma fun_arguments_subterm:
   assumes \<open>Fun n ts \<in> set (subtermFm p)\<close>
   shows \<open>set ts \<subseteq> set (subtermFm p)\<close>
