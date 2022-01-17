@@ -96,11 +96,11 @@ primrec list_prod :: \<open>'a list list \<Rightarrow> 'a list list \<Rightarrow
   \<open>list_prod _ [] = []\<close>
 | \<open>list_prod hs (t # ts) = map (\<lambda>h. h @ t) hs @ list_prod hs ts\<close>
 
-primrec effect' :: \<open>tm list \<Rightarrow> rule \<Rightarrow> sequent \<Rightarrow> sequent list\<close> where
-  \<open>effect' _ _ [] = [[]]\<close>
-| \<open>effect' A r (f # z) =
+primrec children :: \<open>tm list \<Rightarrow> rule \<Rightarrow> sequent \<Rightarrow> sequent list\<close> where
+  \<open>children _ _ [] = [[]]\<close>
+| \<open>children A r (f # z) =
   (let hs = parts A r f; A' = remdups (A @ subtermFms (concat hs))
-   in list_prod hs (effect' A' r z))\<close>
+   in list_prod hs (children A' r z))\<close>
 
 type_synonym state = \<open>tm list \<times> sequent\<close>
 
@@ -108,7 +108,7 @@ primrec effect :: \<open>rule \<Rightarrow> state \<Rightarrow> state fset\<clos
   \<open>effect r (A, s) =
   (if branchDone s then {||} else
     fimage (\<lambda>s'. (remdups (A @ subterms s @ subterms s'), s'))
-    (fset_of_list (effect' (remdups (A @ subtermFms s)) r s)))\<close>
+    (fset_of_list (children (remdups (A @ subtermFms s)) r s)))\<close>
 
 section \<open>The rule stream\<close>
 

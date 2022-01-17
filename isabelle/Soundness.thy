@@ -4,8 +4,8 @@ begin
 
 section \<open>Soundness of the prover\<close>
 
-lemma SeCaV_effect'_pre:
-  assumes \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ qs)\<close> \<open>paramss (pre @ ps) \<subseteq> paramsts A\<close> 
+lemma SeCaV_children_pre:
+  assumes \<open>\<forall>qs \<in> set (children A r ps). (\<tturnstile> pre @ qs)\<close> \<open>paramss (pre @ ps) \<subseteq> paramsts A\<close> 
   shows \<open>\<tturnstile> pre @ ps\<close>
   using assms
 proof (induct ps arbitrary: pre A)
@@ -14,7 +14,7 @@ proof (induct ps arbitrary: pre A)
     by simp
 next
   case (Cons p ps)
-  then have ih: \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> pre @ qs) \<Longrightarrow> (\<tturnstile> pre @ ps)\<close>
+  then have ih: \<open>\<forall>qs \<in> set (children A r ps). (\<tturnstile> pre @ qs) \<Longrightarrow> (\<tturnstile> pre @ ps)\<close>
     if \<open>paramss (pre @ ps) \<subseteq> paramsts A\<close>
     for pre A
     using that by simp
@@ -25,18 +25,18 @@ next
   have A: \<open>paramss (pre @ p # ps) \<subseteq> paramsts ?A\<close>
     using paramsts_subset Cons.prems(2) by fastforce
 
-  have \<open>\<forall>qs \<in> set (list_prod ?parts (effect' ?A r ps)). (\<tturnstile> pre @ qs)\<close>
-    using Cons.prems by (metis effect'.simps(2))
-  then have \<open>\<forall>qs \<in> {hs @ ts |hs ts. hs \<in> set ?parts \<and> ts \<in> set (effect' ?A r ps)}. (\<tturnstile> pre @ qs)\<close>
+  have \<open>\<forall>qs \<in> set (list_prod ?parts (children ?A r ps)). (\<tturnstile> pre @ qs)\<close>
+    using Cons.prems by (metis children.simps(2))
+  then have \<open>\<forall>qs \<in> {hs @ ts |hs ts. hs \<in> set ?parts \<and> ts \<in> set (children ?A r ps)}. (\<tturnstile> pre @ qs)\<close>
     using list_prod_is_cartesian by blast
-  then have *: \<open>\<forall>hs \<in> set ?parts. \<forall>ts \<in> set (effect' ?A r ps). (\<tturnstile> pre @ hs @ ts)\<close>
+  then have *: \<open>\<forall>hs \<in> set ?parts. \<forall>ts \<in> set (children ?A r ps). (\<tturnstile> pre @ hs @ ts)\<close>
     by blast
   then show ?case
   proof (cases r p rule: parts_exhaust)
     case (AlphaDis p q)
-    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ p # q # qs)\<close>
+    then have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> pre @ p # q # qs)\<close>
       using * unfolding parts_def by simp
-    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [p, q]) @ qs)\<close>
+    then have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> (pre @ [p, q]) @ qs)\<close>
       by simp
     then have \<open>\<tturnstile> pre @ p # q # ps\<close>
       using AlphaDis ih[where pre=\<open>pre @ [p, q]\<close> and A=\<open>?A\<close>] A by simp
@@ -48,9 +48,9 @@ next
       using AlphaDis Ext by simp
   next
     case (AlphaImp p q)
-    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ Neg p # q # qs)\<close>
+    then have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> pre @ Neg p # q # qs)\<close>
       using * unfolding parts_def by simp
-    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [Neg p, q]) @ qs)\<close>
+    then have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> (pre @ [Neg p, q]) @ qs)\<close>
       by simp
     then have \<open>\<tturnstile> pre @ Neg p # q # ps\<close>
       using AlphaImp ih[where pre=\<open>pre @ [Neg p, q]\<close> and A=\<open>?A\<close>] A by simp
@@ -62,9 +62,9 @@ next
       using AlphaImp Ext by simp
   next
     case (AlphaCon p q)
-    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ Neg p # Neg q # qs)\<close>
+    then have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> pre @ Neg p # Neg q # qs)\<close>
       using * unfolding parts_def by simp
-    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [Neg p, Neg q]) @ qs)\<close>
+    then have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> (pre @ [Neg p, Neg q]) @ qs)\<close>
       by simp
     then have \<open>\<tturnstile> pre @ Neg p # Neg q # ps\<close>
       using AlphaCon ih[where pre=\<open>pre @ [Neg p, Neg q]\<close> and A=\<open>?A\<close>] A by simp
@@ -77,12 +77,12 @@ next
   next
     case (BetaCon p q)
     then have
-      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ p # qs)\<close>
-      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ q # qs)\<close>
+      \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> pre @ p # qs)\<close>
+      \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> pre @ q # qs)\<close>
       using * unfolding parts_def by simp_all
     then have
-      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [p]) @ qs)\<close>
-      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [q]) @ qs)\<close>
+      \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> (pre @ [p]) @ qs)\<close>
+      \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> (pre @ [q]) @ qs)\<close>
       by simp_all
     then have \<open>\<tturnstile> pre @ p # ps\<close> \<open>\<tturnstile> pre @ q # ps\<close>
       using BetaCon ih[where pre=\<open>pre @ [_]\<close> and A=\<open>?A\<close>] A by simp_all
@@ -95,12 +95,12 @@ next
   next
     case (BetaImp p q)
     then have
-      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ p # qs)\<close>
-      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ Neg q # qs)\<close>
+      \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> pre @ p # qs)\<close>
+      \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> pre @ Neg q # qs)\<close>
       using * unfolding parts_def by simp_all
     then have
-      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [p]) @ qs)\<close>
-      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [Neg q]) @ qs)\<close>
+      \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> (pre @ [p]) @ qs)\<close>
+      \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> (pre @ [Neg q]) @ qs)\<close>
       by simp_all
     then have \<open>\<tturnstile> pre @ p # ps\<close> \<open>\<tturnstile> pre @ Neg q # ps\<close>
       using BetaImp ih ih[where pre=\<open>pre @ [_]\<close> and A=\<open>?A\<close>] A by simp_all
@@ -113,12 +113,12 @@ next
   next
     case (BetaDis p q)
     then have
-      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ Neg p # qs)\<close>
-      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ Neg q # qs)\<close>
+      \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> pre @ Neg p # qs)\<close>
+      \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> pre @ Neg q # qs)\<close>
       using * unfolding parts_def by simp_all
     then have
-      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [Neg p]) @ qs)\<close>
-      \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [Neg q]) @ qs)\<close>
+      \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> (pre @ [Neg p]) @ qs)\<close>
+      \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> (pre @ [Neg q]) @ qs)\<close>
       by simp_all
     then have \<open>\<tturnstile> pre @ Neg p # ps\<close> \<open>\<tturnstile> pre @ Neg q # ps\<close>
       using BetaDis ih[where pre=\<open>pre @ [_]\<close> and A=\<open>?A\<close>] A by simp_all
@@ -131,9 +131,9 @@ next
   next
     case (DeltaUni p)
     let ?i = \<open>generateNew A\<close>
-    have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ sub 0 (Fun ?i []) p # qs)\<close>
+    have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> pre @ sub 0 (Fun ?i []) p # qs)\<close>
       using DeltaUni * unfolding parts_def by simp
-    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [sub 0 (Fun ?i []) p]) @ qs)\<close>
+    then have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> (pre @ [sub 0 (Fun ?i []) p]) @ qs)\<close>
       by simp
     moreover have \<open>set (subtermFm (sub 0 (Fun ?i []) p)) \<subseteq> set ?A\<close>
       using DeltaUni unfolding parts_def by simp
@@ -154,9 +154,9 @@ next
   next
     case (DeltaExi p)
     let ?i = \<open>generateNew A\<close>
-    have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ Neg (sub 0 (Fun ?i []) p) # qs)\<close>
+    have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> pre @ Neg (sub 0 (Fun ?i []) p) # qs)\<close>
       using DeltaExi * unfolding parts_def by simp
-    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [Neg (sub 0 (Fun ?i []) p)]) @ qs)\<close>
+    then have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> (pre @ [Neg (sub 0 (Fun ?i []) p)]) @ qs)\<close>
       by simp
     moreover have \<open>set (subtermFm (sub 0 (Fun ?i []) p)) \<subseteq> set ?A\<close>
       using DeltaExi unfolding parts_def by simp
@@ -176,9 +176,9 @@ next
       using DeltaExi Ext by simp
   next
     case (NegNeg p)
-    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ p # qs)\<close>
+    then have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> pre @ p # qs)\<close>
       using * unfolding parts_def by simp
-    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [p]) @ qs)\<close>
+    then have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> (pre @ [p]) @ qs)\<close>
       by simp
     then have \<open>\<tturnstile> pre @ p # ps\<close>
       using NegNeg ih[where pre=\<open>pre @ [_]\<close> and A=\<open>?A\<close>] A by simp
@@ -190,9 +190,9 @@ next
       using NegNeg Ext by simp
   next
     case (GammaExi p)
-    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ Exi p # map (\<lambda>t. sub 0 t p) A @ qs)\<close>
+    then have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> pre @ Exi p # map (\<lambda>t. sub 0 t p) A @ qs)\<close>
       using * unfolding parts_def by simp
-    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> ((pre @ Exi p # map (\<lambda>t. sub 0 t p) A) @ qs))\<close>
+    then have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> ((pre @ Exi p # map (\<lambda>t. sub 0 t p) A) @ qs))\<close>
       by simp
     moreover have \<open>\<forall>t \<in> set A. params (sub 0 t p) \<subseteq> paramsts A \<union> params p\<close>
       using params_sub by fastforce
@@ -225,9 +225,9 @@ next
       using GammaExi Ext by simp
   next
     case (GammaUni p)
-    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> pre @ Neg (Uni p) # map (\<lambda>t. Neg (sub 0 t p)) A @ qs)\<close>
+    then have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> pre @ Neg (Uni p) # map (\<lambda>t. Neg (sub 0 t p)) A @ qs)\<close>
       using * unfolding parts_def by simp
-    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> ((pre @ Neg (Uni p) # map (\<lambda>t. Neg (sub 0 t p)) A) @ qs))\<close>
+    then have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> ((pre @ Neg (Uni p) # map (\<lambda>t. Neg (sub 0 t p)) A) @ qs))\<close>
       by simp
     moreover have \<open>\<forall>t \<in> set A. params (sub 0 t p) \<subseteq> paramsts A \<union> params p\<close>
       using params_sub by fastforce
@@ -260,7 +260,7 @@ next
       using GammaUni Ext by simp
   next
     case Other
-    then have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> (pre @ [p]) @ qs)\<close>
+    then have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> (pre @ [p]) @ qs)\<close>
       using * by simp
     then have \<open>\<tturnstile> pre @ p # ps\<close>
       using ih[where pre=\<open>pre @ [p]\<close> and A=\<open>?A\<close>] A by simp
@@ -269,10 +269,10 @@ next
   qed
 qed
 
-corollary SeCaV_effect':
-  assumes \<open>\<forall>qs \<in> set (effect' A r ps). (\<tturnstile> qs)\<close> \<open>paramss ps \<subseteq> paramsts A\<close>
+corollary SeCaV_children:
+  assumes \<open>\<forall>qs \<in> set (children A r ps). (\<tturnstile> qs)\<close> \<open>paramss ps \<subseteq> paramsts A\<close>
   shows \<open>\<tturnstile> ps\<close>
-  using SeCaV_effect'_pre assms by (metis append_Nil)
+  using SeCaV_children_pre assms by (metis append_Nil)
 
 interpretation Soundness eff rules UNIV \<open>\<lambda>_ (A, ps). (\<tturnstile> ps)\<close>
   unfolding Soundness_def
@@ -294,14 +294,14 @@ proof safe
   next
     case False
     let ?A = \<open>remdups (A @ subtermFms ps)\<close>
-    have \<open>\<forall>qs \<in> set (effect' ?A r ps). (\<tturnstile> qs)\<close>
-      using False r_enabled eff_effect' next_sound by blast
+    have \<open>\<forall>qs \<in> set (children ?A r ps). (\<tturnstile> qs)\<close>
+      using False r_enabled eff_children next_sound by blast
     moreover have \<open>set (subtermFms ps) \<subseteq> set ?A\<close>
       by simp
     then have \<open>paramss ps \<subseteq> paramsts ?A\<close>
       using subtermFm_subset_params by fastforce
     ultimately show \<open>\<tturnstile> ps\<close>
-      using SeCaV_effect' by blast
+      using SeCaV_children by blast
   qed
 qed
 

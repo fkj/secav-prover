@@ -393,29 +393,29 @@ lemma parts_all_inhabited: \<open>[] \<notin> set (parts A r p)\<close>
 lemma list_prod_is_cartesian: \<open>set (list_prod hs ts) = {h @ t |h t. h \<in> set hs \<and> t \<in> set ts}\<close>
   by (induct ts) auto
 
-lemma set_effect'_Cons:
-  \<open>set (effect' A r (p # ps)) =
+lemma set_children_Cons:
+  \<open>set (children A r (p # ps)) =
     {hs @ ts |hs ts. hs \<in> set (parts A r p) \<and>
-      ts \<in> set (effect' (remdups (A @ subtermFms (concat (parts A r p)))) r ps)}\<close>
-  using list_prod_is_cartesian by (metis effect'.simps(2))
+      ts \<in> set (children (remdups (A @ subtermFms (concat (parts A r p)))) r ps)}\<close>
+  using list_prod_is_cartesian by (metis children.simps(2))
 
-lemma effect'_preserves_unaffected:
-  assumes \<open>p \<in> set ps\<close> \<open>\<not> affects r p\<close> \<open>qs \<in> set (effect' A r ps)\<close>
+lemma children_preserves_unaffected:
+  assumes \<open>p \<in> set ps\<close> \<open>\<not> affects r p\<close> \<open>qs \<in> set (children A r ps)\<close>
   shows \<open>p \<in> set qs\<close>
-  using assms parts_preserves_unaffected set_effect'_Cons
+  using assms parts_preserves_unaffected set_children_Cons
   by (induct ps arbitrary: A qs) auto
 
 lemma effect_preserves_unaffected:
   assumes \<open>p \<in> set ps\<close> \<open>\<not> affects r p\<close> \<open>(B, qs) |\<in>| effect r (A, ps)\<close>
   shows \<open>p \<in> set qs\<close>
-  using assms effect'_preserves_unaffected
+  using assms children_preserves_unaffected
   unfolding effect_def
   by (smt (verit, best) Pair_inject femptyE fimageE fset_of_list_elem old.prod.case)
 
 section \<open>Affected formulas\<close>
 
-lemma parts_in_effect':
-  assumes \<open>p \<in> set ps\<close> \<open>qs \<in> set (effect' A r ps)\<close>
+lemma parts_in_children:
+  assumes \<open>p \<in> set ps\<close> \<open>qs \<in> set (children A r ps)\<close>
   shows \<open>\<exists>B xs. set A \<subseteq> set B \<and> xs \<in> set (parts B r p) \<and> set xs \<subseteq> set qs\<close>
   using assms
 proof (induct ps arbitrary: A qs)
@@ -428,11 +428,11 @@ next
   proof (cases \<open>a = p\<close>)
     case True
     then show ?thesis
-      using Cons(3) set_effect'_Cons by fastforce
+      using Cons(3) set_children_Cons by fastforce
   next
     case False
     then show ?thesis
-      using Cons set_effect'_Cons
+      using Cons set_children_Cons
       by (smt (verit, del_insts) le_sup_iff mem_Collect_eq set_ConsD set_append set_remdups subset_trans sup_ge2)
   qed
 qed
@@ -440,7 +440,7 @@ qed
 lemma parts_in_effect:
   assumes \<open>p \<in> set ps\<close> \<open>(B, qs) |\<in>| effect r (A, ps)\<close> \<open>\<not> branchDone ps\<close>
   shows \<open>\<exists>C xs. set A \<subseteq> set C \<and> xs \<in> set (parts C r p) \<and> set xs \<subseteq> set qs\<close>
-  using assms parts_in_effect'
+  using assms parts_in_children
   by (smt (verit, ccfv_threshold) Pair_inject effect.simps fimageE fset_of_list_elem le_sup_iff
       set_append set_remdups)
 
@@ -452,9 +452,9 @@ corollary \<open>\<not> branchDone ps \<Longrightarrow> Neg (Uni p) \<in> set ps
     set (map (\<lambda>t. Neg (sub 0 t p)) A) \<subseteq> set qs\<close>
   using parts_in_effect unfolding parts_def by fastforce
 
-lemma eff_effect':
+lemma eff_children:
   assumes \<open>\<not> branchDone ps\<close> \<open>eff r (A, ps) ss\<close>
-  shows \<open>\<forall>qs \<in> set (effect' (remdups (A @ subtermFms ps)) r ps). \<exists>B. (B, qs) |\<in>| ss\<close>
+  shows \<open>\<forall>qs \<in> set (children (remdups (A @ subtermFms ps)) r ps). \<exists>B. (B, qs) |\<in>| ss\<close>
   using assms unfolding eff_def using fset_of_list_elem by fastforce
 
 lemma eff_preserves_Nil:
