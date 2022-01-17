@@ -76,4 +76,16 @@ theorem prover_completeness_usemantics:
   shows \<open>fst (root t) = (A, ps) \<and> wf t \<and> tfinite t\<close>
   using assms by (simp add: epath_contr epath_lem epath_prover_completeness)
 
+corollary prover_completeness_SeCaV:
+  fixes A :: \<open>tm list\<close>
+  assumes \<open>\<tturnstile> ps\<close>
+  defines \<open>t \<equiv> secavProver (A, ps)\<close>
+  shows \<open>fst (root t) = (A, ps) \<and> wf t \<and> tfinite t\<close>
+proof -
+  have \<open>uvalid ps\<close>
+    using assms sound_usemantics by blast
+  then show ?thesis
+    using assms prover_completeness_usemantics by blast
+qed
+
 end

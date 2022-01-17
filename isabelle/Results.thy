@@ -23,18 +23,6 @@ corollary
 
 section \<open>SeCaV\<close>
 
-corollary prover_completeness_SeCaV:
-  fixes A :: \<open>tm list\<close>
-  assumes \<open>\<tturnstile> ps\<close>
-  defines \<open>t \<equiv> secavProver (A, ps)\<close>
-  shows \<open>fst (root t) = (A, ps) \<and> wf t \<and> tfinite t\<close>
-proof -
-  have \<open>uvalid ps\<close>
-    using assms sound_usemantics by blast
-  then show ?thesis
-    using assms prover_completeness_usemantics by blast
-qed
-
 theorem prover_SeCaV:
   fixes A :: \<open>tm list\<close> and ps :: \<open>fm list\<close>
   defines \<open>t \<equiv> secavProver (A, ps)\<close>
