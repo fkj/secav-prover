@@ -498,7 +498,7 @@ lemma generateNew_new: \<open>Fun (generateNew A) l \<notin> set A\<close>
 
 section \<open>branchDone\<close>
 
-lemma branchDone_contradiction: \<open>branchDone ps \<longleftrightarrow>  (\<exists>p. p \<in> set ps \<and> Neg p \<in> set ps)\<close>
+lemma branchDone_contradiction: \<open>branchDone ps \<longleftrightarrow> (\<exists>p. p \<in> set ps \<and> Neg p \<in> set ps)\<close>
   by (induct ps rule: branchDone.induct) auto
 
 section \<open>Subterms\<close>
