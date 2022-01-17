@@ -25,6 +25,7 @@ library prover
                     , MaybeExt
                     , Orderings
                     , Product_Type
+                    , HOL
   build-depends:      base
   hs-source-dirs:     haskell/prover
   default-language:   Haskell2010

@@ -12,9 +12,12 @@ session SeCaV_Prover = "HOL-Library" +
     Sequent1
     Sequent_Calculus_Verifier
     Prover
-    ProverLemmas
     Export
+    ProverLemmas
     Hintikka
+    EPathHintikka
+    Usemantics
     Countermodel
     Soundness
     Completeness
+    Results
