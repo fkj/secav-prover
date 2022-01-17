@@ -5,7 +5,7 @@ begin
 section \<open>Definition of a Hintikka set for SeCaV\<close>
 
 definition
-  \<open>terms H \<equiv> if (\<Union>f \<in> H. set (subtermFm f)) = {} then {Fun 0 []} else (\<Union>f \<in> H. set (subtermFm f))\<close>
+  \<open>terms H \<equiv> if (\<Union>p \<in> H. set (subtermFm p)) = {} then {Fun 0 []} else (\<Union>p \<in> H. set (subtermFm p))\<close>
 
 locale Hintikka =
   fixes H :: \<open>fm set\<close>

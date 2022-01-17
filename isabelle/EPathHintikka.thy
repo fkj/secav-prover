@@ -3,13 +3,13 @@ theory EPathHintikka imports Hintikka ProverLemmas begin
 section \<open>Various facts about the "flow" in the prover\<close>
 
 definition prule :: \<open>sequent \<times> rule \<Rightarrow> rule\<close> where
-  \<open>prule x = snd x\<close>
+  \<open>prule z = snd z\<close>
 
 definition pseq :: \<open>state \<times> rule \<Rightarrow> sequent\<close> where
-  \<open>pseq x = snd (fst x)\<close>
+  \<open>pseq z = snd (fst z)\<close>
 
 definition ptms :: \<open>state \<times> rule \<Rightarrow> tm list\<close> where
-  \<open>ptms x = fst (fst x)\<close>
+  \<open>ptms z = fst (fst z)\<close>
 
 lemma epath_sdrop: \<open>epath steps \<Longrightarrow> epath (sdrop n steps)\<close>
   by (induct n) (auto elim: epath.cases)
@@ -29,14 +29,14 @@ lemma epath_eff:
   using assms by (metis (mono_tags, lifting) epath.simps eff_def)
 
 lemma effect_tms:
-  assumes \<open>(B, qs) |\<in>| effect r (A, ps)\<close>
-  shows \<open>B = remdups (A @ subterms ps @ subterms qs)\<close>
+  assumes \<open>(B, z') |\<in>| effect r (A, z)\<close>
+  shows \<open>B = remdups (A @ subterms z @ subterms z')\<close>
   using assms by (smt (verit, best) effect.simps fempty_iff fimageE prod.simps(1))
 
 lemma epath_effect:
-  assumes \<open>epath steps\<close> \<open>shd steps = ((A, ps), r)\<close>
-  shows \<open>\<exists>B qs r'. (B, qs) |\<in>| effect r (A, ps) \<and> shd (stl steps) = ((B, qs), r') \<and>
-          (B = remdups (A @ subterms ps @ subterms qs))\<close>
+  assumes \<open>epath steps\<close> \<open>shd steps = ((A, z), r)\<close>
+  shows \<open>\<exists>B z' r'. (B, z') |\<in>| effect r (A, z) \<and> shd (stl steps) = ((B, z'), r') \<and>
+          (B = remdups (A @ subterms z @ subterms z'))\<close>
   using assms epath_eff effect_tms
   by (metis (mono_tags, lifting) eff_def fst_conv prod.collapse snd_conv)
 
@@ -147,7 +147,7 @@ proof (rule ccontr)
     unfolding effect_def using n by simp
   moreover have \<open>epath ?suf\<close>
     using \<open>epath steps\<close> epath_sdrop by blast
-  then have \<open>\<forall>r A. \<exists>qs r'. qs |\<in>| effect r (A, pseq (shd ?suf)) \<and> shd (stl ?suf) = (qs, r')\<close>
+  then have \<open>\<forall>r A. \<exists>z' r'. z' |\<in>| effect r (A, pseq (shd ?suf)) \<and> shd (stl ?suf) = (z', r')\<close>
     using epath_effect by (metis calculation prod.exhaust_sel pseq_def)
   ultimately show False
     by blast
@@ -224,18 +224,18 @@ next
 
   moreover have \<open>epath suf\<close>
     using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
-  then obtain B qs r' where
-    qs: \<open>(B, qs) |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, qs), r')\<close>
+  then obtain B z' r' where
+    z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
   moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
     using \<open>epath suf\<close> epath_never_branchDone by blast
 
-  ultimately have \<open>p \<in> set qs\<close> \<open>q \<in> set qs\<close>
+  ultimately have \<open>p \<in> set z'\<close> \<open>q \<in> set z'\<close>
     using parts_in_effect unfolding parts_def by fastforce+
 
   then show \<open>p \<in> ?H \<and> q \<in> ?H\<close>
-    using qs(2) ori pseq_in_tree_fms
+    using z'(2) ori pseq_in_tree_fms
     by (metis (no_types, opaque_lifting) Un_iff fst_conv pseq_def shd_sset snd_conv sset_sdrop
         sset_shift stl_sset subset_eq)
 next
@@ -264,18 +264,18 @@ next
 
   moreover have \<open>epath suf\<close>
     using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
-  then obtain B qs r' where
-    qs: \<open>(B, qs) |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, qs), r')\<close>
+  then obtain B z' r' where
+    z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
   moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
     using \<open>epath suf\<close> epath_never_branchDone by blast
 
-  ultimately have \<open>Neg p \<in> set qs\<close> \<open>q \<in> set qs\<close>
+  ultimately have \<open>Neg p \<in> set z'\<close> \<open>q \<in> set z'\<close>
     using parts_in_effect unfolding parts_def by fastforce+
 
   then show \<open>Neg p \<in> ?H \<and> q \<in> ?H\<close>
-    using qs(2) ori pseq_in_tree_fms
+    using z'(2) ori pseq_in_tree_fms
     by (metis (no_types, opaque_lifting) Un_iff fst_conv pseq_def shd_sset snd_conv sset_sdrop
         sset_shift stl_sset subset_eq)
 next
@@ -304,18 +304,18 @@ next
 
   moreover have \<open>epath suf\<close>
     using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
-  then obtain B qs r' where
-    qs: \<open>(B, qs) |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, qs), r')\<close>
+  then obtain B z' r' where
+    z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
   moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
     using \<open>epath suf\<close> epath_never_branchDone by blast
 
-  ultimately have \<open>Neg p \<in> set qs\<close> \<open>Neg q \<in> set qs\<close>
+  ultimately have \<open>Neg p \<in> set z'\<close> \<open>Neg q \<in> set z'\<close>
     using parts_in_effect unfolding parts_def by fastforce+
 
   then show \<open>Neg p \<in> ?H \<and> Neg q \<in> ?H\<close>
-    using qs(2) ori pseq_in_tree_fms
+    using z'(2) ori pseq_in_tree_fms
     by (metis (no_types, opaque_lifting) Un_iff fst_conv pseq_def shd_sset snd_conv sset_sdrop
         sset_shift stl_sset subset_eq)
 next
@@ -344,18 +344,18 @@ next
 
   moreover have \<open>epath suf\<close>
     using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
-  then obtain B qs r' where
-    qs: \<open>(B, qs) |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, qs), r')\<close>
+  then obtain B z' r' where
+    z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
   moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
     using \<open>epath suf\<close> epath_never_branchDone by blast
 
-  ultimately consider \<open>p \<in> set qs\<close> | \<open>q \<in> set qs\<close>
+  ultimately consider \<open>p \<in> set z'\<close> | \<open>q \<in> set z'\<close>
     using parts_in_effect unfolding parts_def by fastforce
 
   then show \<open>p \<in> ?H \<or> q \<in> ?H\<close>
-    using qs(2) ori pseq_in_tree_fms
+    using z'(2) ori pseq_in_tree_fms
     by (metis (no_types, opaque_lifting) Un_iff fst_conv pseq_def shd_sset snd_conv sset_sdrop
         sset_shift stl_sset subset_eq)
 next
@@ -384,18 +384,18 @@ next
 
   moreover have \<open>epath suf\<close>
     using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
-  then obtain B qs r' where
-    qs: \<open>(B, qs) |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, qs), r')\<close>
+  then obtain B z' r' where
+    z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
   moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
     using \<open>epath suf\<close> epath_never_branchDone by blast
 
-  ultimately consider \<open>p \<in> set qs\<close> | \<open>Neg q \<in> set qs\<close>
+  ultimately consider \<open>p \<in> set z'\<close> | \<open>Neg q \<in> set z'\<close>
     using parts_in_effect unfolding parts_def by fastforce
 
   then show \<open>p \<in> ?H \<or> Neg q \<in> ?H\<close>
-    using qs(2) ori pseq_in_tree_fms
+    using z'(2) ori pseq_in_tree_fms
     by (metis (no_types, opaque_lifting) Un_iff fst_conv pseq_def shd_sset snd_conv sset_sdrop
         sset_shift stl_sset subset_eq)
 next
@@ -424,18 +424,18 @@ next
 
   moreover have \<open>epath suf\<close>
     using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
-  then obtain B qs r' where
-    qs: \<open>(B, qs) |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, qs), r')\<close>
+  then obtain B z' r' where
+    z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
   moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
     using \<open>epath suf\<close> epath_never_branchDone by blast
 
-  ultimately consider \<open>Neg p \<in> set qs\<close> | \<open>Neg q \<in> set qs\<close>
+  ultimately consider \<open>Neg p \<in> set z'\<close> | \<open>Neg q \<in> set z'\<close>
     using parts_in_effect unfolding parts_def by fastforce
 
   then show \<open>Neg p \<in> ?H \<or> Neg q \<in> ?H\<close>
-    using qs(2) ori pseq_in_tree_fms
+    using z'(2) ori pseq_in_tree_fms
     by (metis (no_types, opaque_lifting) Un_iff fst_conv pseq_def shd_sset snd_conv sset_sdrop
         sset_shift stl_sset subset_eq)
 next
@@ -515,9 +515,9 @@ next
         by (metis (no_types, lifting) list.pred_mono_strong pre stake_sdrop)
       moreover have \<open>epath suf\<close>
         using \<open>epath steps\<close> epath_sdrop ori by blast
-      then obtain B qs r' where
-        qs: \<open>(B, qs) |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close>
-        \<open>shd (stl suf) = ((B, qs), r')\<close>
+      then obtain B z' r' where
+        z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close>
+        \<open>shd (stl suf) = ((B, z'), r')\<close>
         using suf epath_effect unfolding pseq_def ptms_def
         by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
 
@@ -525,10 +525,10 @@ next
         using \<open>epath suf\<close> epath_never_branchDone by blast
       moreover have \<open>t \<in> set (ptms (shd suf))\<close>
         using above k by (meson le_add2 less_add_one order_le_less_trans)
-      ultimately have \<open>sub 0 t p \<in> set qs\<close>
+      ultimately have \<open>sub 0 t p \<in> set z'\<close>
         using parts_in_effect[where A=\<open>ptms (shd suf)\<close>] unfolding parts_def by fastforce
       then show ?thesis
-        using k pseq_in_tree_fms qs(2)
+        using k pseq_in_tree_fms z'(2)
         by (metis Pair_inject in_mono prod.collapse pseq_def shd_sset sset_sdrop stl_sset)
     qed
   qed
@@ -609,9 +609,9 @@ next
         by (metis (no_types, lifting) list.pred_mono_strong pre stake_sdrop)
       moreover have \<open>epath suf\<close>
         using \<open>epath steps\<close> epath_sdrop ori by blast
-      then obtain B qs r' where
-        qs: \<open>(B, qs) |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close>
-        \<open>shd (stl suf) = ((B, qs), r')\<close>
+      then obtain B z' r' where
+        z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close>
+        \<open>shd (stl suf) = ((B, z'), r')\<close>
         using suf epath_effect unfolding pseq_def ptms_def
         by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
 
@@ -619,10 +619,10 @@ next
         using \<open>epath suf\<close> epath_never_branchDone by blast
       moreover have \<open>t \<in> set (ptms (shd suf))\<close>
         using above k by (meson le_add2 less_add_one order_le_less_trans)
-      ultimately have \<open>Neg (sub 0 t p) \<in> set qs\<close>
+      ultimately have \<open>Neg (sub 0 t p) \<in> set z'\<close>
         using parts_in_effect[where A=\<open>ptms (shd suf)\<close>] unfolding parts_def by fastforce
       then show ?thesis
-        using k pseq_in_tree_fms qs(2)
+        using k pseq_in_tree_fms z'(2)
         by (metis Pair_inject in_mono prod.collapse pseq_def shd_sset sset_sdrop stl_sset)
     qed
   qed
@@ -652,18 +652,18 @@ next
 
   moreover have \<open>epath suf\<close>
     using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
-  then obtain B qs r' where
-    qs: \<open>(B, qs) |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, qs), r')\<close>
+  then obtain B z' r' where
+    z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
   moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
     using \<open>epath suf\<close> epath_never_branchDone by blast
   ultimately obtain C where
-    C: \<open>set (ptms (shd suf)) \<subseteq> set C\<close> \<open>sub 0 (Fun (generateNew C) []) p \<in> set qs\<close>
-    using parts_in_effect[where B=B and qs=qs and ps=\<open>pseq (shd suf)\<close> and r=\<open>?r\<close> and p=\<open>Uni p\<close>]
+    C: \<open>set (ptms (shd suf)) \<subseteq> set C\<close> \<open>sub 0 (Fun (generateNew C) []) p \<in> set z'\<close>
+    using parts_in_effect[where B=B and z'=\<open>z'\<close> and z=\<open>pseq (shd suf)\<close> and r=\<open>?r\<close> and p=\<open>Uni p\<close>]
     unfolding parts_def by auto
   then have *: \<open>sub 0 (Fun (generateNew C) []) p \<in> ?H\<close>
-    using qs(2) ori pseq_in_tree_fms
+    using z'(2) ori pseq_in_tree_fms
     by (metis (no_types, lifting) Pair_inject Un_iff in_mono prod.collapse pseq_def shd_sset
         sset_sdrop sset_shift stl_sset)
   let ?t = \<open>Fun (generateNew C) []\<close>
@@ -711,18 +711,18 @@ next
 
   moreover have \<open>epath suf\<close>
     using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
-  then obtain B qs r' where
-    qs: \<open>(B, qs) |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, qs), r')\<close>
+  then obtain B z' r' where
+    z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
   moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
     using \<open>epath suf\<close> epath_never_branchDone by blast
   ultimately obtain C where
-    C: \<open>set (ptms (shd suf)) \<subseteq> set C\<close> \<open>Neg (sub 0 (Fun (generateNew C) []) p) \<in> set qs\<close>
-    using parts_in_effect[where B=B and qs=qs and ps=\<open>pseq (shd suf)\<close> and r=\<open>?r\<close> and p=\<open>Neg (Exi p)\<close>]
+    C: \<open>set (ptms (shd suf)) \<subseteq> set C\<close> \<open>Neg (sub 0 (Fun (generateNew C) []) p) \<in> set z'\<close>
+    using parts_in_effect[where B=B and z'=z' and z=\<open>pseq (shd suf)\<close> and r=\<open>?r\<close> and p=\<open>Neg (Exi p)\<close>]
     unfolding parts_def by auto
   then have *: \<open>Neg (sub 0 (Fun (generateNew C) []) p) \<in> ?H\<close>
-    using qs(2) ori pseq_in_tree_fms
+    using z'(2) ori pseq_in_tree_fms
     by (metis (no_types, lifting) Pair_inject Un_iff in_mono prod.collapse pseq_def shd_sset
         sset_sdrop sset_shift stl_sset)
   let ?t = \<open>Fun (generateNew C) []\<close>
@@ -770,18 +770,18 @@ next
 
   moreover have \<open>epath suf\<close>
     using \<open>epath (pre @- suf)\<close> epath_sdrop by (metis alwD alw_iff_sdrop alw_shift)
-  then obtain B qs r' where
-    qs: \<open>(B, qs) |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, qs), r')\<close>
+  then obtain B z' r' where
+    z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
   moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
     using \<open>epath suf\<close> epath_never_branchDone by blast
 
-  ultimately have \<open>p \<in> set qs\<close>
+  ultimately have \<open>p \<in> set z'\<close>
     using parts_in_effect unfolding parts_def by fastforce
 
   then show \<open>p \<in> ?H\<close>
-    using qs(2) ori pseq_in_tree_fms
+    using z'(2) ori pseq_in_tree_fms
     by (metis (no_types, lifting) Pair_inject Un_iff in_mono prod.collapse pseq_def shd_sset
         sset_sdrop sset_shift stl_sset)
 qed

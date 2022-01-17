@@ -35,7 +35,7 @@ primrec listFunTm :: \<open>tm \<Rightarrow> nat list\<close> and listFunTms :: 
 
 text \<open>generateNew uses the \<open>listFunTms\<close> function to obtain a fresh function index\<close>
 definition generateNew :: \<open>tm list \<Rightarrow> nat\<close> where
-  \<open>generateNew z \<equiv> 1 + foldr max (listFunTms z) 0\<close>
+  \<open>generateNew ts \<equiv> 1 + foldr max (listFunTms ts) 0\<close>
 
 text \<open>subtermTm returns a list of all terms occurring within a term\<close>
 primrec subtermTm :: \<open>tm \<Rightarrow> tm list\<close> where
@@ -45,14 +45,14 @@ primrec subtermTm :: \<open>tm \<Rightarrow> tm list\<close> where
 text \<open>subtermFm returns a list of all terms occurring within a formula\<close>
 primrec subtermFm :: \<open>fm \<Rightarrow> tm list\<close> where
   \<open>subtermFm (Pre _ ts) = concat (map subtermTm ts)\<close>
-| \<open>subtermFm (Imp f1 f2) = subtermFm f1 @ subtermFm f2\<close>
-| \<open>subtermFm (Dis f1 f2) = subtermFm f1 @ subtermFm f2\<close>
-| \<open>subtermFm (Con f1 f2) = subtermFm f1 @ subtermFm f2\<close>
-| \<open>subtermFm (Exi f) = subtermFm f\<close>
-| \<open>subtermFm (Uni f) = subtermFm f\<close>
-| \<open>subtermFm (Neg f) = subtermFm f\<close>
+| \<open>subtermFm (Imp p q) = subtermFm p @ subtermFm q\<close>
+| \<open>subtermFm (Dis p q) = subtermFm p @ subtermFm q\<close>
+| \<open>subtermFm (Con p q) = subtermFm p @ subtermFm q\<close>
+| \<open>subtermFm (Exi p) = subtermFm p\<close>
+| \<open>subtermFm (Uni p) = subtermFm p\<close>
+| \<open>subtermFm (Neg p) = subtermFm p\<close>
 
-abbreviation \<open>subtermFms ps \<equiv> concat (map subtermFm ps)\<close>
+abbreviation \<open>subtermFms z \<equiv> concat (map subtermFm z)\<close>
 
 text \<open>subterms returns a list of all terms occurring within a sequent.
       This is used to determine which terms to instantiate Gamma-formulas with.
@@ -62,7 +62,7 @@ text \<open>subterms returns a list of all terms occurring within a sequent.
    Check Grandfather proof to see why - it creates new free variables
    We have functions unlike Ben-Ari, so we need to handle functions of bound variables as well *)
 definition subterms :: \<open>sequent \<Rightarrow> tm list\<close> where
-  \<open>subterms s \<equiv> case remdups (concat (map subtermFm s)) of
+  \<open>subterms z \<equiv> case remdups (concat (map subtermFm z)) of
                 [] \<Rightarrow> [Fun 0 []]
               | ts \<Rightarrow> ts\<close>
 
@@ -98,17 +98,17 @@ primrec list_prod :: \<open>'a list list \<Rightarrow> 'a list list \<Rightarrow
 
 primrec children :: \<open>tm list \<Rightarrow> rule \<Rightarrow> sequent \<Rightarrow> sequent list\<close> where
   \<open>children _ _ [] = [[]]\<close>
-| \<open>children A r (f # z) =
-  (let hs = parts A r f; A' = remdups (A @ subtermFms (concat hs))
+| \<open>children A r (p # z) =
+  (let hs = parts A r p; A' = remdups (A @ subtermFms (concat hs))
    in list_prod hs (children A' r z))\<close>
 
 type_synonym state = \<open>tm list \<times> sequent\<close>
 
 primrec effect :: \<open>rule \<Rightarrow> state \<Rightarrow> state fset\<close> where
-  \<open>effect r (A, s) =
-  (if branchDone s then {||} else
-    fimage (\<lambda>s'. (remdups (A @ subterms s @ subterms s'), s'))
-    (fset_of_list (children (remdups (A @ subtermFms s)) r s)))\<close>
+  \<open>effect r (A, z) =
+  (if branchDone z then {||} else
+    fimage (\<lambda>z'. (remdups (A @ subterms z @ subterms z'), z'))
+    (fset_of_list (children (remdups (A @ subtermFms z)) r z)))\<close>
 
 section \<open>The rule stream\<close>
 

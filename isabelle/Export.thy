@@ -25,7 +25,7 @@ code_identifier
 | code_module Abstract_Completeness \<rightharpoonup> (Haskell) Prover
 
 definition \<open>secavTreeCode \<equiv> i.mkTree (\<lambda>r s. Some (effect r s)) rules\<close>
-definition \<open>secavProverCode \<equiv> \<lambda>x . secavTreeCode ([], x)\<close>
+definition \<open>secavProverCode \<equiv> \<lambda>z . secavTreeCode ([], z)\<close>
 
 export_code open secavProverCode in Haskell
 

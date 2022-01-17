@@ -20,8 +20,8 @@ qed fastforce+
 
 abbreviation \<open>paramss A \<equiv> \<Union>p \<in> set A. params p\<close>
 
-lemma news_paramss: \<open>news i ps \<longleftrightarrow> i \<notin> paramss ps\<close>
-  by (induct ps) auto
+lemma news_paramss: \<open>news i z \<longleftrightarrow> i \<notin> paramss z\<close>
+  by (induct z) auto
 
 lemma paramsts_subset: \<open>set A \<subseteq> set B \<Longrightarrow> paramsts A \<subseteq> paramsts B\<close>
   by (induct A) auto
@@ -167,9 +167,9 @@ lemma subtermTm_le: \<open>t \<in> set (subtermTm s) \<Longrightarrow> set (subt
 lemma sub_term_const_transfer:
   \<open>Fun a [] \<notin> set (subtermTm (sub_term m (Fun a []) t)) \<Longrightarrow>
     sub_term m (Fun a []) t = sub_term m s t\<close>
-  \<open>Fun a [] \<notin> (\<Union>t \<in> set (sub_list m (Fun a []) l). set (subtermTm t)) \<Longrightarrow>
-    sub_list m (Fun a []) l = sub_list m s l\<close>
- by (induct t and l rule: sub_term.induct sub_list.induct) auto
+  \<open>Fun a [] \<notin> (\<Union>t \<in> set (sub_list m (Fun a []) ts). set (subtermTm t)) \<Longrightarrow>
+    sub_list m (Fun a []) ts = sub_list m s ts\<close>
+ by (induct t and ts rule: sub_term.induct sub_list.induct) auto
 
 lemma sub_const_transfer:
   assumes \<open>Fun a [] \<notin> set (subtermFm (sub m (Fun a []) p))\<close>
@@ -208,12 +208,12 @@ next
 qed
 
 lemma set_subterms:
-  fixes ps
-  defines \<open>ts \<equiv> \<Union>p \<in> set ps. set (subtermFm p)\<close>
-  shows \<open>set (subterms ps) = (if ts = {} then {Fun 0 []} else ts)\<close>
+  fixes z
+  defines \<open>ts \<equiv> \<Union>p \<in> set z. set (subtermFm p)\<close>
+  shows \<open>set (subterms z) = (if ts = {} then {Fun 0 []} else ts)\<close>
 proof -
-  have *: \<open>set (remdups (concat (map subtermFm ps))) = (\<Union>p \<in> set ps. set (subtermFm p))\<close>
-    by (induct ps) auto
+  have *: \<open>set (remdups (concat (map subtermFm z))) = (\<Union>p \<in> set z. set (subtermFm p))\<close>
+    by (induct z) auto
   then show ?thesis
   proof (cases \<open>ts = {}\<close>)
     case True
@@ -379,8 +379,8 @@ definition affects :: \<open>rule \<Rightarrow> fm \<Rightarrow> bool\<close> wh
   | (_,  _) \<Rightarrow> False\<close>
 
 lemma parts_preserves_unaffected:
-  assumes \<open>\<not> affects r p\<close> \<open>qs \<in> set (parts A r p)\<close>
-  shows \<open>p \<in> set qs\<close>
+  assumes \<open>\<not> affects r p\<close> \<open>z' \<in> set (parts A r p)\<close>
+  shows \<open>p \<in> set z'\<close>
   using assms unfolding affects_def
   by (cases r p rule: parts_exhaust) (simp_all add: parts_def)
 
@@ -394,20 +394,20 @@ lemma list_prod_is_cartesian: \<open>set (list_prod hs ts) = {h @ t |h t. h \<in
   by (induct ts) auto
 
 lemma set_children_Cons:
-  \<open>set (children A r (p # ps)) =
+  \<open>set (children A r (p # z)) =
     {hs @ ts |hs ts. hs \<in> set (parts A r p) \<and>
-      ts \<in> set (children (remdups (A @ subtermFms (concat (parts A r p)))) r ps)}\<close>
+      ts \<in> set (children (remdups (A @ subtermFms (concat (parts A r p)))) r z)}\<close>
   using list_prod_is_cartesian by (metis children.simps(2))
 
 lemma children_preserves_unaffected:
-  assumes \<open>p \<in> set ps\<close> \<open>\<not> affects r p\<close> \<open>qs \<in> set (children A r ps)\<close>
-  shows \<open>p \<in> set qs\<close>
+  assumes \<open>p \<in> set z\<close> \<open>\<not> affects r p\<close> \<open>z' \<in> set (children A r z)\<close>
+  shows \<open>p \<in> set z'\<close>
   using assms parts_preserves_unaffected set_children_Cons
-  by (induct ps arbitrary: A qs) auto
+  by (induct z arbitrary: A z') auto
 
 lemma effect_preserves_unaffected:
-  assumes \<open>p \<in> set ps\<close> \<open>\<not> affects r p\<close> \<open>(B, qs) |\<in>| effect r (A, ps)\<close>
-  shows \<open>p \<in> set qs\<close>
+  assumes \<open>p \<in> set z\<close> \<open>\<not> affects r p\<close> \<open>(B, z') |\<in>| effect r (A, z)\<close>
+  shows \<open>p \<in> set z'\<close>
   using assms children_preserves_unaffected
   unfolding effect_def
   by (smt (verit, best) Pair_inject femptyE fimageE fset_of_list_elem old.prod.case)
@@ -415,15 +415,15 @@ lemma effect_preserves_unaffected:
 section \<open>Affected formulas\<close>
 
 lemma parts_in_children:
-  assumes \<open>p \<in> set ps\<close> \<open>qs \<in> set (children A r ps)\<close>
-  shows \<open>\<exists>B xs. set A \<subseteq> set B \<and> xs \<in> set (parts B r p) \<and> set xs \<subseteq> set qs\<close>
+  assumes \<open>p \<in> set z\<close> \<open>z' \<in> set (children A r z)\<close>
+  shows \<open>\<exists>B xs. set A \<subseteq> set B \<and> xs \<in> set (parts B r p) \<and> set xs \<subseteq> set z'\<close>
   using assms
-proof (induct ps arbitrary: A qs)
+proof (induct z arbitrary: A z')
   case Nil
   then show ?case
     by simp
 next
-  case (Cons a ps)
+  case (Cons a _)
   then show ?case
   proof (cases \<open>a = p\<close>)
     case True
@@ -438,28 +438,28 @@ next
 qed
 
 lemma parts_in_effect:
-  assumes \<open>p \<in> set ps\<close> \<open>(B, qs) |\<in>| effect r (A, ps)\<close> \<open>\<not> branchDone ps\<close>
-  shows \<open>\<exists>C xs. set A \<subseteq> set C \<and> xs \<in> set (parts C r p) \<and> set xs \<subseteq> set qs\<close>
+  assumes \<open>p \<in> set z\<close> \<open>(B, z') |\<in>| effect r (A, z)\<close> \<open>\<not> branchDone z\<close>
+  shows \<open>\<exists>C xs. set A \<subseteq> set C \<and> xs \<in> set (parts C r p) \<and> set xs \<subseteq> set z'\<close>
   using assms parts_in_children
   by (smt (verit, ccfv_threshold) Pair_inject effect.simps fimageE fset_of_list_elem le_sup_iff
       set_append set_remdups)
 
-corollary \<open>\<not> branchDone ps \<Longrightarrow> Neg (Neg p) \<in> set ps \<Longrightarrow>
-    (B, qs) |\<in>| effect NegNeg (A, ps) \<Longrightarrow> p \<in> set qs\<close>
+corollary \<open>\<not> branchDone z \<Longrightarrow> Neg (Neg p) \<in> set z \<Longrightarrow>
+    (B, z') |\<in>| effect NegNeg (A, z) \<Longrightarrow> p \<in> set z'\<close>
   using parts_in_effect unfolding parts_def by fastforce
 
-corollary \<open>\<not> branchDone ps \<Longrightarrow> Neg (Uni p) \<in> set ps \<Longrightarrow> (B, qs) |\<in>| effect GammaUni (A, ps) \<Longrightarrow>
-    set (map (\<lambda>t. Neg (sub 0 t p)) A) \<subseteq> set qs\<close>
+corollary \<open>\<not> branchDone z \<Longrightarrow> Neg (Uni p) \<in> set z \<Longrightarrow> (B, z') |\<in>| effect GammaUni (A, z) \<Longrightarrow>
+    set (map (\<lambda>t. Neg (sub 0 t p)) A) \<subseteq> set z'\<close>
   using parts_in_effect unfolding parts_def by fastforce
 
 lemma eff_children:
-  assumes \<open>\<not> branchDone ps\<close> \<open>eff r (A, ps) ss\<close>
-  shows \<open>\<forall>qs \<in> set (children (remdups (A @ subtermFms ps)) r ps). \<exists>B. (B, qs) |\<in>| ss\<close>
+  assumes \<open>\<not> branchDone z\<close> \<open>eff r (A, z) ss\<close>
+  shows \<open>\<forall>z' \<in> set (children (remdups (A @ subtermFms z)) r z). \<exists>B. (B, z') |\<in>| ss\<close>
   using assms unfolding eff_def using fset_of_list_elem by fastforce
 
 lemma eff_preserves_Nil:
-  assumes \<open>eff r (A, []) sl\<close> \<open>(B, s) |\<in>| sl\<close>
-  shows \<open>s = []\<close>
+  assumes \<open>eff r (A, []) sl\<close> \<open>(B, z) |\<in>| sl\<close>
+  shows \<open>z = []\<close>
   using assms unfolding eff_def effect_def by auto
 
 lemma eff_Nil_not_empty:
@@ -493,13 +493,13 @@ qed
 lemma listFunTm_paramst: \<open>set (listFunTm t) = paramst t\<close> \<open>set (listFunTms ts) = paramsts ts\<close>
   by (induct t and ts rule: paramst.induct paramsts.induct) auto
 
-lemma generateNew_new: \<open>Fun (generateNew A) l \<notin> set A\<close>
+lemma generateNew_new: \<open>Fun (generateNew A) ts \<notin> set A\<close>
   unfolding generateNew_def using Suc_max_new listFunTm_paramst(2) by fastforce
 
 section \<open>branchDone\<close>
 
-lemma branchDone_contradiction: \<open>branchDone ps \<longleftrightarrow> (\<exists>p. p \<in> set ps \<and> Neg p \<in> set ps)\<close>
-  by (induct ps rule: branchDone.induct) auto
+lemma branchDone_contradiction: \<open>branchDone z \<longleftrightarrow> (\<exists>p. p \<in> set z \<and> Neg p \<in> set z)\<close>
+  by (induct z rule: branchDone.induct) auto
 
 section \<open>Subterms\<close>
 
@@ -519,12 +519,12 @@ lemma subtermTm_Fun:
 
 primrec preds :: \<open>fm \<Rightarrow> fm set\<close> where
   \<open>preds (Pre n ts) = {Pre n ts}\<close>
-| \<open>preds (Imp f1 f2) = preds f1 \<union> preds f2\<close>
-| \<open>preds (Dis f1 f2) = preds f1 \<union> preds f2\<close>
-| \<open>preds (Con f1 f2) = preds f1 \<union> preds f2\<close>
-| \<open>preds (Exi f) = preds f\<close>
-| \<open>preds (Uni f) = preds f\<close>
-| \<open>preds (Neg f) = preds f\<close>
+| \<open>preds (Imp p q) = preds p \<union> preds q\<close>
+| \<open>preds (Dis p q) = preds p \<union> preds q\<close>
+| \<open>preds (Con p q) = preds p \<union> preds q\<close>
+| \<open>preds (Exi p) = preds p\<close>
+| \<open>preds (Uni p) = preds p\<close>
+| \<open>preds (Neg p) = preds p\<close>
 
 lemma subtermFm_preds: \<open>t \<in> set (subtermFm p) \<longleftrightarrow> (\<exists>pre \<in> preds p. t \<in> set (subtermFm pre))\<close>
   by (induct p) auto

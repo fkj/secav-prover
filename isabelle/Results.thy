@@ -8,9 +8,9 @@ corollary prover_soundness_usemantics:
   using assms prover_soundness_SeCaV sound_usemantics by blast
 
 theorem prover_usemantics:
-  fixes A :: \<open>tm list\<close> and ps :: \<open>fm list\<close>
-  defines \<open>t \<equiv> secavProver (A, ps)\<close>
-  shows \<open>tfinite t \<and> wf t \<longleftrightarrow> (uvalid ps)\<close>
+  fixes A :: \<open>tm list\<close> and z :: \<open>fm list\<close>
+  defines \<open>t \<equiv> secavProver (A, z)\<close>
+  shows \<open>tfinite t \<and> wf t \<longleftrightarrow> (uvalid z)\<close>
   using assms prover_soundness_usemantics prover_completeness_usemantics
   unfolding secavProver_def by fastforce
 
@@ -24,9 +24,9 @@ corollary
 section \<open>SeCaV\<close>
 
 theorem prover_SeCaV:
-  fixes A :: \<open>tm list\<close> and ps :: \<open>fm list\<close>
-  defines \<open>t \<equiv> secavProver (A, ps)\<close>
-  shows \<open>tfinite t \<and> wf t \<longleftrightarrow> (\<tturnstile> ps)\<close>
+  fixes A :: \<open>tm list\<close> and z :: \<open>fm list\<close>
+  defines \<open>t \<equiv> secavProver (A, z)\<close>
+  shows \<open>tfinite t \<and> wf t \<longleftrightarrow> (\<tturnstile> z)\<close>
   using assms prover_soundness_SeCaV prover_completeness_SeCaV
   unfolding secavProver_def by fastforce
 

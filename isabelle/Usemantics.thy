@@ -35,7 +35,7 @@ lemma uvalid_semantics:
   shows \<open>semantics e f g p\<close>
   using assms is_env_UNIV usemantics_UNIV by blast
 
-lemma uupd_lemma [iff]: \<open>n \<notin> params p \<Longrightarrow> usemantics u e (f(n := z)) g p \<longleftrightarrow> usemantics u e f g p\<close>
+lemma uupd_lemma [iff]: \<open>n \<notin> params p \<Longrightarrow> usemantics u e (f(n := x)) g p \<longleftrightarrow> usemantics u e f g p\<close>
   by (induct p arbitrary: e) simp_all
 
 text \<open>The semantics of substituting variable i by term t in formula a are well-defined\<close>
@@ -47,8 +47,8 @@ subsection \<open>Soundness of SeCaV\<close>
 
 lemma usemantics_term [simp]:
   assumes \<open>is_env u e\<close> \<open>is_fdenot u f\<close>
-  shows \<open>semantics_term e f t \<in> u\<close> \<open>list_all (\<lambda>x. x \<in> u) (semantics_list e f l)\<close>
-  using assms by (induct t and l rule: semantics_term.induct semantics_list.induct)
+  shows \<open>semantics_term e f t \<in> u\<close> \<open>list_all (\<lambda>x. x \<in> u) (semantics_list e f ts)\<close>
+  using assms by (induct t and ts rule: semantics_term.induct semantics_list.induct)
     (simp_all add: is_env_def is_fdenot_def)
 
 lemma is_env_shift [simp]: \<open>is_env u e \<Longrightarrow> x \<in> u \<Longrightarrow> is_env u (SeCaV.shift e v x)\<close>
