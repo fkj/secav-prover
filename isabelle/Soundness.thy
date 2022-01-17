@@ -310,14 +310,4 @@ theorem prover_soundness_SeCaV:
   shows \<open>\<tturnstile> (snd (fst (root t)))\<close>
   using assms soundness prod.exhaust by fastforce
 
-corollary prover_soundness_usemantics:
-  assumes \<open>tfinite t\<close> \<open>wf t\<close> \<open>is_env u e\<close> \<open>is_fdenot u f\<close>
-  shows \<open>\<exists>p \<in> set (snd (fst (root t))). usemantics u e f g p\<close>
-  using assms prover_soundness_SeCaV sound_usemantics by blast
-
-corollary prover_soundness_semantics:
-  assumes \<open>tfinite t\<close> \<open>wf t\<close>
-  shows \<open>\<exists>p \<in> set (snd (fst (root t))). semantics e f g p\<close>
-  using assms prover_soundness_SeCaV sound by blast
-
 end
