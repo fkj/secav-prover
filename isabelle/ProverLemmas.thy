@@ -448,7 +448,7 @@ lemma children_preserves_unaffected:
 
 text \<open>The \<open>effect\<close> function does not change unaffected formulas.\<close>
 lemma effect_preserves_unaffected:
-  assumes \<open>p \<in> set z\<close> \<open>\<not> affects r p\<close> \<open>(B, z') |\<in>| effect r (A, z)\<close>
+  assumes \<open>p \<in> set z\<close> and \<open>\<not> affects r p\<close> and \<open>(B, z') |\<in>| effect r (A, z)\<close>
   shows \<open>p \<in> set z'\<close>
   using assms children_preserves_unaffected
   unfolding effect_def
@@ -490,7 +490,7 @@ lemma ne_effect_not_branchDone: \<open>(B, z') |\<in>| effect r (A, z) \<Longrig
 text \<open>The \<open>effect\<close> function decomposes formulas in the sequent using the \<open>parts\<close> function.
 (Unless the sequent is an axiom, in which case no child branches are generated.)\<close>
 lemma parts_in_effect:
-  assumes \<open>p \<in> set z\<close> \<open>(B, z') |\<in>| effect r (A, z)\<close>
+  assumes \<open>p \<in> set z\<close> and \<open>(B, z') |\<in>| effect r (A, z)\<close>
   shows \<open>\<exists>C xs. set A \<subseteq> set C \<and> xs \<in> set (parts C r p) \<and> set xs \<subseteq> set z'\<close>
   using assms parts_in_children ne_effect_not_branchDone
   by (smt (verit, ccfv_threshold) Pair_inject effect.simps fimageE fset_of_list_elem le_sup_iff

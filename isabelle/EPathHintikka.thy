@@ -87,7 +87,7 @@ text \<open>If a property will eventually hold on a path, there is some index fr
   hold, and before which it does not hold.\<close>
 lemma ev_prefix_sdrop:
   assumes \<open>ev (holds P) xs\<close>
-  shows \<open>\<exists>pre suf n. list_all (not P) pre \<and> holds P suf \<and> pre = stake n xs \<and> suf = sdrop n xs\<close>
+  shows \<open>\<exists>n. list_all (not P) (stake n xs) \<and> holds P (sdrop n xs)\<close>
   using assms
 proof (induct xs)
   case (base xs)
@@ -114,7 +114,7 @@ text \<open>If a formula is in the sequent in the first state of an escape path 
   applications in some prefix of the path affect that formula, the formula will still be in the
   sequent after that prefix.\<close>
 lemma epath_preserves_unaffected:
-  assumes \<open>p \<in> set (pseq (shd steps))\<close> \<open>epath steps\<close> \<open>steps = pre @- suf\<close>
+  assumes \<open>p \<in> set (pseq (shd steps))\<close> and \<open>epath steps\<close> and \<open>steps = pre @- suf\<close> and
     \<open>list_all (not (\<lambda>step. affects (snd step) p)) pre\<close>
   shows \<open>p \<in> set (pseq (shd suf))\<close>
   using assms
@@ -206,9 +206,9 @@ text \<open>Finally we arrive at the main result of this theory:
   For gamma- and delta-rules, the construction of the list of terms in each state guarantees that
   the formulas are instantiated with terms in the Hintikka set.\<close>
 lemma escape_path_Hintikka:
-  fixes steps
-  assumes \<open>epath steps\<close> \<open>Saturated steps\<close>
-  shows \<open>Hintikka (tree_fms steps)\<close> (is \<open>Hintikka ?H\<close>)
+  assumes \<open>epath steps\<close> and \<open>Saturated steps\<close>
+  shows \<open>Hintikka (tree_fms steps)\<close>
+    (is \<open>Hintikka ?H\<close>)
 proof
   fix n ts
   assume pre: \<open>Pre n ts \<in> ?H\<close>

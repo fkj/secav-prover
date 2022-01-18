@@ -13,9 +13,9 @@ text \<open>We start out by specializing the abstract completeness theorem to ou
 theorem epath_prover_completeness:
   fixes A :: \<open>tm list\<close> and z :: \<open>fm list\<close>
   defines \<open>t \<equiv> secavProver (A, z)\<close>
-  shows
-    \<open>(fst (root t) = (A, z) \<and> wf t \<and> tfinite t) \<or>
-   (\<exists> steps. fst (shd steps) = (A, z) \<and> epath steps \<and> Saturated steps)\<close> (is \<open>?A \<or> ?B\<close>)
+  shows \<open>(fst (root t) = (A, z) \<and> wf t \<and> tfinite t) \<or>
+    (\<exists> steps. fst (shd steps) = (A, z) \<and> epath steps \<and> Saturated steps)\<close>
+    (is \<open>?A \<or> ?B\<close>)
 proof -
   { assume \<open>\<not> ?A\<close>
     with assms have \<open>\<not> tfinite (mkTree rules (A, z))\<close>
