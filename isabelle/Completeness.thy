@@ -3,8 +3,12 @@ theory Completeness
 begin
 
 section \<open>Completeness of the prover\<close>
+text \<open>In this theory, we prove that the prover is complete with regards to the SeCaV proof system
+  using the abstract completeness framework.\<close>
 
-text \<open>We start out by specializing the abstract completeness theorem to our prover\<close>
+text \<open>We start out by specializing the abstract completeness theorem to our prover.
+  It is necessary to reproduce the final theorem here so we can alter it to state that our prover
+  produces a proof tree instead of simply stating that a proof tree exists.\<close>
 theorem epath_prover_completeness:
   fixes A :: \<open>tm list\<close> and z :: \<open>fm list\<close>
   defines \<open>t \<equiv> secavProver (A, z)\<close>
@@ -24,12 +28,13 @@ proof -
   then show ?thesis by blast
 qed
 
-section \<open>Generating countermodels from saturated escape paths\<close>
-
+text \<open>This is an abbreviation for validity under our alternate semantics
+  (for well-formed interpretations).\<close>
 abbreviation \<open>uvalid z \<equiv> \<forall>u (e :: nat \<Rightarrow> tm) f g. is_env u e \<longrightarrow> is_fdenot u f \<longrightarrow>
       (\<exists>p \<in> set z. usemantics u e f g p)\<close>
 
-text \<open>We need some lemmas to prove our main theorem\<close>
+text \<open>The sequent in the first state of a saturated escape path is not valid.
+  This follows from our results in the theories EPathHintikka and Countermodel.\<close>
 lemma epath_countermodel:
   assumes \<open>fst (shd steps) = (A, z)\<close> \<open>epath steps\<close> \<open>Saturated steps\<close>
   shows \<open>\<not> uvalid z\<close>
@@ -49,15 +54,18 @@ proof
     by blast
 qed
 
+text \<open>If the prover does not produce a saturated escape path, it produces a well-formed, finite
+  proof tree.\<close>
 lemma epath_lem:
   assumes \<open>\<nexists>steps. fst (shd steps) = (A, z) \<and> epath steps \<and> Saturated steps\<close>
   defines \<open>t \<equiv> secavProver (A, z)\<close>
   shows \<open>fst (root t) = (A, z) \<and> wf t \<and> tfinite t\<close>
   using assms epath_prover_completeness t_def by blast
 
+text \<open>If a sequent is valid under our alternate semantics, no saturated escape path can exist with
+  that sequent in its first state.\<close>
 lemma epath_contr:
-  assumes \<open>\<forall>u (e :: nat \<Rightarrow> tm) f g. is_env u e \<longrightarrow> is_fdenot u f \<longrightarrow>
-      (\<exists>p \<in> set z. usemantics u e f g p)\<close>
+  assumes \<open>uvalid z\<close>
   shows \<open>\<nexists>steps. fst (shd steps) = (A, z) \<and> epath steps \<and> Saturated steps\<close>
 proof
   assume \<open>\<exists>steps. fst (shd steps) = (A, z) \<and> epath steps \<and> Saturated steps\<close>
@@ -68,7 +76,9 @@ proof
     by blast
 qed
 
-text \<open>Finally, we arrive at the main theorem\<close>
+text \<open>Combining the results above, we can prove completeness with regards to our alternate
+  semantics: if a sequent is valid under our alternate semantics, the prover will produce a finite,
+  well-formed proof tree with the sequent at its root.\<close>
 theorem prover_completeness_usemantics:
   fixes A :: \<open>tm list\<close>
   assumes \<open>uvalid z\<close>
@@ -76,6 +86,9 @@ theorem prover_completeness_usemantics:
   shows \<open>fst (root t) = (A, z) \<and> wf t \<and> tfinite t\<close>
   using assms by (simp add: epath_contr epath_lem epath_prover_completeness)
 
+text \<open>Since our alternate semantics are sound, we can derive our main completeness theorem as a
+  corollary: if a sequent is provable in the SeCaV proof system, the prover will produce a finite,
+  well-formed proof tree with the sequent at its root.\<close>
 corollary prover_completeness_SeCaV:
   fixes A :: \<open>tm list\<close>
   assumes \<open>\<tturnstile> z\<close>

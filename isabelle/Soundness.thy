@@ -3,7 +3,12 @@ theory Soundness
 begin
 
 section \<open>Soundness of the prover\<close>
+text \<open>In this theory, we prove that the prover is sound with regards to the SeCaV proof system 
+  using the abstract soundness framework.\<close>
 
+text \<open>If some suffix of the sequents in all of the children of a state are provable, so is some
+  suffix of the sequent in the current state, with the prefix in each sequent being the same.
+  (As a side condition, the lists of terms need to be compatible.)\<close>
 lemma SeCaV_children_pre:
   assumes \<open>\<forall>z' \<in> set (children A r z). (\<tturnstile> pre @ z')\<close> \<open>paramss (pre @ z) \<subseteq> paramsts A\<close> 
   shows \<open>\<tturnstile> pre @ z\<close>
@@ -269,11 +274,13 @@ next
   qed
 qed
 
+text \<open>As a special case, the prefix can be empty.\<close>
 corollary SeCaV_children:
   assumes \<open>\<forall>z' \<in> set (children A r z). (\<tturnstile> z')\<close> \<open>paramss z \<subseteq> paramsts A\<close>
   shows \<open>\<tturnstile> z\<close>
   using SeCaV_children_pre assms by (metis append_Nil)
 
+text \<open>Using this lemma, we can instantiate the abstract soundness framework.\<close>
 interpretation Soundness eff rules UNIV \<open>\<lambda>_ (A, z). (\<tturnstile> z)\<close>
   unfolding Soundness_def
 proof safe
@@ -305,6 +312,9 @@ proof safe
   qed
 qed
 
+text \<open>Using the result from the abstract soundness framework, we can finally state our soundness
+  result: for a finite, well-formed proof tree, the sequent at the root of the tree is provable in
+  the SeCaV proof system.\<close>
 theorem prover_soundness_SeCaV:
   assumes \<open>tfinite t\<close> \<open>wf t\<close>
   shows \<open>\<tturnstile> (snd (fst (root t)))\<close>

@@ -3,21 +3,31 @@ theory Countermodel
 begin
 
 section \<open>Countermodels from Hintikka sets\<close>
+text \<open>In this theory, we will construct a countermodel in the alternative semantics from a Hintikka
+  set. This will allow us to prove completeness of the prover.\<close>
 
-text \<open>A predicate is satisfied in a set of formulas S if its negation is also in S\<close>
+text \<open>A predicate is satisfied in a set of formulas S if its negation is also in S.\<close>
 abbreviation (input) \<open>sat S n ts \<equiv> Neg (Pre n ts) \<in> S\<close>
 
-text \<open>Alternate interpretation for environments: if a variable is not present, we interpret it as some existing term\<close>
+text \<open>Alternate interpretation for environments: if a variable is not present, we interpret it as
+  some existing term.\<close>
 abbreviation \<open>E S n \<equiv> if Var n \<in> terms S then Var n else SOME t. t \<in> terms S\<close>
 
+text \<open>Alternate interpretation for functions: if a function application is not present, we interpret
+  it as some existing term.\<close>
 abbreviation \<open>F S i l \<equiv> if Fun i l \<in> terms S then Fun i l else SOME t. t \<in> terms S\<close>
 
+text \<open>The terms function never returns the empty set (because it will add \<open>Fun 0 []\<close> if that is the
+  case).\<close>
 lemma terms_ne [simp]: \<open>terms S \<noteq> {}\<close>
   unfolding terms_def by simp
 
+text \<open>If a term is in the set of terms, it is either the default term or a subterm of some formula
+  in the set.\<close>
 lemma terms_cases: \<open>t \<in> terms S \<Longrightarrow> t = Fun 0 [] \<or> (\<exists>p \<in> S. t \<in> set (subtermFm p))\<close>
   unfolding terms_def by (simp split: if_splits)
 
+text \<open>The set of terms is downwards closed under the subterm function.\<close>
 lemma terms_downwards_closed: \<open>t \<in> terms S \<Longrightarrow> set (subtermTm t) \<subseteq> terms S\<close>
 proof (induct t)
   case (Fun n ts)
@@ -54,7 +64,7 @@ next
 qed
 
 text \<open>If terms are actually in a set of formulas, interpreting the environment over these formulas
-allows for a Herbrand interpretation\<close>
+allows for a Herbrand interpretation.\<close>
 lemma usemantics_E:
   shows
     \<open>t \<in> terms S \<Longrightarrow> semantics_term (E S) (F S) t = t\<close>
@@ -69,7 +79,7 @@ proof (induct t and ts arbitrary: ts rule: semantics_term.induct semantics_list.
     using Fun by simp
 qed simp_all
 
-text \<open>As long as some formulas exist, our alternate interpretation of environments is defined\<close>
+text \<open>Our alternate interpretation of environments is well-formed for the terms function.\<close>
 lemma is_env_E: \<open>is_env (terms S) (E S)\<close>
   unfolding is_env_def
 proof
@@ -78,6 +88,7 @@ proof
     by (cases \<open>Var n \<in> terms S\<close>) (simp_all add: some_in_eq)
 qed
 
+text \<open>Our alternate function interpretation is well-formed for the terms function.\<close>
 lemma is_fdenot_F: \<open>is_fdenot (terms S) (F S)\<close>
   unfolding is_fdenot_def
 proof (intro allI impI)
@@ -87,8 +98,8 @@ proof (intro allI impI)
     by (cases \<open>\<forall>n. Var n \<in> terms S\<close>) (simp_all add: some_in_eq)
 qed
 
-text \<open>If S is a Hintikka set containing only closed formulas, then we can construct a countermodel
-for any closed formula using our alternate semantics and a Herbrand interpretation\<close>
+text \<open>If S is a Hintikka set, then we can construct a countermodel for any closed formula using our
+  alternate semantics and a Herbrand interpretation.\<close>
 lemma hintikka_counter_model:
   assumes \<open>Hintikka S\<close>
   shows

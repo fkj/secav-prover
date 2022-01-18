@@ -1,8 +1,11 @@
 theory Usemantics imports SeCaV begin
 
 section \<open>Alternative Semantics\<close>
+text \<open>In this theory, we define an alternative semantics for SeCaV formulas where the quantifiers
+  are bounded to terms in a specific set.
+  This is needed to construct a countermodel from a Hintikka set.\<close>
 
-text \<open>We define an alternate semantics where the quantifiers refer to a specific set\<close>
+text \<open>This function defines the semantics, which are bounded by the set \<open>u\<close>.\<close>
 primrec usemantics where
   \<open>usemantics u e f g (Pre i l) = g i (semantics_list e f l)\<close> |
   \<open>usemantics u e f g (Imp p q) = (usemantics u e f g p \<longrightarrow> usemantics u e f g q)\<close> |
@@ -12,10 +15,11 @@ primrec usemantics where
   \<open>usemantics u e f g (Uni p) = (\<forall>x \<in> u. usemantics u (SeCaV.shift e 0 x) f g p)\<close> |
   \<open>usemantics u e f g (Neg p) = (\<not> usemantics u e f g p)\<close>
 
-text \<open>An environment is only defined if the variables are actually in the quantifier set u\<close>
+text \<open>An environment is well-formed if the variables are actually in the quantifier set \<open>u\<close>.\<close>
 definition is_env :: \<open>'a set \<Rightarrow> (nat \<Rightarrow> 'a) \<Rightarrow> bool\<close> where
   \<open>is_env u e \<equiv> \<forall>n. e n \<in> u\<close>
 
+text \<open>A function interpretation is well-formed if it is closed in the quantifier set \<open>u\<close>.\<close>
 definition is_fdenot :: \<open>'a set \<Rightarrow> (nat \<Rightarrow> 'a list \<Rightarrow> 'a) \<Rightarrow> bool\<close> where
   \<open>is_fdenot u f \<equiv> \<forall>i l. list_all (\<lambda>x. x \<in> u) l \<longrightarrow> f i l \<in> u\<close>
 
@@ -23,18 +27,20 @@ text \<open>If we choose to quantify over the universal set, we obtain the usual
 lemma usemantics_UNIV: \<open>usemantics UNIV e f g p \<longleftrightarrow> semantics e f g p\<close>
   by (induct p arbitrary: e) auto
 
-text \<open>If we choose the universal set, any environment is defined\<close>
+text \<open>If we choose the universal set, any environment is defined.\<close>
 lemma is_env_UNIV: \<open>is_env UNIV e\<close>
   unfolding is_env_def by blast
 
 text \<open>If a formula is valid for any quantifier set, it is valid for the universal set in particular,
-and we thus obtain that it is also valid in the usual semantics\<close>
+and we thus obtain that it is also valid in the usual SeCaV semantics.\<close>
 lemma uvalid_semantics:
   fixes e :: \<open>nat \<Rightarrow> 'a\<close>
   assumes \<open>\<forall>(u :: 'a set) e f g. usemantics u e f g p\<close>
   shows \<open>semantics e f g p\<close>
   using assms is_env_UNIV usemantics_UNIV by blast
 
+text \<open>If a function name \<open>n\<close> is not in a formula, it does not matter whether it is in the function
+  interpretation or not.\<close>
 lemma uupd_lemma [iff]: \<open>n \<notin> params p \<Longrightarrow> usemantics u e (f(n := x)) g p \<longleftrightarrow> usemantics u e f g p\<close>
   by (induct p arbitrary: e) simp_all
 
@@ -43,20 +49,30 @@ lemma usubst_lemma [iff]:
   \<open>usemantics u e f g (subst a t i) \<longleftrightarrow> usemantics u (SeCaV.shift e i (semantics_term e f t)) f g a\<close>
   by (induct a arbitrary: e i t) simp_all
 
-subsection \<open>Soundness of SeCaV\<close>
+subsection \<open>Soundness of SeCaV with regards to the alternative semantics\<close>
+text \<open>We would like to prove that the SeCaV proof system is sound under the alternative semantics.\<close>
 
+text \<open>If the environment and the function interpretation are well-formed, the semantics of terms
+  are in the quantifier set \<open>u\<close>.\<close>
 lemma usemantics_term [simp]:
   assumes \<open>is_env u e\<close> \<open>is_fdenot u f\<close>
   shows \<open>semantics_term e f t \<in> u\<close> \<open>list_all (\<lambda>x. x \<in> u) (semantics_list e f ts)\<close>
   using assms by (induct t and ts rule: semantics_term.induct semantics_list.induct)
     (simp_all add: is_env_def is_fdenot_def)
 
+text \<open>If an environment is well-formed, replacing a variable by something in the quantifier set
+  results in a well-formed environment.\<close>
 lemma is_env_shift [simp]: \<open>is_env u e \<Longrightarrow> x \<in> u \<Longrightarrow> is_env u (SeCaV.shift e v x)\<close>
   unfolding is_env_def SeCaV.shift_def by simp                  
 
+text \<open>If a function interpretation is well-formed, replacing the value by one in the quantifier set
+  results in a well-formed function interpretation.\<close>
 lemma is_fdenot_shift [simp]: \<open>is_fdenot u f \<Longrightarrow> x \<in> u \<Longrightarrow> is_fdenot u (f(i := \<lambda>_. x))\<close>
   unfolding is_fdenot_def SeCaV.shift_def by simp
 
+text \<open>If a sequent is provable in the SeCaV proof system and the environment and function
+  interpretation are well-formed, one of the formulas in the sequent is valid under the alternative
+  semantics.\<close>
 theorem sound_usemantics:
   assumes \<open>\<tturnstile> z\<close> \<open>is_env u e\<close> \<open>is_fdenot u f\<close>
   shows \<open>\<exists>p \<in> set z. usemantics u e f g p\<close>

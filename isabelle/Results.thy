@@ -1,12 +1,19 @@
 theory Results imports Soundness Completeness Sequent_Calculus_Verifier begin
 
-section \<open>Usemantics\<close>
+text \<open>In this theory, we collect our soundness and completeness results and prove some extra results
+  linking the SeCaV proof system, the usual semantics of SeCaV, and our alternate semantics.\<close>
 
+section \<open>Alternate semantics\<close>
+
+text \<open>The existence of a finite, well-formed proof tree with a formula at its root implies that the
+  formula is valid under our alternate semantics.\<close>
 corollary prover_soundness_usemantics:
   assumes \<open>tfinite t\<close> \<open>wf t\<close> \<open>is_env u e\<close> \<open>is_fdenot u f\<close>
   shows \<open>\<exists>p \<in> set (snd (fst (root t))). usemantics u e f g p\<close>
   using assms prover_soundness_SeCaV sound_usemantics by blast
 
+text \<open>The prover returns a finite, well-formed proof tree if and only if the sequent to be proved is
+  valid under our alternate semantics.\<close>
 theorem prover_usemantics:
   fixes A :: \<open>tm list\<close> and z :: \<open>fm list\<close>
   defines \<open>t \<equiv> secavProver (A, z)\<close>
@@ -14,6 +21,8 @@ theorem prover_usemantics:
   using assms prover_soundness_usemantics prover_completeness_usemantics
   unfolding secavProver_def by fastforce
 
+text \<open>The prover returns a finite, well-formed proof tree for a single formula if and only if the
+  formula is valid under our alternate semantics.\<close>
 corollary
   fixes p :: fm
   defines \<open>t \<equiv> secavProver ([], [p])\<close>
@@ -23,6 +32,8 @@ corollary
 
 section \<open>SeCaV\<close>
 
+text \<open>The prover returns a finite, well-formed proof tree if and only if the sequent to be proven is
+  provable in the SeCaV proof system.\<close>
 theorem prover_SeCaV:
   fixes A :: \<open>tm list\<close> and z :: \<open>fm list\<close>
   defines \<open>t \<equiv> secavProver (A, z)\<close>
@@ -30,6 +41,8 @@ theorem prover_SeCaV:
   using assms prover_soundness_SeCaV prover_completeness_SeCaV
   unfolding secavProver_def by fastforce
 
+text \<open>The prover returns a finite, well-formed proof tree if and only if the single formula to be
+  proven is provable in the SeCaV proof system.\<close>
 corollary
   fixes p :: fm
   defines \<open>t \<equiv> secavProver ([], [p])\<close>
@@ -38,16 +51,22 @@ corollary
 
 section \<open>Semantics\<close>
 
+text \<open>If the prover returns a finite, well-formed proof tree, some formula in the sequent at the
+  root of the tree is valid under the usual SeCaV semantics.\<close>
 corollary prover_soundness_semantics:
   assumes \<open>tfinite t\<close> \<open>wf t\<close>
   shows \<open>\<exists>p \<in> set (snd (fst (root t))). semantics e f g p\<close>
   using assms prover_soundness_SeCaV sound by blast
 
+text \<open>If the prover returns a finite, well-formed proof tree, the single formula in the sequent at
+  the root of the tree is valid under the usual SeCaV semantics.\<close>
 corollary
   assumes \<open>tfinite t\<close> \<open>wf t\<close> \<open>snd (fst (root t)) = [p]\<close>
   shows \<open>semantics e f g p\<close>
   using assms prover_soundness_SeCaV complete_sound(2) by metis
 
+text \<open>If a formula is valid under the usual SeCaV semantics, the prover will return a finite,
+  well-formed proof tree with the formula at its root when called on it.\<close>
 corollary prover_completeness_semantics:
   fixes A :: \<open>tm list\<close>
   assumes \<open>\<forall>(e :: nat \<Rightarrow> nat hterm) f g. semantics e f g p\<close>
@@ -60,6 +79,8 @@ proof -
     using assms prover_completeness_SeCaV by blast
 qed
 
+text \<open>The prover produces a finite, well-formed proof tree for a formula if and only if that formula
+  is valid under the usual SeCaV semantics.\<close>
 theorem prover_semantics:
   fixes A :: \<open>tm list\<close> and p :: fm
   defines \<open>t \<equiv> secavProver (A, [p])\<close>

@@ -1,19 +1,31 @@
 theory EPathHintikka imports Hintikka ProverLemmas begin
 
-section \<open>Various facts about the "flow" in the prover\<close>
+text \<open>In this theory, we show that the formulas in the sequents on a saturated escape path in a
+  proof tree form a Hintikka set.
+  This is a crucial part of our completeness proof.\<close>
 
+section \<open>Definitions\<close>
+text \<open>In this sequent we define a few concepts that make the following proofs easier to read.\<close>
+
+text \<open>\<open>prule\<close> is the rule applied in a node.\<close>
 definition prule :: \<open>sequent \<times> rule \<Rightarrow> rule\<close> where
   \<open>prule z = snd z\<close>
 
+text \<open>\<open>pseq\<close> is the sequent in a node.\<close>
 definition pseq :: \<open>state \<times> rule \<Rightarrow> sequent\<close> where
   \<open>pseq z = snd (fst z)\<close>
 
+text \<open>\<open>ptms\<close> is the list of terms in a node.\<close>
 definition ptms :: \<open>state \<times> rule \<Rightarrow> tm list\<close> where
   \<open>ptms z = fst (fst z)\<close>
 
+section \<open>Facts about streams\<close>
+
+text \<open>Escape paths are infinite, so if you drop the first \<open>n\<close> nodes, you are still on the path.\<close>
 lemma epath_sdrop: \<open>epath steps \<Longrightarrow> epath (sdrop n steps)\<close>
   by (induct n) (auto elim: epath.cases)
 
+text \<open>Dropping the first \<open>n\<close> elements of a stream can only reduce the set of elements in the stream.\<close>
 lemma sset_sdrop: \<open>sset (sdrop n s) \<subseteq> sset s\<close>
 proof (induct n arbitrary: s)
   case (Suc n)
@@ -21,18 +33,23 @@ proof (induct n arbitrary: s)
     by (metis in_mono sdrop_simps(2) stl_sset subsetI)
 qed simp
 
-text \<open>Transformation of formulas on an epath\<close>
+section  \<open>Transformation of states on an escape path\<close>
+text \<open>We need to prove some lemmas about how the states of an escape path are connected.\<close>
 
+text \<open>Since escape paths are well-formed, the eff relation holds between the nodes on the path.\<close>
 lemma epath_eff:
   assumes \<open>epath steps\<close> \<open>eff (snd (shd steps)) (fst (shd steps)) ss\<close>
   shows \<open>fst (shd (stl steps)) |\<in>| ss\<close>
   using assms by (metis (mono_tags, lifting) epath.simps eff_def)
 
+text \<open>The list of terms in a state contains the terms of the current sequent and the terms from the
+  previous state.\<close>
 lemma effect_tms:
   assumes \<open>(B, z') |\<in>| effect r (A, z)\<close>
   shows \<open>B = remdups (A @ subterms z @ subterms z')\<close>
   using assms by (smt (verit, best) effect.simps fempty_iff fimageE prod.simps(1))
 
+text \<open>The two previous lemmas can be combined into a single lemma.\<close>
 lemma epath_effect:
   assumes \<open>epath steps\<close> \<open>shd steps = ((A, z), r)\<close>
   shows \<open>\<exists>B z' r'. (B, z') |\<in>| effect r (A, z) \<and> shd (stl steps) = ((B, z'), r') \<and>
@@ -40,6 +57,8 @@ lemma epath_effect:
   using assms epath_eff effect_tms
   by (metis (mono_tags, lifting) eff_def fst_conv prod.collapse snd_conv)
 
+text \<open>The list of terms in the next state on an escape path contains the terms in the current state
+  plus the terms from the next state.\<close>
 lemma epath_stl_ptms:
   assumes \<open>epath steps\<close>
   shows \<open>ptms (shd (stl steps)) = remdups (ptms (shd steps) @
@@ -47,6 +66,7 @@ lemma epath_stl_ptms:
   using assms epath_effect
   by (metis (mono_tags) eff_def effect_tms epath_eff pseq_def ptms_def surjective_pairing)
 
+text \<open>The list of terms never decreases on an escape path.\<close>
 lemma epath_sdrop_ptms:
   assumes \<open>epath steps\<close>
   shows \<open>set (ptms (shd steps)) \<subseteq> set (ptms (shd (sdrop n steps)))\<close>
@@ -59,8 +79,10 @@ proof (induct n)
     using Suc epath_stl_ptms by fastforce
 qed simp
 
-text \<open>Preservation on epath\<close>
+section \<open>Preservation on epath\<close>
 
+text \<open>If a property will eventually hold on a path, there is some index from which it begins to
+  hold, and before which it does not hold.\<close>
 lemma ev_prefix_sdrop:
   assumes \<open>ev (holds P) xs\<close>
   shows \<open>\<exists>pre suf n. list_all (not P) pre \<and> holds P suf \<and> pre = stake n xs \<and> suf = sdrop n xs\<close>
@@ -75,14 +97,20 @@ next
     by (metis holds.elims(1) list.pred_inject(2) list_all_simps(2) sdrop.simps(1-2) stake.simps(1-2))
 qed
 
+text \<open>More specifically, the path will consists of a prefix and a suffix for which the property
+  does not hold and does hold, respectively.\<close>
 lemma ev_prefix:
   assumes \<open>ev (holds P) xs\<close>
   shows \<open>\<exists>pre suf. list_all (not P) pre \<and> holds P suf \<and> xs = pre @- suf\<close>
   using assms ev_prefix_sdrop by (metis stake_sdrop)
 
+text \<open>All rules are always enabled, so they are also always enabled at specific steps.\<close>
 lemma always_enabledAtStep: \<open>enabledAtStep r xs\<close>
   by (simp add: RuleSystem_Defs.enabled_def eff_def)
 
+text \<open>If a formula is in the sequent in the first state of an escape path and none of the rule
+  applications in some prefix of the path affect that formula, the formula will still be in the
+  sequent after that prefix.\<close>
 lemma epath_preserves_unaffected:
   assumes \<open>p \<in> set (pseq (shd steps))\<close> \<open>epath steps\<close> \<open>steps = pre @- suf\<close>
     \<open>list_all (not (\<lambda>step. affects (snd step) p)) pre\<close>
@@ -106,17 +134,24 @@ qed
 
 section \<open>Proving that the formulas on an escape path form a Hintikka set\<close>
 
+text \<open>This definition captures the set of formulas on an entire path\<close>
 definition \<open>tree_fms steps \<equiv> \<Union>ss \<in> sset steps. set (pseq ss)\<close>
 
+text \<open>The sequent at the head of a path is in the set of formulas on that path\<close>
 lemma pseq_in_tree_fms: \<open>\<lbrakk>x \<in> sset steps; p \<in> set (pseq x)\<rbrakk> \<Longrightarrow> p \<in> tree_fms steps\<close>
   using pseq_def tree_fms_def by blast
 
+text \<open>If a formula is in the set of formulas on a path, there is some index on the path where that
+  formula can be found in the sequent.\<close>
 lemma tree_fms_in_pseq: \<open>p \<in> tree_fms steps \<Longrightarrow> \<exists>n. p \<in> set (pseq (steps !! n))\<close>
   unfolding pseq_def tree_fms_def using sset_range[of steps] by simp
 
+text \<open>If a path is saturated, so is any suffix of that path (since saturation is defined in terms of
+  the always operator).\<close>
 lemma Saturated_sdrop: \<open>Saturated steps \<Longrightarrow> Saturated (sdrop n steps)\<close>
   by (simp add: RuleSystem_Defs.Saturated_def alw_iff_sdrop saturated_def)
 
+text \<open>If a path is saturated, it is always possible to find a state in which a given rule is applied.\<close>
 lemma Saturated_ev_rule:
   assumes \<open>Saturated steps\<close>
   shows \<open>ev (holds (\<lambda>step. snd step = r)) (sdrop n steps)\<close>
@@ -131,8 +166,11 @@ proof -
     unfolding saturated_def using always_enabledAtStep holds.elims(3) by blast
 qed
 
+text \<open>This is an abbreviation that determines whether a given rule is applied in a given state.\<close>
 abbreviation \<open>is_rule r step \<equiv> snd step = r\<close>
 
+text \<open>On an escape path, the sequent is never an axiom (since that would end the branch, and escape
+  paths are infinitely long).\<close>
 lemma epath_never_branchDone:
   assumes \<open>epath steps\<close>
   shows \<open>alw (holds (not (branchDone o pseq))) steps\<close>
@@ -153,6 +191,18 @@ proof (rule ccontr)
     by blast
 qed
 
+text \<open>Finally we arrive at the main result of this theory:
+  The set of formulas on a saturated escape path form a Hintikka set.
+
+  The proof basically says that, given a formula, we can find some index into the path where a rule
+  is applied to decompose that formula into the parts needed for the Hintikka set.
+  The lemmas above are used to guarantee that the formula does not disappear (and that the branch
+  does not end) before the rule is applied, and that the correct formulas are generated by the
+  effect function when the rule is finally applied.
+  For beta-rules, only one of the constituent formulas need to be on the path, since the path runs
+  along only one of the two branches.
+  For gamma- and delta-rules, the construction of the list of terms in each state guarantees that
+  the formulas are instantiated with terms in the Hintikka set.\<close>
 lemma escape_path_Hintikka:
   fixes steps
   assumes \<open>epath steps\<close> \<open>Saturated steps\<close>
