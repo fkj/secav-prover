@@ -1,7 +1,7 @@
 chapter SeCaV
 
 session SeCaV_Prover = "HOL-Library" +
-  options [timeout = 300]
+  options [document = pdf, document_output = "output", timeout = 300]
   sessions
     Collections
     Abstract_Completeness
@@ -21,3 +21,5 @@ session SeCaV_Prover = "HOL-Library" +
     Soundness
     Completeness
     Results
+  document_files
+    "root.tex"
