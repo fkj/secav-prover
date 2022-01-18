@@ -40,8 +40,8 @@ lemma uvalid_semantics:
   shows \<open>semantics e f g p\<close>
   using assms is_env_UNIV usemantics_UNIV by blast
 
-text \<open>If a function name \<open>n\<close> is not in a formula, it does not matter whether it is in the function
-  interpretation or not.\<close>
+text \<open>If a function name \<open>n\<close> is not in a formula, it does not matter whether it is in
+  the function interpretation or not.\<close>
 lemma uupd_lemma [iff]: \<open>n \<notin> params p \<Longrightarrow> usemantics u e (f(n := x)) g p \<longleftrightarrow> usemantics u e f g p\<close>
   by (induct p arbitrary: e) simp_all
 
@@ -71,8 +71,8 @@ text \<open>If a function interpretation is well-formed, replacing the value by 
 lemma is_fdenot_shift [simp]: \<open>is_fdenot u f \<Longrightarrow> x \<in> u \<Longrightarrow> is_fdenot u (f(i := \<lambda>_. x))\<close>
   unfolding is_fdenot_def SeCaV.shift_def by simp
 
-text \<open>If a sequent is provable in the SeCaV proof system and the environment and function
-  interpretation are well-formed, the sequent is valid under the bounded semantics.\<close>
+text \<open>If a sequent is provable in the SeCaV proof system and the environment
+  and function interpretation are well-formed, the sequent is valid under the bounded semantics.\<close>
 theorem sound_usemantics:
   assumes \<open>\<tturnstile> z\<close> \<open>is_env u e\<close> \<open>is_fdenot u f\<close>
   shows \<open>\<exists>p \<in> set z. usemantics u e f g p\<close>

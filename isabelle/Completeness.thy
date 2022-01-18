@@ -87,8 +87,8 @@ theorem prover_completeness_usemantics:
   shows \<open>fst (root t) = (A, z) \<and> wf t \<and> tfinite t\<close>
   using assms by (simp add: epath_contr epath_lem epath_prover_completeness)
 
-text \<open>Since our bounded semantics are sound, we can derive our main completeness theorem as a
-  corollary: if a sequent is provable in the SeCaV proof system, the prover will produce a finite,
+text \<open>Since our bounded semantics are sound, we can derive our main completeness theorem as
+  a corollary: if a sequent is provable in the SeCaV proof system, the prover will produce a finite,
   well-formed proof tree with the sequent at its root.\<close>
 corollary prover_completeness_SeCaV:
   fixes A :: \<open>tm list\<close>
