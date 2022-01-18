@@ -65,14 +65,19 @@ To do so, the SeCaV theory must be available to Isabelle, e.g. by placing a copy
 The implementation of the prover is split into two main parts: the `isabelle` folder contains the implementation of the proof search procedure itself as well as the formal proofs of soundness and completeness, while the `haskell` folder contains implementations of supporting functions such as parsing and code generation.
 
 The `isabelle` folder contains the following theories:
-* `SeCaV.thy` contains the definition of the Sequent Calculus Verifier system, which is the logic we are working in
+* `SeCaV.thy` contains the definition of the Sequent Calculus Verifier system, which is the logic we are working in, and a soundness theorem for the proof system
+* `Sequent1.thy` is a shim theory for linking the AFP theory to the `Sequent_Calculus_Verifier` theory
+* `Sequent_Calculus_Verifier.thy` contains a completeness result for the SeCaV proof system
 * `Prover.thy` contains the definition of the proof search procedure
 * `Export.thy` contains the configuration of the Isabelle-to-Haskell code generator for the proof search procedure
 * `ProverLemmas.thy` contains formal proofs of a number of useful properties of the proof search procedure
-* `Soundness.thy` contains a formal proof of the soundness of the proof search procedure
-* `Hintikka.thy` contains a formal proof that the formulas in the proof trees produced by the proof search procedure are Hintikka sets
+* `Hintikka.thy` contains a definition of Hintikka sets for SeCaV formulas
+* `EPathHintikka.thy` contains formal proof that the sets of formulas in infinite proof trees produced by the proof search procedure are Hintikka sets
+* `Usemantics.thy` contains a definition of an alternative bounded semantics for SeCaV, which is used in the completeness proof
 * `Countermodel.thy` contains a formal proof that an infinite proof tree produced by the proof search procedure gives rise to a countermodel of the formula given to the procedure
+* `Soundness.thy` contains a formal proof of the soundness of the proof search procedure
 * `Completeness.thy` contains a formal proof of the completeness of the proof search procedure
+* `Results.thy` contains a summary of our theorems as well as some extra results linking the proof system, the SeCaV semantics, and the bounded semantics
 
 The `haskell` folder initially contains two subfolders:
 * `lib` contains a parser for SeCaV Unshortener syntax, an Unshortener to SeCaV/Isabelle syntax, and a procedure for converting proof trees into SeCaV Unshortener proofs
