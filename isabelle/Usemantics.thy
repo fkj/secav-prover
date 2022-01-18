@@ -8,13 +8,13 @@ text \<open>In this theory, we define an alternative semantics for SeCaV formula
 
 text \<open>This function defines the semantics, which are bounded by the set \<open>u\<close>.\<close>
 primrec usemantics where
-  \<open>usemantics u e f g (Pre i l) = g i (semantics_list e f l)\<close> |
-  \<open>usemantics u e f g (Imp p q) = (usemantics u e f g p \<longrightarrow> usemantics u e f g q)\<close> |
-  \<open>usemantics u e f g (Dis p q) = (usemantics u e f g p \<or> usemantics u e f g q)\<close> |
-  \<open>usemantics u e f g (Con p q) = (usemantics u e f g p \<and> usemantics u e f g q)\<close> |
-  \<open>usemantics u e f g (Exi p) = (\<exists>x \<in> u. usemantics u (SeCaV.shift e 0 x) f g p)\<close> |
-  \<open>usemantics u e f g (Uni p) = (\<forall>x \<in> u. usemantics u (SeCaV.shift e 0 x) f g p)\<close> |
-  \<open>usemantics u e f g (Neg p) = (\<not> usemantics u e f g p)\<close>
+  \<open>usemantics u e f g (Pre i l) = g i (semantics_list e f l)\<close>
+| \<open>usemantics u e f g (Imp p q) = (usemantics u e f g p \<longrightarrow> usemantics u e f g q)\<close>
+| \<open>usemantics u e f g (Dis p q) = (usemantics u e f g p \<or> usemantics u e f g q)\<close>
+| \<open>usemantics u e f g (Con p q) = (usemantics u e f g p \<and> usemantics u e f g q)\<close>
+| \<open>usemantics u e f g (Exi p) = (\<exists>x \<in> u. usemantics u (SeCaV.shift e 0 x) f g p)\<close>
+| \<open>usemantics u e f g (Uni p) = (\<forall>x \<in> u. usemantics u (SeCaV.shift e 0 x) f g p)\<close>
+| \<open>usemantics u e f g (Neg p) = (\<not> usemantics u e f g p)\<close>
 
 text \<open>An environment is well-formed if the variables are actually in the quantifier set \<open>u\<close>.\<close>
 definition is_env :: \<open>'a set \<Rightarrow> (nat \<Rightarrow> 'a) \<Rightarrow> bool\<close> where
