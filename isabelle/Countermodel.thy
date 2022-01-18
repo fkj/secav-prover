@@ -8,15 +8,18 @@ text \<open>In this theory, we will construct a countermodel in the bounded sema
   set. This will allow us to prove completeness of the prover.\<close>
 
 text \<open>A predicate is satisfied in a set of formulas S if its negation is also in S.\<close>
-abbreviation (input) \<open>sat S n ts \<equiv> Neg (Pre n ts) \<in> S\<close>
+abbreviation (input)
+  \<open>G S n ts \<equiv> Neg (Pre n ts) \<in> S\<close>
 
 text \<open>Alternate interpretation for environments: if a variable is not present, we interpret it as
   some existing term.\<close>
-abbreviation \<open>E S n \<equiv> if Var n \<in> terms S then Var n else SOME t. t \<in> terms S\<close>
+abbreviation
+  \<open>E S n \<equiv> if Var n \<in> terms S then Var n else SOME t. t \<in> terms S\<close>
 
 text \<open>Alternate interpretation for functions: if a function application is not present, we interpret
   it as some existing term.\<close>
-abbreviation \<open>F S i l \<equiv> if Fun i l \<in> terms S then Fun i l else SOME t. t \<in> terms S\<close>
+abbreviation
+  \<open>F S i l \<equiv> if Fun i l \<in> terms S then Fun i l else SOME t. t \<in> terms S\<close>
 
 text \<open>The terms function never returns the empty set (because it will add \<open>Fun 0 []\<close> if that is the
   case).\<close>
@@ -99,20 +102,19 @@ proof (intro allI impI)
     by (cases \<open>\<forall>n. Var n \<in> terms S\<close>) (simp_all add: some_in_eq)
 qed
 
-text \<open>If S is a Hintikka set, then we can construct a countermodel for any closed formula using our
+text \<open>If S is a Hintikka set, then we can construct a countermodel for any formula using our
   bounded semantics and a Herbrand interpretation.\<close>
-lemma hintikka_counter_model:
+lemma Hintikka_counter_model:
   assumes \<open>Hintikka S\<close>
-  shows
-    \<open>(p \<in> S \<longrightarrow> \<not> usemantics (terms S) (E S) (F S) (sat S) p) \<and>
- (Neg p \<in> S \<longrightarrow> usemantics (terms S) (E S) (F S) (sat S) p)\<close>
+  shows \<open>(p \<in> S \<longrightarrow> \<not> usemantics (terms S) (E S) (F S) (G S) p) \<and>
+     (Neg p \<in> S \<longrightarrow> usemantics (terms S) (E S) (F S) (G S) p)\<close>
 proof (induct p rule: wf_induct [where r=\<open>measure size\<close>])
   case 1
   then show ?case ..
 next
   fix x
 
-  let ?s = \<open>usemantics (terms S) (E S) (F S) (sat S)\<close>
+  let ?s = \<open>usemantics (terms S) (E S) (F S) (G S)\<close>
 
   assume wf: \<open>\<forall>q. (q, x) \<in> measure size \<longrightarrow>
     (q \<in> S \<longrightarrow> \<not> ?s q) \<and> (Neg q \<in> S \<longrightarrow> ?s q)\<close>
@@ -132,7 +134,7 @@ next
         by (metis (no_types, lifting) usemantics.simps(1))
     next
       assume \<open>Neg x \<in> S\<close>
-      then have \<open>sat S n ts\<close>
+      then have \<open>G S n ts\<close>
         using assms Pre Hintikka.Basic by blast
       moreover have \<open>list_all (\<lambda>t. t \<in> terms S) ts\<close>
         using \<open>Neg x \<in> S\<close> Pre subterm_Pre_refl unfolding terms_def list_all_def by force
@@ -198,12 +200,9 @@ next
       then have \<open>\<forall>t \<in> terms S. \<not> ?s (sub 0 t p)\<close>
         using wf Exi size_sub
         by (metis (no_types, lifting) add.right_neutral add_Suc_right fm.size(12) in_measure lessI)
-      then have \<open>\<forall>t \<in> terms S. \<not> usemantics (terms S)
-          (SeCaV.shift (E S) 0 (semantics_term (E S) (F S) t)) (F S) (sat S) p\<close>
-        by simp
       moreover have \<open>\<forall>t \<in> terms S. semantics_term (E S) (F S) t = t\<close>
         using usemantics_E(1) terms_downwards_closed unfolding list_all_def by blast
-      ultimately have \<open>\<forall>t \<in> terms S. \<not> usemantics (terms S) (SeCaV.shift (E S) 0 t) (F S) (sat S) p\<close>
+      ultimately have \<open>\<forall>t \<in> terms S. \<not> usemantics (terms S) (SeCaV.shift (E S) 0 t) (F S) (G S) p\<close>
         by simp
       then show \<open>\<not> ?s x\<close>
         using Exi by simp
@@ -217,7 +216,7 @@ next
       moreover have \<open>semantics_term (E S) (F S) t = t\<close>
         using \<open>t \<in> terms S\<close> usemantics_E(1) terms_downwards_closed unfolding list_all_def by blast
       ultimately show \<open>?s x\<close>
-        using wf Exi \<open>t \<in> terms S\<close> by auto
+        using Exi \<open>t \<in> terms S\<close> by auto
     qed
   next
     case (Uni p)
@@ -239,17 +238,13 @@ next
         using Uni assms Hintikka.GammaUni by blast
       then have \<open>\<forall>t \<in> terms S. ?s (sub 0 t p)\<close>
         using wf Uni size_sub
-        by (metis (no_types, lifting) Nat.add_0_right add_Suc_right
-            fm.size(13) in_measure lessI)
-      then have \<open>\<forall>t \<in> terms S. usemantics (terms S)
-          (SeCaV.shift (E S) 0 (semantics_term (E S) (F S) t)) (F S) (sat S) p\<close>
-        by simp
+        by (metis (no_types, lifting) Nat.add_0_right add_Suc_right fm.size(13) in_measure lessI)
       moreover have \<open>\<forall>t \<in> terms S. semantics_term (E S) (F S) t = t\<close>
         using usemantics_E(1) terms_downwards_closed unfolding list_all_def by blast
-      ultimately have \<open>\<forall>t \<in> terms S. \<not> usemantics (terms S) (SeCaV.shift (E S) 0 t) (F S) (sat S) (Neg p)\<close>
+      ultimately have \<open>\<forall>t \<in> terms S. \<not> usemantics (terms S) (SeCaV.shift (E S) 0 t) (F S) (G S) (Neg p)\<close>
         by simp
       then show \<open>?s x\<close>
-        using wf Uni by fastforce
+        using Uni by simp
     qed
   next
     case (Neg p)

@@ -74,7 +74,7 @@ lemma is_fdenot_shift [simp]: \<open>is_fdenot u f \<Longrightarrow> x \<in> u \
 text \<open>If a sequent is provable in the SeCaV proof system and the environment
   and function interpretation are well-formed, the sequent is valid under the bounded semantics.\<close>
 theorem sound_usemantics:
-  assumes \<open>\<tturnstile> z\<close> \<open>is_env u e\<close> \<open>is_fdenot u f\<close>
+  assumes \<open>\<tturnstile> z\<close> and \<open>is_env u e\<close> and \<open>is_fdenot u f\<close>
   shows \<open>\<exists>p \<in> set z. usemantics u e f g p\<close>
   using assms
 proof (induct arbitrary: f rule: sequent_calculus.induct)

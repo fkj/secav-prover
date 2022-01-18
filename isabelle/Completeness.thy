@@ -31,8 +31,9 @@ qed
 
 text \<open>This is an abbreviation for validity under our bounded semantics
   (for well-formed interpretations).\<close>
-abbreviation \<open>uvalid z \<equiv> \<forall>u (e :: nat \<Rightarrow> tm) f g. is_env u e \<longrightarrow> is_fdenot u f \<longrightarrow>
-      (\<exists>p \<in> set z. usemantics u e f g p)\<close>
+abbreviation
+  \<open>uvalid z \<equiv> \<forall>u (e :: nat \<Rightarrow> tm) f g. is_env u e \<longrightarrow> is_fdenot u f \<longrightarrow>
+    (\<exists>p \<in> set z. usemantics u e f g p)\<close>
 
 text \<open>The sequent in the first state of a saturated escape path is not valid.
   This follows from our results in the theories EPathHintikka and Countermodel.\<close>
@@ -41,39 +42,15 @@ lemma epath_countermodel:
   shows \<open>\<not> uvalid z\<close>
 proof
   assume \<open>uvalid z\<close>
-  moreover obtain steps where steps: \<open>fst (shd steps) = (A, z) \<and> epath steps \<and> Saturated steps\<close>
-    using assms by blast
-  then have \<open>Hintikka (tree_fms steps)\<close> (is \<open>Hintikka ?S\<close>)
-    using escape_path_Hintikka assms by simp
+  moreover have \<open>Hintikka (tree_fms steps)\<close> (is \<open>Hintikka ?S\<close>)
+    using assms escape_path_Hintikka assms by simp
   moreover have \<open>\<forall>p \<in> set z. p \<in> tree_fms steps\<close>
-    using steps shd_sset by (metis Pair_inject prod.collapse pseq_def pseq_in_tree_fms)
+    using assms shd_sset by (metis Pair_inject prod.collapse pseq_def pseq_in_tree_fms)
   then have \<open>\<exists>g. \<forall>p \<in> set z. \<not> usemantics (terms ?S) (E ?S) (F ?S) g p\<close>
-    using calculation(2) hintikka_counter_model steps by blast
+    using calculation(2) Hintikka_counter_model assms by blast
   moreover have \<open>is_env (terms ?S) (E ?S)\<close> \<open>is_fdenot (terms ?S) (F ?S)\<close>
     using is_env_E is_fdenot_F by blast+
   ultimately show False
-    by blast
-qed
-
-text \<open>If the prover does not produce a saturated escape path, it produces a well-formed, finite
-  proof tree.\<close>
-lemma epath_lem:
-  assumes \<open>\<nexists>steps. fst (shd steps) = (A, z) \<and> epath steps \<and> Saturated steps\<close>
-  defines \<open>t \<equiv> secavProver (A, z)\<close>
-  shows \<open>fst (root t) = (A, z) \<and> wf t \<and> tfinite t\<close>
-  using assms epath_prover_completeness t_def by blast
-
-text \<open>If a sequent is valid under our bounded semantics, no saturated escape path can exist with
-  that sequent in its first state.\<close>
-lemma epath_contr:
-  assumes \<open>uvalid z\<close>
-  shows \<open>\<nexists>steps. fst (shd steps) = (A, z) \<and> epath steps \<and> Saturated steps\<close>
-proof
-  assume \<open>\<exists>steps. fst (shd steps) = (A, z) \<and> epath steps \<and> Saturated steps\<close>
-  then obtain u f g and e :: \<open>nat \<Rightarrow> tm\<close> where
-    \<open>\<forall>p \<in> set z. \<not> usemantics u e f g p\<close> \<open>is_env u e\<close> \<open>is_fdenot u f\<close>
-    using epath_countermodel by blast
-  with assms show False
     by blast
 qed
 
@@ -85,7 +62,7 @@ theorem prover_completeness_usemantics:
   assumes \<open>uvalid z\<close>
   defines \<open>t \<equiv> secavProver (A, z)\<close>
   shows \<open>fst (root t) = (A, z) \<and> wf t \<and> tfinite t\<close>
-  using assms by (simp add: epath_contr epath_lem epath_prover_completeness)
+  using assms epath_prover_completeness epath_countermodel by blast
 
 text \<open>Since our bounded semantics are sound, we can derive our main completeness theorem as
   a corollary: if a sequent is provable in the SeCaV proof system, the prover will produce a finite,
