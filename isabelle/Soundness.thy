@@ -1,7 +1,7 @@
 section \<open>Soundness\<close>
 
 theory Soundness
-  imports ProverLemmas Usemantics
+  imports ProverLemmas
 begin
 
 text \<open>In this theory, we prove that the prover is sound with regards to the SeCaV proof system 
