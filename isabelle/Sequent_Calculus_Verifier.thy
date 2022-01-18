@@ -96,6 +96,6 @@ corollary \<open>(\<then> p) \<longleftrightarrow> (\<tturnstile> [p])\<close>
 
 section \<open>Reference\<close>
 
-text \<open>Asta Halkjær From (2019): Sequent Calculus https://www.isa-afp.org/entries/FOL_Seq_Calc1.html\<close>
+text \<open>Asta Halkjær From (2019): Sequent Calculus \<^url>\<open>https://www.isa-afp.org/entries/FOL_Seq_Calc1.html\<close>\<close>
 
 end
