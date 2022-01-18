@@ -109,7 +109,7 @@ text \<open>This function computes the children of a node in the proof tree.
 For alpha-rules, delta-rules and gamma-rules, there will be only one sequent, which is the result
 of applying the rule to every formula in the current sequent.
 For beta-rules, the proof tree will branch into two branches once for each formula in the sequent
-that matches the rule, which results in 2^n branches (created using \<open>list_prod\<close>).
+that matches the rule, which results in \<open>2\<^sup>n\<close> branches (created using \<^text>\<open>list_prod\<close>).
 The list of terms in the sequent needs to be updated after applying the rule to each formula since
 delta-rules and gamma-rules may introduce new terms.
 Note that any formulas that don't match the rule are left unchanged in the new sequent.\<close>
