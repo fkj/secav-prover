@@ -483,21 +483,24 @@ next
   qed
 qed
 
+text \<open>If \<open>effect\<close> contains something, then the input sequent is not an axiom.\<close>
+lemma ne_effect_not_branchDone: \<open>(B, z') |\<in>| effect r (A, z) \<Longrightarrow> \<not> branchDone z\<close>
+  by (cases \<open>branchDone z\<close>) simp_all
+
 text \<open>The \<open>effect\<close> function decomposes formulas in the sequent using the \<open>parts\<close> function.
 (Unless the sequent is an axiom, in which case no child branches are generated.)\<close>
 lemma parts_in_effect:
-  assumes \<open>p \<in> set z\<close> \<open>(B, z') |\<in>| effect r (A, z)\<close> \<open>\<not> branchDone z\<close>
+  assumes \<open>p \<in> set z\<close> \<open>(B, z') |\<in>| effect r (A, z)\<close>
   shows \<open>\<exists>C xs. set A \<subseteq> set C \<and> xs \<in> set (parts C r p) \<and> set xs \<subseteq> set z'\<close>
-  using assms parts_in_children
+  using assms parts_in_children ne_effect_not_branchDone
   by (smt (verit, ccfv_threshold) Pair_inject effect.simps fimageE fset_of_list_elem le_sup_iff
       set_append set_remdups)
 
 text \<open>Specifically, this applied to the double negation elimination rule and the GammaUni rule.\<close>
-corollary \<open>\<not> branchDone z \<Longrightarrow> Neg (Neg p) \<in> set z \<Longrightarrow>
-    (B, z') |\<in>| effect NegNeg (A, z) \<Longrightarrow> p \<in> set z'\<close>
+corollary \<open>Neg (Neg p) \<in> set z \<Longrightarrow> (B, z') |\<in>| effect NegNeg (A, z) \<Longrightarrow> p \<in> set z'\<close>
   using parts_in_effect unfolding parts_def by fastforce
 
-corollary \<open>\<not> branchDone z \<Longrightarrow> Neg (Uni p) \<in> set z \<Longrightarrow> (B, z') |\<in>| effect GammaUni (A, z) \<Longrightarrow>
+corollary \<open>Neg (Uni p) \<in> set z \<Longrightarrow> (B, z') |\<in>| effect GammaUni (A, z) \<Longrightarrow>
     set (map (\<lambda>t. Neg (sub 0 t p)) A) \<subseteq> set z'\<close>
   using parts_in_effect unfolding parts_def by fastforce
 

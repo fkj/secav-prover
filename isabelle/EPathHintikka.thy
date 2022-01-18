@@ -280,9 +280,6 @@ next
     z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
-  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
-    using \<open>epath suf\<close> epath_never_branchDone by blast
-
   ultimately have \<open>p \<in> set z'\<close> \<open>q \<in> set z'\<close>
     using parts_in_effect unfolding parts_def by fastforce+
 
@@ -320,9 +317,6 @@ next
     z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
-  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
-    using \<open>epath suf\<close> epath_never_branchDone by blast
-
   ultimately have \<open>Neg p \<in> set z'\<close> \<open>q \<in> set z'\<close>
     using parts_in_effect unfolding parts_def by fastforce+
 
@@ -360,9 +354,6 @@ next
     z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
-  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
-    using \<open>epath suf\<close> epath_never_branchDone by blast
-
   ultimately have \<open>Neg p \<in> set z'\<close> \<open>Neg q \<in> set z'\<close>
     using parts_in_effect unfolding parts_def by fastforce+
 
@@ -400,9 +391,6 @@ next
     z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
-  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
-    using \<open>epath suf\<close> epath_never_branchDone by blast
-
   ultimately consider \<open>p \<in> set z'\<close> | \<open>q \<in> set z'\<close>
     using parts_in_effect unfolding parts_def by fastforce
 
@@ -440,9 +428,6 @@ next
     z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
-  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
-    using \<open>epath suf\<close> epath_never_branchDone by blast
-
   ultimately consider \<open>p \<in> set z'\<close> | \<open>Neg q \<in> set z'\<close>
     using parts_in_effect unfolding parts_def by fastforce
 
@@ -480,9 +465,6 @@ next
     z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
-  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
-    using \<open>epath suf\<close> epath_never_branchDone by blast
-
   ultimately consider \<open>Neg p \<in> set z'\<close> | \<open>Neg q \<in> set z'\<close>
     using parts_in_effect unfolding parts_def by fastforce
 
@@ -573,8 +555,6 @@ next
         using suf epath_effect unfolding pseq_def ptms_def
         by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
 
-      moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
-        using \<open>epath suf\<close> epath_never_branchDone by blast
       moreover have \<open>t \<in> set (ptms (shd suf))\<close>
         using above k by (meson le_add2 less_add_one order_le_less_trans)
       ultimately have \<open>sub 0 t p \<in> set z'\<close>
@@ -667,8 +647,6 @@ next
         using suf epath_effect unfolding pseq_def ptms_def
         by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
 
-      moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
-        using \<open>epath suf\<close> epath_never_branchDone by blast
       moreover have \<open>t \<in> set (ptms (shd suf))\<close>
         using above k by (meson le_add2 less_add_one order_le_less_trans)
       ultimately have \<open>Neg (sub 0 t p) \<in> set z'\<close>
@@ -708,8 +686,6 @@ next
     z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
-  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
-    using \<open>epath suf\<close> epath_never_branchDone by blast
   ultimately obtain C where
     C: \<open>set (ptms (shd suf)) \<subseteq> set C\<close> \<open>sub 0 (Fun (generateNew C) []) p \<in> set z'\<close>
     using parts_in_effect[where B=B and z'=\<open>z'\<close> and z=\<open>pseq (shd suf)\<close> and r=\<open>?r\<close> and p=\<open>Uni p\<close>]
@@ -767,8 +743,6 @@ next
     z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
-  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
-    using \<open>epath suf\<close> epath_never_branchDone by blast
   ultimately obtain C where
     C: \<open>set (ptms (shd suf)) \<subseteq> set C\<close> \<open>Neg (sub 0 (Fun (generateNew C) []) p) \<in> set z'\<close>
     using parts_in_effect[where B=B and z'=z' and z=\<open>pseq (shd suf)\<close> and r=\<open>?r\<close> and p=\<open>Neg (Exi p)\<close>]
@@ -826,9 +800,6 @@ next
     z': \<open>(B, z') |\<in>| effect ?r (ptms (shd suf), pseq (shd suf))\<close> \<open>shd (stl suf) = ((B, z'), r')\<close>
     using suf epath_effect unfolding pseq_def ptms_def
     by (metis (mono_tags, lifting) holds.elims(2) prod.collapse)
-  moreover have \<open>holds (not (branchDone o pseq)) suf\<close>
-    using \<open>epath suf\<close> epath_never_branchDone by blast
-
   ultimately have \<open>p \<in> set z'\<close>
     using parts_in_effect unfolding parts_def by fastforce
 
