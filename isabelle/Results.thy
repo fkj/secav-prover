@@ -1,19 +1,19 @@
 theory Results imports Soundness Completeness Sequent_Calculus_Verifier begin
 
 text \<open>In this theory, we collect our soundness and completeness results and prove some extra results
-  linking the SeCaV proof system, the usual semantics of SeCaV, and our alternate semantics.\<close>
+  linking the SeCaV proof system, the usual semantics of SeCaV, and our bounded semantics.\<close>
 
 section \<open>Alternate semantics\<close>
 
 text \<open>The existence of a finite, well-formed proof tree with a formula at its root implies that the
-  formula is valid under our alternate semantics.\<close>
+  formula is valid under our bounded semantics.\<close>
 corollary prover_soundness_usemantics:
   assumes \<open>tfinite t\<close> \<open>wf t\<close> \<open>is_env u e\<close> \<open>is_fdenot u f\<close>
   shows \<open>\<exists>p \<in> set (snd (fst (root t))). usemantics u e f g p\<close>
   using assms prover_soundness_SeCaV sound_usemantics by blast
 
 text \<open>The prover returns a finite, well-formed proof tree if and only if the sequent to be proved is
-  valid under our alternate semantics.\<close>
+  valid under our bounded semantics.\<close>
 theorem prover_usemantics:
   fixes A :: \<open>tm list\<close> and z :: \<open>fm list\<close>
   defines \<open>t \<equiv> secavProver (A, z)\<close>
@@ -22,7 +22,7 @@ theorem prover_usemantics:
   unfolding secavProver_def by fastforce
 
 text \<open>The prover returns a finite, well-formed proof tree for a single formula if and only if the
-  formula is valid under our alternate semantics.\<close>
+  formula is valid under our bounded semantics.\<close>
 corollary
   fixes p :: fm
   defines \<open>t \<equiv> secavProver ([], [p])\<close>

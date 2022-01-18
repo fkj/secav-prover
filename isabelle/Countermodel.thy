@@ -1,9 +1,10 @@
+section \<open>Countermodels from Hintikka sets\<close>
+
 theory Countermodel
   imports Hintikka Usemantics ProverLemmas
 begin
 
-section \<open>Countermodels from Hintikka sets\<close>
-text \<open>In this theory, we will construct a countermodel in the alternative semantics from a Hintikka
+text \<open>In this theory, we will construct a countermodel in the bounded semantics from a Hintikka
   set. This will allow us to prove completeness of the prover.\<close>
 
 text \<open>A predicate is satisfied in a set of formulas S if its negation is also in S.\<close>
@@ -99,7 +100,7 @@ proof (intro allI impI)
 qed
 
 text \<open>If S is a Hintikka set, then we can construct a countermodel for any closed formula using our
-  alternate semantics and a Herbrand interpretation.\<close>
+  bounded semantics and a Herbrand interpretation.\<close>
 lemma hintikka_counter_model:
   assumes \<open>Hintikka S\<close>
   shows

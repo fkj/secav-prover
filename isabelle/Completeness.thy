@@ -28,7 +28,7 @@ proof -
   then show ?thesis by blast
 qed
 
-text \<open>This is an abbreviation for validity under our alternate semantics
+text \<open>This is an abbreviation for validity under our bounded semantics
   (for well-formed interpretations).\<close>
 abbreviation \<open>uvalid z \<equiv> \<forall>u (e :: nat \<Rightarrow> tm) f g. is_env u e \<longrightarrow> is_fdenot u f \<longrightarrow>
       (\<exists>p \<in> set z. usemantics u e f g p)\<close>
@@ -62,7 +62,7 @@ lemma epath_lem:
   shows \<open>fst (root t) = (A, z) \<and> wf t \<and> tfinite t\<close>
   using assms epath_prover_completeness t_def by blast
 
-text \<open>If a sequent is valid under our alternate semantics, no saturated escape path can exist with
+text \<open>If a sequent is valid under our bounded semantics, no saturated escape path can exist with
   that sequent in its first state.\<close>
 lemma epath_contr:
   assumes \<open>uvalid z\<close>
@@ -76,8 +76,8 @@ proof
     by blast
 qed
 
-text \<open>Combining the results above, we can prove completeness with regards to our alternate
-  semantics: if a sequent is valid under our alternate semantics, the prover will produce a finite,
+text \<open>Combining the results above, we can prove completeness with regards to our bounded
+  semantics: if a sequent is valid under our bounded semantics, the prover will produce a finite,
   well-formed proof tree with the sequent at its root.\<close>
 theorem prover_completeness_usemantics:
   fixes A :: \<open>tm list\<close>
@@ -86,7 +86,7 @@ theorem prover_completeness_usemantics:
   shows \<open>fst (root t) = (A, z) \<and> wf t \<and> tfinite t\<close>
   using assms by (simp add: epath_contr epath_lem epath_prover_completeness)
 
-text \<open>Since our alternate semantics are sound, we can derive our main completeness theorem as a
+text \<open>Since our bounded semantics are sound, we can derive our main completeness theorem as a
   corollary: if a sequent is provable in the SeCaV proof system, the prover will produce a finite,
   well-formed proof tree with the sequent at its root.\<close>
 corollary prover_completeness_SeCaV:

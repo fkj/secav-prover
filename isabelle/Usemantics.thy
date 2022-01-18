@@ -1,6 +1,7 @@
+section \<open>Bounded semantics\<close>
+
 theory Usemantics imports SeCaV begin
 
-section \<open>Alternative Semantics\<close>
 text \<open>In this theory, we define an alternative semantics for SeCaV formulas where the quantifiers
   are bounded to terms in a specific set.
   This is needed to construct a countermodel from a Hintikka set.\<close>
@@ -49,8 +50,8 @@ lemma usubst_lemma [iff]:
   \<open>usemantics u e f g (subst a t i) \<longleftrightarrow> usemantics u (SeCaV.shift e i (semantics_term e f t)) f g a\<close>
   by (induct a arbitrary: e i t) simp_all
 
-subsection \<open>Soundness of SeCaV with regards to the alternative semantics\<close>
-text \<open>We would like to prove that the SeCaV proof system is sound under the alternative semantics.\<close>
+subsubsection \<open>Soundness of SeCaV with regards to the bounded semantics\<close>
+text \<open>We would like to prove that the SeCaV proof system is sound under the bounded semantics.\<close>
 
 text \<open>If the environment and the function interpretation are well-formed, the semantics of terms
   are in the quantifier set \<open>u\<close>.\<close>
@@ -71,8 +72,7 @@ lemma is_fdenot_shift [simp]: \<open>is_fdenot u f \<Longrightarrow> x \<in> u \
   unfolding is_fdenot_def SeCaV.shift_def by simp
 
 text \<open>If a sequent is provable in the SeCaV proof system and the environment and function
-  interpretation are well-formed, one of the formulas in the sequent is valid under the alternative
-  semantics.\<close>
+  interpretation are well-formed, the sequent is valid under the bounded semantics.\<close>
 theorem sound_usemantics:
   assumes \<open>\<tturnstile> z\<close> \<open>is_env u e\<close> \<open>is_fdenot u f\<close>
   shows \<open>\<exists>p \<in> set z. usemantics u e f g p\<close>
