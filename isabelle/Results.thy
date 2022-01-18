@@ -1,9 +1,11 @@
+section \<open>Results\<close>
+
 theory Results imports Soundness Completeness Sequent_Calculus_Verifier begin
 
 text \<open>In this theory, we collect our soundness and completeness results and prove some extra results
   linking the SeCaV proof system, the usual semantics of SeCaV, and our bounded semantics.\<close>
 
-section \<open>Alternate semantics\<close>
+subsection \<open>Alternate semantics\<close>
 
 text \<open>The existence of a finite, well-formed proof tree with a formula at its root implies that the
   formula is valid under our bounded semantics.\<close>
@@ -30,7 +32,7 @@ corollary
     is_env u e \<longrightarrow> is_fdenot u f \<longrightarrow> usemantics u e f g p)\<close>
   using assms prover_usemantics by simp
 
-section \<open>SeCaV\<close>
+subsection \<open>SeCaV\<close>
 
 text \<open>The prover returns a finite, well-formed proof tree if and only if the sequent to be proven is
   provable in the SeCaV proof system.\<close>
@@ -49,7 +51,7 @@ corollary
   shows \<open>tfinite t \<and> wf t \<longleftrightarrow> (\<tturnstile> [p])\<close>
   using assms prover_SeCaV by blast
 
-section \<open>Semantics\<close>
+subsection \<open>Semantics\<close>
 
 text \<open>If the prover returns a finite, well-formed proof tree, some formula in the sequent at the
   root of the tree is valid under the usual SeCaV semantics.\<close>

@@ -1,5 +1,3 @@
-chapter SeCaV
-
 session SeCaV_Prover = "HOL-Library" +
   options [document = pdf, document_output = "output", timeout = 300]
   sessions

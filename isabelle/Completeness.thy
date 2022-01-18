@@ -1,8 +1,9 @@
+section \<open>Completeness\<close>
+
 theory Completeness
   imports Countermodel EPathHintikka
 begin
 
-section \<open>Completeness of the prover\<close>
 text \<open>In this theory, we prove that the prover is complete with regards to the SeCaV proof system
   using the abstract completeness framework.\<close>
 

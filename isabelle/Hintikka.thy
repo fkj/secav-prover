@@ -1,8 +1,9 @@
+section \<open>Hintikka sets for SeCaV\<close>
+
 theory Hintikka
   imports Prover
 begin
 
-section \<open>Definition of a Hintikka set for SeCaV\<close>
 text \<open>In this theory, we define the concept of a Hintikka set for SeCaV formulas.
   The definition mirrors the SeCaV proof system such that Hintikka sets are downwards closed with
   respect to the proof system.\<close>

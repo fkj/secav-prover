@@ -1,9 +1,11 @@
+section \<open>Lemmas about the prover\<close>
+
 theory ProverLemmas imports Prover begin
 
 text \<open>This theory contains a number of lemmas about the prover.
 We will need these when proving soundness and completeness.\<close>
 
-section \<open>SeCaV Lemmas\<close>
+subsection \<open>SeCaV lemmas\<close>
 text \<open>We need a few lemmas about the SeCaV system.\<close>
 
 text \<open>Incrementing variable indices does not change the function names in term or a list of terms.\<close>
@@ -40,7 +42,7 @@ text \<open>Substituting a variable by a term does not change the depth of a for
 lemma size_sub [simp]: \<open>size (sub i t p) = size p\<close>
   by (induct p arbitrary: i t) auto
 
-section \<open>Fairness\<close>
+subsection \<open>Fairness\<close>
 text \<open>While fairness of the rule stream should be pretty trivial (since we are simply repeating a
 static list of rules forever), the proof is a bit involved.\<close>
 
@@ -181,7 +183,7 @@ proof -
         stake_sdrop)
 qed
 
-section \<open>Substitution\<close>
+subsection \<open>Substitution\<close>
 text \<open>We need some lemmas about substitution of variables for terms for the delta- and gamma-rules.\<close>
 
 text \<open>If a term is a subterm of another, so are all of its subterms.\<close>
@@ -283,7 +285,7 @@ qed auto
 lemma subtermFm_subset_params: \<open>set (subtermFm p) \<subseteq> set A \<Longrightarrow> params p \<subseteq> paramsts A\<close>
   using params_subtermFm by force
 
-section \<open>Custom cases\<close>
+subsection \<open>Custom cases\<close>
 text \<open>Some proofs are more efficient with some custom case lemmas.\<close>
 
 lemma Neg_exhaust:
@@ -390,7 +392,7 @@ next
   qed (simp_all add: parts_def)
 qed (cases x rule: Neg_exhaust, simp_all add: parts_def)+
 
-section \<open>Unaffected formulas\<close>
+subsection \<open>Unaffected formulas\<close>
 text \<open>We need some lemmas to show that formulas to which rules do not apply are not lost.\<close>
 
 text \<open>This function returns True if the rule applies to the formula, and False otherwise.\<close>
@@ -452,7 +454,7 @@ lemma effect_preserves_unaffected:
   unfolding effect_def
   by (smt (verit, best) Pair_inject femptyE fimageE fset_of_list_elem old.prod.case)
 
-section \<open>Affected formulas\<close>
+subsection \<open>Affected formulas\<close>
 text \<open>We need some lemmas to show that formulas to which rules do apply are decomposed into their
   constituent parts correctly.\<close>
 
@@ -518,7 +520,7 @@ lemma eff_Nil_not_empty:
   shows \<open>sl \<noteq> {||}\<close>
   using assms unfolding eff_def effect_def by auto
 
-section \<open>generateNew\<close>
+subsection \<open>Generating new function names\<close>
 text \<open>We need to show that the \<open>generateNew\<close> function actually generates new function names.
   This requires a few lemmas about the interplay between \<open>max\<close> and \<open>foldr\<close>.\<close>
 
@@ -549,13 +551,13 @@ lemma listFunTm_paramst: \<open>set (listFunTm t) = paramst t\<close> \<open>set
 lemma generateNew_new: \<open>Fun (generateNew A) ts \<notin> set A\<close>
   unfolding generateNew_def using Suc_max_new listFunTm_paramst(2) by fastforce
 
-section \<open>branchDone\<close>
+subsection \<open>Finding axioms\<close>
 
 text \<open>The \<open>branchDone\<close> function correctly determines whether a sequent is an axiom.\<close>
 lemma branchDone_contradiction: \<open>branchDone z \<longleftrightarrow> (\<exists>p. p \<in> set z \<and> Neg p \<in> set z)\<close>
   by (induct z rule: branchDone.induct) auto
 
-section \<open>Subterms\<close>
+subsection \<open>Subterms\<close>
 text \<open>We need a few lemmas about the behaviour of our subterm functions.\<close>
 
 text \<open>Any term is a subterm of itself.\<close>

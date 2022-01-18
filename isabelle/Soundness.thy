@@ -1,8 +1,9 @@
+section \<open>Soundness\<close>
+
 theory Soundness
   imports ProverLemmas Usemantics
 begin
 
-section \<open>Soundness of the prover\<close>
 text \<open>In this theory, we prove that the prover is sound with regards to the SeCaV proof system 
   using the abstract soundness framework.\<close>
 

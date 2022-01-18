@@ -1,3 +1,7 @@
+chapter \<open>The prover\<close>
+
+section \<open>Proof search procedure\<close>
+
 theory Prover
   imports SeCaV
     "HOL-Library.Stream"
@@ -9,7 +13,7 @@ begin
 
 text \<open>This theory defines the actual proof search procedure.\<close>
 
-section \<open>Datatypes\<close>
+subsection \<open>Datatypes\<close>
 
 text \<open>A sequent is a list of formulas\<close>
 type_synonym sequent = \<open>fm list\<close>
@@ -25,7 +29,7 @@ datatype rule
   | NegNeg
   | GammaExi | GammaUni
 
-section \<open>Auxiliary functions\<close>
+subsection \<open>Auxiliary functions\<close>
 
 text \<open>
 Before defining what the rules do, we need to define a number of auxiliary functions needed for the
@@ -78,7 +82,7 @@ fun branchDone :: \<open>sequent \<Rightarrow> bool\<close> where
 | \<open>branchDone (Neg p # z) = (p \<in> set z \<or> Neg (Neg p) \<in> set z \<or> branchDone z)\<close>
 | \<open>branchDone (p # z) = (Neg p \<in> set z \<or> branchDone z)\<close>
 
-section \<open>Effects of rules\<close>
+subsection \<open>Effects of rules\<close>
 
 text \<open>This defines the resulting formulas when applying a rule to a single formula.
 This definition mirrors the semantics of SeCaV.
@@ -133,7 +137,7 @@ primrec effect :: \<open>rule \<Rightarrow> state \<Rightarrow> state fset\<clos
     fimage (\<lambda>z'. (remdups (A @ subterms z @ subterms z'), z'))
     (fset_of_list (children (remdups (A @ subtermFms z)) r z)))\<close>
 
-section \<open>The rule stream\<close>
+subsection \<open>The rule stream\<close>
 
 text \<open>We need to define an infinite stream of rules that the prover should try to apply.
 Since rules simply do nothing if they don't fit the formulas in the sequent, the rule stream is just
@@ -150,7 +154,7 @@ infinitely often.\<close>
 definition rules where
   \<open>rules = cycle rulesList\<close>
 
-section \<open>Abstract completeness\<close>
+subsection \<open>Abstract completeness\<close>
 
 text \<open>We convert the effect function into a relation to use it with the abstract completeness
 framework.\<close>
@@ -180,7 +184,7 @@ interpretation PersistentRuleSystem eff rules UNIV
   using all_rules_persistent enabled_R
   by blast
 
-section \<open>We can then use the framework to define the prover.
+text \<open>We can then use the framework to define the prover.
 The mkTree function applies the rules to build the proof tree using the effect relation, but the
 prover is not actually executable yet.\<close>
 definition \<open>secavProver \<equiv> mkTree rules\<close>

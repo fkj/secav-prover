@@ -1,10 +1,12 @@
+section \<open>Escape path formulas are Hintikka\<close>
+
 theory EPathHintikka imports Hintikka ProverLemmas begin
 
 text \<open>In this theory, we show that the formulas in the sequents on a saturated escape path in a
   proof tree form a Hintikka set.
   This is a crucial part of our completeness proof.\<close>
 
-section \<open>Definitions\<close>
+subsection \<open>Definitions\<close>
 text \<open>In this sequent we define a few concepts that make the following proofs easier to read.\<close>
 
 text \<open>\<open>prule\<close> is the rule applied in a node.\<close>
@@ -19,7 +21,7 @@ text \<open>\<open>ptms\<close> is the list of terms in a node.\<close>
 definition ptms :: \<open>state \<times> rule \<Rightarrow> tm list\<close> where
   \<open>ptms z = fst (fst z)\<close>
 
-section \<open>Facts about streams\<close>
+subsection \<open>Facts about streams\<close>
 
 text \<open>Escape paths are infinite, so if you drop the first \<open>n\<close> nodes, you are still on the path.\<close>
 lemma epath_sdrop: \<open>epath steps \<Longrightarrow> epath (sdrop n steps)\<close>
@@ -33,7 +35,7 @@ proof (induct n arbitrary: s)
     by (metis in_mono sdrop_simps(2) stl_sset subsetI)
 qed simp
 
-section  \<open>Transformation of states on an escape path\<close>
+subsection  \<open>Transformation of states on an escape path\<close>
 text \<open>We need to prove some lemmas about how the states of an escape path are connected.\<close>
 
 text \<open>Since escape paths are well-formed, the eff relation holds between the nodes on the path.\<close>
@@ -79,7 +81,7 @@ proof (induct n)
     using Suc epath_stl_ptms by fastforce
 qed simp
 
-section \<open>Preservation on epath\<close>
+subsection \<open>Preservation of formulas on escape paths\<close>
 
 text \<open>If a property will eventually hold on a path, there is some index from which it begins to
   hold, and before which it does not hold.\<close>
@@ -132,7 +134,7 @@ next
   qed
 qed
 
-section \<open>Proving that the formulas on an escape path form a Hintikka set\<close>
+subsection \<open>Formulas on an escape path form a Hintikka set\<close>
 
 text \<open>This definition captures the set of formulas on an entire path\<close>
 definition \<open>tree_fms steps \<equiv> \<Union>ss \<in> sset steps. set (pseq ss)\<close>
