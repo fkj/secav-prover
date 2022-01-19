@@ -90,4 +90,10 @@ theorem prover_semantics:
   using assms prover_soundness_semantics prover_completeness_semantics
   unfolding secavProver_def by fastforce
 
+text \<open>Validity in the two semantics (in the proper universes) coincide.\<close>
+theorem semantics_usemantics:
+  \<open>(\<forall>(e :: nat \<Rightarrow> nat hterm) f g. semantics e f g p) \<longleftrightarrow>
+   (\<forall>(u :: tm set) e f g. is_env u e \<longrightarrow> is_fdenot u f \<longrightarrow> usemantics u e f g p)\<close>
+  using prover_semantics prover_usemantics by simp
+
 end
