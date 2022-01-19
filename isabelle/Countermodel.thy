@@ -83,7 +83,8 @@ proof (induct t and ts arbitrary: ts rule: semantics_term.induct semantics_list.
 qed simp_all
 
 text \<open>Our alternate interpretation of environments is well-formed for the terms function.\<close>
-lemma is_env_E: \<open>is_env (terms S) (E S)\<close>
+lemma is_env_E:
+  \<open>is_env (terms S) (E S)\<close>
   unfolding is_env_def
 proof
   fix n
@@ -92,7 +93,8 @@ proof
 qed
 
 text \<open>Our alternate function interpretation is well-formed for the terms function.\<close>
-lemma is_fdenot_F: \<open>is_fdenot (terms S) (F S)\<close>
+lemma is_fdenot_F:
+  \<open>is_fdenot (terms S) (F S)\<close>
   unfolding is_fdenot_def
 proof (intro allI impI)
   fix i l
@@ -101,24 +103,21 @@ proof (intro allI impI)
     by (cases \<open>\<forall>n. Var n \<in> terms S\<close>) (simp_all add: some_in_eq)
 qed
 
+abbreviation \<open>M S \<equiv> usemantics (terms S) (E S) (F S) (G S)\<close>
+
 text \<open>If S is a Hintikka set, then we can construct a countermodel for any formula using our
   bounded semantics and a Herbrand interpretation.\<close>
 lemma Hintikka_counter_model:
   assumes \<open>Hintikka S\<close>
-  shows \<open>(p \<in> S \<longrightarrow> \<not> usemantics (terms S) (E S) (F S) (G S) p) \<and>
-     (Neg p \<in> S \<longrightarrow> usemantics (terms S) (E S) (F S) (G S) p)\<close>
+  shows \<open>(p \<in> S \<longrightarrow> \<not> M S p) \<and> (Neg p \<in> S \<longrightarrow> M S p)\<close>
 proof (induct p rule: wf_induct [where r=\<open>measure size\<close>])
   case 1
   then show ?case ..
 next
   fix x
-
-  let ?s = \<open>usemantics (terms S) (E S) (F S) (G S)\<close>
-
   assume wf: \<open>\<forall>q. (q, x) \<in> measure size \<longrightarrow>
-    (q \<in> S \<longrightarrow> \<not> ?s q) \<and> (Neg q \<in> S \<longrightarrow> ?s q)\<close>
-
-  show \<open>(x \<in> S \<longrightarrow> \<not> ?s x) \<and> (Neg x \<in> S \<longrightarrow> ?s x)\<close>
+    (q \<in> S \<longrightarrow> \<not> M S q) \<and> (Neg q \<in> S \<longrightarrow> M S q)\<close>
+  show \<open>(x \<in> S \<longrightarrow> \<not> M S x) \<and> (Neg x \<in> S \<longrightarrow> M S x)\<close>
   proof (cases x)
     case (Pre n ts)
     show ?thesis
@@ -128,7 +127,7 @@ next
         using assms Pre Hintikka.Basic by blast
       moreover have \<open>list_all (\<lambda>t. t \<in> terms S) ts\<close>
         using \<open>x \<in> S\<close> Pre subterm_Pre_refl unfolding terms_def list_all_def by force
-      ultimately show \<open>\<not> ?s x\<close>
+      ultimately show \<open>\<not> M S x\<close>
         using Pre usemantics_E
         by (metis (no_types, lifting) usemantics.simps(1))
     next
@@ -137,7 +136,7 @@ next
         using assms Pre Hintikka.Basic by blast
       moreover have \<open>list_all (\<lambda>t. t \<in> terms S) ts\<close>
         using \<open>Neg x \<in> S\<close> Pre subterm_Pre_refl unfolding terms_def list_all_def by force
-      ultimately show \<open>?s x\<close>
+      ultimately show \<open>M S x\<close>
         using Pre usemantics_E
         by (metis (no_types, lifting) usemantics.simps(1))
     qed
@@ -148,13 +147,13 @@ next
       assume \<open>x \<in> S\<close>
       then have \<open>Neg p \<in> S\<close> \<open>q \<in> S\<close>
         using Imp assms Hintikka.AlphaImp by blast+
-      then show \<open>\<not> ?s x\<close>
+      then show \<open>\<not> M S x\<close>
         using wf Imp by fastforce
     next
       assume \<open>Neg x \<in> S\<close>
       then have \<open>p \<in> S \<or> Neg q \<in> S\<close>
         using Imp assms Hintikka.BetaImp by blast
-      then show \<open>?s x\<close>
+      then show \<open>M S x\<close>
         using wf Imp by fastforce
     qed
   next
@@ -164,13 +163,13 @@ next
       assume \<open>x \<in> S\<close>
       then have \<open>p \<in> S\<close> \<open>q \<in> S\<close>
         using Dis assms Hintikka.AlphaDis by blast+
-      then show \<open>\<not> ?s x\<close>
+      then show \<open>\<not> M S x\<close>
         using wf Dis by fastforce
     next
       assume \<open>Neg x \<in> S\<close>
       then have \<open>Neg p \<in> S \<or> Neg q \<in> S\<close>
         using Dis assms Hintikka.BetaDis by blast
-      then show \<open>?s x\<close>
+      then show \<open>M S x\<close>
         using wf Dis by fastforce
     qed
   next
@@ -180,13 +179,13 @@ next
       assume \<open>x \<in> S\<close>
       then have \<open>p \<in> S \<or> q \<in> S\<close>
         using Con assms Hintikka.BetaCon by blast
-      then show \<open>\<not> ?s x\<close>
+      then show \<open>\<not> M S x\<close>
         using wf Con by fastforce
     next
       assume \<open>Neg x \<in> S\<close>
       then have \<open>Neg p \<in> S\<close> \<open>Neg q \<in> S\<close>
         using Con assms Hintikka.AlphaCon by blast+
-      then show \<open>?s x\<close>
+      then show \<open>M S x\<close>
         using wf Con by fastforce
     qed
   next
@@ -196,25 +195,25 @@ next
       assume \<open>x \<in> S\<close>
       then have \<open>\<forall>t \<in> terms S. sub 0 t p \<in> S\<close>
         using Exi assms Hintikka.GammaExi by blast
-      then have \<open>\<forall>t \<in> terms S. \<not> ?s (sub 0 t p)\<close>
+      then have \<open>\<forall>t \<in> terms S. \<not> M S (sub 0 t p)\<close>
         using wf Exi size_sub
         by (metis (no_types, lifting) add.right_neutral add_Suc_right fm.size(12) in_measure lessI)
       moreover have \<open>\<forall>t \<in> terms S. semantics_term (E S) (F S) t = t\<close>
         using usemantics_E(1) terms_downwards_closed unfolding list_all_def by blast
       ultimately have \<open>\<forall>t \<in> terms S. \<not> usemantics (terms S) (SeCaV.shift (E S) 0 t) (F S) (G S) p\<close>
         by simp
-      then show \<open>\<not> ?s x\<close>
+      then show \<open>\<not> M S x\<close>
         using Exi by simp
     next
       assume \<open>Neg x \<in> S\<close>
       then obtain t where \<open>t \<in> terms S\<close> \<open>Neg (sub 0 t p) \<in> S\<close>
         using Exi assms Hintikka.DeltaExi by metis
-      then have \<open>?s (sub 0 t p)\<close>
+      then have \<open>M S (sub 0 t p)\<close>
         using wf Exi size_sub
         by (metis (no_types, lifting) add.right_neutral add_Suc_right fm.size(12) in_measure lessI)
       moreover have \<open>semantics_term (E S) (F S) t = t\<close>
         using \<open>t \<in> terms S\<close> usemantics_E(1) terms_downwards_closed unfolding list_all_def by blast
-      ultimately show \<open>?s x\<close>
+      ultimately show \<open>M S x\<close>
         using Exi \<open>t \<in> terms S\<close> by auto
     qed
   next
@@ -224,25 +223,25 @@ next
       assume \<open>x \<in> S\<close>
       then obtain t where \<open>t \<in> terms S\<close> \<open>sub 0 t p \<in> S\<close>
         using Uni assms Hintikka.DeltaUni by metis
-      then have \<open>\<not> ?s (sub 0 t p)\<close>
+      then have \<open>\<not> M S (sub 0 t p)\<close>
         using wf Uni size_sub
         by (metis (no_types, lifting) add.right_neutral add_Suc_right fm.size(13) in_measure lessI)
       moreover have \<open>semantics_term (E S) (F S) t = t\<close>
         using \<open>t \<in> terms S\<close> usemantics_E(1) terms_downwards_closed unfolding list_all_def by blast
-      ultimately show \<open>\<not> ?s x\<close>
+      ultimately show \<open>\<not> M S x\<close>
         using Uni \<open>t \<in> terms S\<close> by auto
     next
       assume \<open>Neg x \<in> S\<close>
       then have \<open>\<forall>t \<in> terms S. Neg (sub 0 t p) \<in> S\<close>
         using Uni assms Hintikka.GammaUni by blast
-      then have \<open>\<forall>t \<in> terms S. ?s (sub 0 t p)\<close>
+      then have \<open>\<forall>t \<in> terms S. M S (sub 0 t p)\<close>
         using wf Uni size_sub
         by (metis (no_types, lifting) Nat.add_0_right add_Suc_right fm.size(13) in_measure lessI)
       moreover have \<open>\<forall>t \<in> terms S. semantics_term (E S) (F S) t = t\<close>
         using usemantics_E(1) terms_downwards_closed unfolding list_all_def by blast
       ultimately have \<open>\<forall>t \<in> terms S. \<not> usemantics (terms S) (SeCaV.shift (E S) 0 t) (F S) (G S) (Neg p)\<close>
         by simp
-      then show \<open>?s x\<close>
+      then show \<open>M S x\<close>
         using Uni by simp
     qed
   next
@@ -250,13 +249,13 @@ next
     show ?thesis
     proof (intro conjI impI)
       assume \<open>x \<in> S\<close>
-      then show \<open>\<not> ?s x\<close>
+      then show \<open>\<not> M S x\<close>
         using wf Neg by fastforce
     next
       assume \<open>Neg x \<in> S\<close>
       then have \<open>p \<in> S\<close>
         using Neg assms Hintikka.Neg by blast
-      then show \<open>?s x\<close>
+      then show \<open>M S x\<close>
         using wf Neg by fastforce
     qed
   qed
