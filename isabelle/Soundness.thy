@@ -269,10 +269,8 @@ next
     case Other
     then have \<open>\<forall>z' \<in> set (children ?A r z). (\<tturnstile> (pre @ [p]) @ z')\<close>
       using * by simp
-    then have \<open>\<tturnstile> pre @ p # z\<close>
-      using ih[where pre=\<open>pre @ [p]\<close> and A=\<open>?A\<close>] A by simp
     then show ?thesis
-      by blast
+      using ih[where pre=\<open>pre @ [p]\<close> and A=\<open>?A\<close>] A by simp
   qed
 qed
 
