@@ -319,7 +319,7 @@ text \<open>Using the result from the abstract soundness framework, we can final
   the SeCaV proof system.\<close>
 theorem prover_soundness_SeCaV:
   assumes \<open>tfinite t\<close> \<open>wf t\<close>
-  shows \<open>\<tturnstile> (snd (fst (root t)))\<close>
-  using assms soundness prod.exhaust by fastforce
+  shows \<open>\<tturnstile> rootSequent t\<close>
+  using assms soundness by fastforce
 
 end

@@ -186,4 +186,6 @@ text \<open>We can then use the framework to define the prover.
   prover is not actually executable yet.\<close>
 definition \<open>secavProver \<equiv> mkTree rules\<close>
 
+abbreviation \<open>rootSequent t \<equiv> snd (fst (root t))\<close>
+
 end

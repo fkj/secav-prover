@@ -38,7 +38,7 @@ abbreviation
 text \<open>The sequent in the first state of a saturated escape path is not valid.
   This follows from our results in the theories EPathHintikka and Countermodel.\<close>
 lemma epath_countermodel:
-  assumes \<open>fst (shd steps) = (A, z)\<close> \<open>epath steps\<close> \<open>Saturated steps\<close>
+  assumes \<open>fst (shd steps) = (A, z)\<close> and \<open>epath steps\<close> and \<open>Saturated steps\<close>
   shows \<open>\<not> uvalid z\<close>
 proof
   assume \<open>uvalid z\<close>
