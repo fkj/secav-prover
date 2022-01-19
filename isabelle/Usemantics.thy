@@ -28,18 +28,6 @@ text \<open>If we choose to quantify over the universal set, we obtain the usual
 lemma usemantics_UNIV: \<open>usemantics UNIV e f g p \<longleftrightarrow> semantics e f g p\<close>
   by (induct p arbitrary: e) auto
 
-text \<open>If we choose the universal set, any environment is defined.\<close>
-lemma is_env_UNIV: \<open>is_env UNIV e\<close>
-  unfolding is_env_def by blast
-
-text \<open>If a formula is valid for any quantifier set, it is valid for the universal set in particular,
-and we thus obtain that it is also valid in the usual SeCaV semantics.\<close>
-lemma uvalid_semantics:
-  fixes e :: \<open>nat \<Rightarrow> 'a\<close>
-  assumes \<open>\<forall>(u :: 'a set) e f g. usemantics u e f g p\<close>
-  shows \<open>semantics e f g p\<close>
-  using assms is_env_UNIV usemantics_UNIV by blast
-
 text \<open>If a function name \<open>n\<close> is not in a formula, it does not matter whether it is in
   the function interpretation or not.\<close>
 lemma uupd_lemma [iff]: \<open>n \<notin> params p \<Longrightarrow> usemantics u e (f(n := x)) g p \<longleftrightarrow> usemantics u e f g p\<close>
@@ -60,11 +48,6 @@ lemma usemantics_term [simp]:
   shows \<open>semantics_term e f t \<in> u\<close> \<open>list_all (\<lambda>x. x \<in> u) (semantics_list e f ts)\<close>
   using assms by (induct t and ts rule: semantics_term.induct semantics_list.induct)
     (simp_all add: is_env_def is_fdenot_def)
-
-text \<open>If an environment is well-formed, replacing a variable by something in the quantifier set
-  results in a well-formed environment.\<close>
-lemma is_env_shift [simp]: \<open>is_env u e \<Longrightarrow> x \<in> u \<Longrightarrow> is_env u (SeCaV.shift e v x)\<close>
-  unfolding is_env_def SeCaV.shift_def by simp                  
 
 text \<open>If a function interpretation is well-formed, replacing the value by one in the quantifier set
   results in a well-formed function interpretation.\<close>

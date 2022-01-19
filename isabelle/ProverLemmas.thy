@@ -270,18 +270,6 @@ proof (induct p)
     using paramst_subtermTm by simp
 qed auto
 
-lemma subtermTm_paramst:
-  \<open>\<forall>s \<in> set (subtermTm t). s = Fun i l \<longrightarrow> i \<in> paramst t\<close>
-  \<open>\<forall>s \<in> (\<Union>t \<in> set ts. set (subtermTm t)). s = Fun i l \<longrightarrow> i \<in> paramsts ts\<close>
-  by (induct t and ts rule: paramst.induct paramsts.induct) auto
-
-lemma subtermFm_params: \<open>\<forall>t \<in> set (subtermFm p). t = Fun i l \<longrightarrow> i \<in> params p\<close>
-proof (induct p)
-  case (Pre x1 x2)
-  then show ?case
-    using subtermTm_paramst by simp
-qed auto
-
 lemma subtermFm_subset_params: \<open>set (subtermFm p) \<subseteq> set A \<Longrightarrow> params p \<subseteq> paramsts A\<close>
   using params_subtermFm by force
 
@@ -526,9 +514,6 @@ qed simp
 lemma listFunTm_paramst: \<open>set (listFunTm t) = paramst t\<close> \<open>set (listFunTms ts) = paramsts ts\<close>
   by (induct t and ts rule: paramst.induct paramsts.induct) auto
 
-lemma generateNew_new: \<open>Fun (generateNew A) ts \<notin> set A\<close>
-  unfolding generateNew_def using Suc_max_new listFunTm_paramst(2) by fastforce
-
 subsection \<open>Finding axioms\<close>
 
 text \<open>The \<open>branchDone\<close> function correctly determines whether a sequent is an axiom.\<close>
@@ -549,12 +534,6 @@ lemma subterm_Pre_refl: \<open>set ts \<subseteq> set (subtermFm (Pre n ts))\<cl
 text \<open>The arguments of function are subterms of it.\<close>
 lemma subterm_Fun_refl: \<open>set ts \<subseteq> set (subtermTm (Fun n ts))\<close>
   by (induct ts) auto
-
-text \<open>A single argument of a function is a subterm of it.\<close>
-lemma subtermTm_Fun:
-  assumes \<open>t \<in> set ts\<close>
-  shows \<open>t \<in> set (subtermTm (Fun i ts))\<close>
-  using assms by (meson subset_eq subterm_Fun_refl)
 
 text \<open>This function computes the predicates in a formula.
   We will use this function to help prove the final lemma in this section.\<close>
