@@ -190,50 +190,28 @@ text \<open>If a term is a subterm of another, so are all of its subterms.\<clos
 lemma subtermTm_le: \<open>t \<in> set (subtermTm s) \<Longrightarrow> set (subtermTm t) \<subseteq> set (subtermTm s)\<close>
   by (induct s) auto
 
-text \<open>Trying to substitute a variable that is not in the term (or list of terms) does nothing.\<close>
+text \<open>Trying to substitute a variable that is not in the term does nothing (contrapositively).\<close>
 lemma sub_term_const_transfer:
-  \<open>Fun a [] \<notin> set (subtermTm (sub_term m (Fun a []) t)) \<Longrightarrow>
-    sub_term m (Fun a []) t = sub_term m s t\<close>
-  \<open>Fun a [] \<notin> (\<Union>t \<in> set (sub_list m (Fun a []) ts). set (subtermTm t)) \<Longrightarrow>
-    sub_list m (Fun a []) ts = sub_list m s ts\<close>
- by (induct t and ts rule: sub_term.induct sub_list.induct) auto
+  \<open>sub_term m (Fun a []) t \<noteq> sub_term m s t \<Longrightarrow>
+    Fun a [] \<in> set (subtermTm (sub_term m (Fun a []) t))\<close>
+  \<open>sub_list m (Fun a []) ts \<noteq> sub_list m s ts \<Longrightarrow>
+    Fun a [] \<in> (\<Union>t \<in> set (sub_list m (Fun a []) ts). set (subtermTm t))\<close>
+proof (induct t and ts rule: sub_term.induct sub_list.induct)
+  case (Var x)
+  then show ?case
+    by (metis list.set_intros(1) sub_term.simps(1) subtermTm.simps(1))
+qed auto
 
-text \<open>Trying to substitute a variable that is not in the formula does nothing.\<close>
+text \<open>If substituting different terms makes a difference, then the substitution has an effect.\<close>
 lemma sub_const_transfer:
-  assumes \<open>Fun a [] \<notin> set (subtermFm (sub m (Fun a []) p))\<close>
-  shows \<open>sub m (Fun a []) p = sub m t p\<close>
+  assumes \<open>sub m (Fun a []) p \<noteq> sub m t p\<close>
+  shows \<open>Fun a [] \<in> set (subtermFm (sub m (Fun a []) p))\<close>
   using assms
 proof (induct p arbitrary: m t)
   case (Pre i l)
-  then have \<open>Fun a [] \<notin> (\<Union>t \<in> set (sub_list m (Fun a []) l). set (subtermTm t))\<close>
-    by simp
   then show ?case
-    using sub_term_const_transfer(2) by (metis sub.simps(1))
-next
-  case (Imp p q)
-  then show ?case
-    by (metis Un_iff set_append sub.simps(2) subtermFm.simps(2))
-next
-  case (Dis p1 p2)
-  then show ?case
-    by (metis Un_iff set_append sub.simps(3) subtermFm.simps(3))
-next
-  case (Con p1 p2)
-  then show ?case
-    by (metis Un_iff set_append sub.simps(4) subtermFm.simps(4))
-next
-  case (Exi p)
-  then show ?case
-    by (metis inc_list.simps(1) inc_term.simps(2) sub.simps(5) subtermFm.simps(5))
-next
-  case (Uni p)
-  then show ?case
-    by (metis inc_list.simps(1) inc_term.simps(2) sub.simps(6) subtermFm.simps(6))
-next
-  case (Neg p)
-  then show ?case
-    by (metis sub.simps(7) subtermFm.simps(7))
-qed
+    using sub_term_const_transfer(2) by simp
+qed auto
 
 text \<open>If the list of subterms is empty for all formulas in a sequent, constant 0 is used instead.\<close>
 lemma set_subterms:
