@@ -389,7 +389,8 @@ lemma parts_preserves_unaffected:
   by (cases r p rule: parts_exhaust) (simp_all add: parts_def)
 
 text \<open>The \<open>list_prod\<close> function computes the Cartesian product.\<close>
-lemma list_prod_is_cartesian: \<open>set (list_prod hs ts) = {h @ t |h t. h \<in> set hs \<and> t \<in> set ts}\<close>
+lemma list_prod_is_cartesian:
+  \<open>set (list_prod hs ts) = {h @ t |h t. h \<in> set hs \<and> t \<in> set ts}\<close>
   by (induct ts) auto
 
 text \<open>The \<open>children\<close> function produces the Cartesian product of the branches from the first formula
