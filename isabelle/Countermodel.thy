@@ -7,7 +7,7 @@ begin
 text \<open>In this theory, we will construct a countermodel in the bounded semantics from a Hintikka
   set. This will allow us to prove completeness of the prover.\<close>
 
-text \<open>A predicate is satisfied in a set of formulas S if its negation is also in S.\<close>
+text \<open>A predicate is satisfied in the model based on a set of formulas S when its negation is in S.\<close>
 abbreviation (input)
   \<open>G S n ts \<equiv> Neg (Pre n ts) \<in> S\<close>
 
@@ -70,7 +70,6 @@ qed
 text \<open>If terms are actually in a set of formulas, interpreting the environment over these formulas
 allows for a Herbrand interpretation.\<close>
 lemma usemantics_E:
-  shows
     \<open>t \<in> terms S \<Longrightarrow> semantics_term (E S) (F S) t = t\<close>
     \<open>list_all (\<lambda>t. t \<in> terms S) ts \<Longrightarrow> semantics_list (E S) (F S) ts = ts\<close>
 proof (induct t and ts arbitrary: ts rule: semantics_term.induct semantics_list.induct)

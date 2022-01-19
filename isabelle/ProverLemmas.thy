@@ -3,7 +3,7 @@ section \<open>Lemmas about the prover\<close>
 theory ProverLemmas imports Prover begin
 
 text \<open>This theory contains a number of lemmas about the prover.
-We will need these when proving soundness and completeness.\<close>
+  We will need these when proving soundness and completeness.\<close>
 
 subsection \<open>SeCaV lemmas\<close>
 text \<open>We need a few lemmas about the SeCaV system.\<close>
@@ -38,13 +38,13 @@ lemma paramsts_subset: \<open>set A \<subseteq> set B \<Longrightarrow> paramsts
   by (induct A) auto
 
 text \<open>Substituting a variable by a term does not change the depth of a formula
-(only the term size changes)\<close>
+  (only the term size changes)\<close>
 lemma size_sub [simp]: \<open>size (sub i t p) = size p\<close>
   by (induct p arbitrary: i t) auto
 
 subsection \<open>Fairness\<close>
 text \<open>While fairness of the rule stream should be pretty trivial (since we are simply repeating a
-static list of rules forever), the proof is a bit involved.\<close>
+  static list of rules forever), the proof is a bit involved.\<close>
 
 text \<open>This function tells us what rule comes next in the stream.\<close>
 primrec next_rule :: \<open>rule \<Rightarrow> rule\<close> where
@@ -75,7 +75,7 @@ primrec rule_index :: \<open>rule \<Rightarrow> nat\<close> where
 | \<open>rule_index GammaUni = 10\<close>
 
 text \<open>The list of rules does not have any duplicates.
-This is important because we can then look up rules by their index.\<close>
+  This is important because we can then look up rules by their index.\<close>
 lemma distinct_rulesList: \<open>distinct rulesList\<close>
   unfolding rulesList_def by simp
 
@@ -132,7 +132,7 @@ lemma mod_suff:
   shows \<open>\<forall>i < k. P i\<close>
   using assms mod_hit by blast
 
-text \<open>It is possible to find an index that results in any given rule.\<close>
+text \<open>It is always possible to find an index after some point that results in any given rule.\<close>
 lemma rules_repeat: \<open>\<exists>n > m. rules !! n = r\<close>
 proof (rule ccontr)
   assume \<open>\<not> (\<exists>n > m. rules !! n = r)\<close>
@@ -184,7 +184,7 @@ proof -
 qed
 
 subsection \<open>Substitution\<close>
-text \<open>We need some lemmas about substitution of variables for terms for the delta- and gamma-rules.\<close>
+text \<open>We need some lemmas about substitution of variables for terms for the Delta and Gamma rules.\<close>
 
 text \<open>If a term is a subterm of another, so are all of its subterms.\<close>
 lemma subtermTm_le: \<open>t \<in> set (subtermTm s) \<Longrightarrow> set (subtermTm t) \<subseteq> set (subtermTm s)\<close>
@@ -288,21 +288,24 @@ lemma subtermFm_subset_params: \<open>set (subtermFm p) \<subseteq> set A \<Long
 subsection \<open>Custom cases\<close>
 text \<open>Some proofs are more efficient with some custom case lemmas.\<close>
 
-lemma Neg_exhaust:
-  \<open>(\<And>i ts. x = Pre i ts \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p q. x = Imp p q \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p q. x = Dis p q \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p q. x = Con p q \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p. x = Exi p \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p. x = Uni p \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>i ts. x = Neg (Pre i ts) \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p q. x = Neg (Imp p q) \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p q. x = Neg (Dis p q) \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p q. x = Neg (Con p q) \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p. x = Neg (Exi p) \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p. x = Neg (Uni p) \<Longrightarrow> P) \<Longrightarrow>
-  (\<And>p. x = Neg (Neg p) \<Longrightarrow> P) \<Longrightarrow>
-  P\<close>
+lemma Neg_exhaust
+  [case_names Pre Imp Dis Con Exi Uni NegPre NegImp NegDis NegCon NegExi NegUni NegNeg]:
+  assumes
+    \<open>\<And>i ts. x = Pre i ts \<Longrightarrow> P\<close>
+    \<open>\<And>p q. x = Imp p q \<Longrightarrow> P\<close>
+    \<open>\<And>p q. x = Dis p q \<Longrightarrow> P\<close>
+    \<open>\<And>p q. x = Con p q \<Longrightarrow> P\<close>
+    \<open>\<And>p. x = Exi p \<Longrightarrow> P\<close>
+    \<open>\<And>p. x = Uni p \<Longrightarrow> P\<close>
+    \<open>\<And>i ts. x = Neg (Pre i ts) \<Longrightarrow> P\<close>
+    \<open>\<And>p q. x = Neg (Imp p q) \<Longrightarrow> P\<close>
+    \<open>\<And>p q. x = Neg (Dis p q) \<Longrightarrow> P\<close>
+    \<open>\<And>p q. x = Neg (Con p q) \<Longrightarrow> P\<close>
+    \<open>\<And>p. x = Neg (Exi p) \<Longrightarrow> P\<close>
+    \<open>\<And>p. x = Neg (Uni p) \<Longrightarrow> P\<close>
+    \<open>\<And>p. x = Neg (Neg p) \<Longrightarrow> P\<close>
+  shows P
+  using assms
 proof (induct x)
   case (Neg p)
   then show ?case
@@ -332,7 +335,7 @@ proof (cases r)
   then show ?thesis
     using assms
   proof (cases x rule: Neg_exhaust)
-    case (4 p q)
+    case (Con p q)
     then show ?thesis
       using BetaCon assms by blast
   qed (simp_all add: parts_def)
@@ -341,7 +344,7 @@ next
   then show ?thesis
     using assms
   proof (cases x rule: Neg_exhaust)
-    case (8 p q)
+    case (NegImp p q)
     then show ?thesis
       using BetaImp assms by blast
   qed (simp_all add: parts_def)
@@ -350,7 +353,7 @@ next
   then show ?thesis
     using assms
   proof (cases x rule: Neg_exhaust)
-    case (6 p)
+    case (Uni p)
     then show ?thesis
       using DeltaUni assms by fast
   qed (simp_all add: parts_def)
@@ -359,25 +362,25 @@ next
   then show ?thesis
     using assms
   proof (cases x rule: Neg_exhaust)
-    case (11 p)
+    case (NegExi p)
     then show ?thesis
       using DeltaExi assms by fast
   qed (simp_all add: parts_def)
 next
-  case NegNeg
+  case n: NegNeg
   then show ?thesis
     using assms
   proof (cases x rule: Neg_exhaust)
-    case (13 p)
+    case (NegNeg p)
     then show ?thesis
-      using NegNeg assms by fast
+      using n assms by fast
   qed (simp_all add: parts_def)
 next
   case GammaExi
   then show ?thesis
     using assms
   proof (cases x rule: Neg_exhaust)
-    case (5 p)
+    case (Exi p)
     then show ?thesis
       using GammaExi assms by fast
   qed (simp_all add: parts_def)
@@ -386,7 +389,7 @@ next
   then show ?thesis
     using assms
   proof (cases x rule: Neg_exhaust)
-    case (12 p)
+    case (NegUni p)
     then show ?thesis
       using GammaUni assms by fast
   qed (simp_all add: parts_def)
@@ -417,14 +420,6 @@ lemma parts_preserves_unaffected:
   assumes \<open>\<not> affects r p\<close> \<open>z' \<in> set (parts A r p)\<close>
   shows \<open>p \<in> set z'\<close>
   using assms unfolding affects_def
-  by (cases r p rule: parts_exhaust) (simp_all add: parts_def)
-
-text \<open>Applying a rule to a formula never results in an empty list of branches.\<close>
-lemma parts_not_Nil: \<open>parts A r p \<noteq> []\<close>
-  by (cases r p rule: parts_exhaust) (simp_all add: parts_def)
-
-text \<open>Applying a rule to a formula never results in a branch with an empty sequent.\<close>
-lemma parts_all_inhabited: \<open>[] \<notin> set (parts A r p)\<close>
   by (cases r p rule: parts_exhaust) (simp_all add: parts_def)
 
 text \<open>The \<open>list_prod\<close> function computes the Cartesian product.\<close>
@@ -465,10 +460,6 @@ lemma parts_in_children:
   shows \<open>\<exists>B xs. set A \<subseteq> set B \<and> xs \<in> set (parts B r p) \<and> set xs \<subseteq> set z'\<close>
   using assms
 proof (induct z arbitrary: A z')
-  case Nil
-  then show ?case
-    by simp
-next
   case (Cons a _)
   then show ?case
   proof (cases \<open>a = p\<close>)
@@ -481,14 +472,14 @@ next
       using Cons set_children_Cons
       by (smt (verit, del_insts) le_sup_iff mem_Collect_eq set_ConsD set_append set_remdups subset_trans sup_ge2)
   qed
-qed
+qed simp
 
 text \<open>If \<open>effect\<close> contains something, then the input sequent is not an axiom.\<close>
 lemma ne_effect_not_branchDone: \<open>(B, z') |\<in>| effect r (A, z) \<Longrightarrow> \<not> branchDone z\<close>
   by (cases \<open>branchDone z\<close>) simp_all
 
 text \<open>The \<open>effect\<close> function decomposes formulas in the sequent using the \<open>parts\<close> function.
-(Unless the sequent is an axiom, in which case no child branches are generated.)\<close>
+  (Unless the sequent is an axiom, in which case no child branches are generated.)\<close>
 lemma parts_in_effect:
   assumes \<open>p \<in> set z\<close> and \<open>(B, z') |\<in>| effect r (A, z)\<close>
   shows \<open>\<exists>C xs. set A \<subseteq> set C \<and> xs \<in> set (parts C r p) \<and> set xs \<subseteq> set z'\<close>
@@ -505,23 +496,11 @@ corollary \<open>Neg (Uni p) \<in> set z \<Longrightarrow> (B, z') |\<in>| effec
   using parts_in_effect unfolding parts_def by fastforce
 
 text \<open>If the sequent is not an axiom, and the rule and sequent match, all of the child branches
-generated by \<open>children\<close> will be included in the proof tree.\<close>
+  generated by \<open>children\<close> will be included in the proof tree.\<close>
 lemma eff_children:
   assumes \<open>\<not> branchDone z\<close> \<open>eff r (A, z) ss\<close>
   shows \<open>\<forall>z' \<in> set (children (remdups (A @ subtermFms z)) r z). \<exists>B. (B, z') |\<in>| ss\<close>
   using assms unfolding eff_def using fset_of_list_elem by fastforce
-
-text \<open>If the current sequent is empty, so are all later sequents.\<close>
-lemma eff_preserves_Nil:
-  assumes \<open>eff r (A, []) sl\<close> \<open>(B, z) |\<in>| sl\<close>
-  shows \<open>z = []\<close>
-  using assms unfolding eff_def effect_def by auto
-
-text \<open>If the current sequent is empty, this branch of the proof tree does not end.\<close>
-lemma eff_Nil_not_empty:
-  assumes \<open>eff r (A, []) sl\<close>
-  shows \<open>sl \<noteq> {||}\<close>
-  using assms unfolding eff_def effect_def by auto
 
 subsection \<open>Generating new function names\<close>
 text \<open>We need to show that the \<open>generateNew\<close> function actually generates new function names.
@@ -536,17 +515,13 @@ lemma Suc_max_new:
   fixes xs :: \<open>nat list\<close>
   shows \<open>Suc (foldr max xs 0) \<notin> set xs\<close>
 proof (cases xs)
-  case Nil
-  then show ?thesis
-    by simp
-next
   case (Cons x xs)
   then have \<open>foldr max (x # xs) 0 = Max (set (x # xs))\<close>
     using foldr_max by simp
   then show ?thesis
     using Cons by (metis List.finite_set Max.insert add_0 empty_iff list.set(2) max_0_1(2)
         n_not_Suc_n nat_add_max_left plus_1_eq_Suc remdups.simps(2) set_remdups)
-qed
+qed simp
 
 lemma listFunTm_paramst: \<open>set (listFunTm t) = paramst t\<close> \<open>set (listFunTms ts) = paramsts ts\<close>
   by (induct t and ts rule: paramst.induct paramsts.induct) auto

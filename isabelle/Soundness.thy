@@ -11,7 +11,8 @@ text \<open>If some suffix of the sequents in all of the children of a state are
   suffix of the sequent in the current state, with the prefix in each sequent being the same.
   (As a side condition, the lists of terms need to be compatible.)\<close>
 lemma SeCaV_children_pre:
-  assumes \<open>\<forall>z' \<in> set (children A r z). (\<tturnstile> pre @ z')\<close> and \<open>paramss (pre @ z) \<subseteq> paramsts A\<close> 
+  assumes \<open>\<forall>z' \<in> set (children A r z). (\<tturnstile> pre @ z')\<close>
+    and \<open>paramss (pre @ z) \<subseteq> paramsts A\<close> 
   shows \<open>\<tturnstile> pre @ z\<close>
   using assms
 proof (induct z arbitrary: pre A)

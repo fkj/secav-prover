@@ -17,7 +17,7 @@ lemma [code]: "Stream.smember x (y ## s) = (x = y \<or> Stream.smember x s)"
   unfolding Stream.smember_def by auto
 
 text \<open>To export code to Haskell, we need to specify that functions on the option type should be
-exported into the equivalent functions on the Maybe monad.\<close>
+  exported into the equivalent functions on the Maybe monad.\<close>
 code_printing
   constant the \<rightharpoonup> (Haskell) "MaybeExt.fromJust"
 | constant Option.is_none \<rightharpoonup> (Haskell) "MaybeExt.isNothing"
@@ -28,7 +28,7 @@ code_printing code_module MaybeExt \<rightharpoonup> (Haskell)
      import Data.Maybe(fromJust, isNothing);\<close>
 
 text \<open>The default export setup will create a cycle of module imports, so we roll most of the
-theories into one module when exporting to Haskell to prevent this.\<close>
+  theories into one module when exporting to Haskell to prevent this.\<close>
 code_identifier
   code_module Stream \<rightharpoonup> (Haskell) Prover
 | code_module Prover \<rightharpoonup> (Haskell) Prover
@@ -38,7 +38,7 @@ code_identifier
 | code_module Abstract_Completeness \<rightharpoonup> (Haskell) Prover
 
 text \<open>Finally, we define an executable version of the prover using the code interpretation from the
-framework, and a version where the list of terms is initially empty.\<close>
+  framework, and a version where the list of terms is initially empty.\<close>
 definition \<open>secavTreeCode \<equiv> i.mkTree (\<lambda>r s. Some (effect r s)) rules\<close>
 definition \<open>secavProverCode \<equiv> \<lambda>z . secavTreeCode ([], z)\<close>
 
