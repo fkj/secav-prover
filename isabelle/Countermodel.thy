@@ -103,11 +103,12 @@ proof (intro allI impI)
     by (cases \<open>\<forall>n. Var n \<in> terms S\<close>) (simp_all add: some_in_eq)
 qed
 
-abbreviation \<open>M S \<equiv> usemantics (terms S) (E S) (F S) (G S)\<close>
+abbreviation
+  \<open>M S \<equiv> usemantics (terms S) (E S) (F S) (G S)\<close>
 
 text \<open>If S is a Hintikka set, then we can construct a countermodel for any formula using our
   bounded semantics and a Herbrand interpretation.\<close>
-lemma Hintikka_counter_model:
+theorem Hintikka_counter_model:
   assumes \<open>Hintikka S\<close>
   shows \<open>(p \<in> S \<longrightarrow> \<not> M S p) \<and> (Neg p \<in> S \<longrightarrow> M S p)\<close>
 proof (induct p rule: wf_induct [where r=\<open>measure size\<close>])

@@ -22,21 +22,21 @@ proof (induct z arbitrary: pre A)
 next
   case (Cons p z)
   then have ih: \<open>\<forall>z' \<in> set (children A r z). (\<tturnstile> pre @ z') \<Longrightarrow> (\<tturnstile> pre @ z)\<close>
-    if \<open>paramss (pre @ z) \<subseteq> paramsts A\<close>
-    for pre A
+    if \<open>paramss (pre @ z) \<subseteq> paramsts A\<close> for pre A
     using that by simp
 
-  let ?parts = \<open>parts A r p\<close>
   let ?A = \<open>remdups (A @ subtermFms (concat (parts A r p)))\<close>
 
   have A: \<open>paramss (pre @ p # z) \<subseteq> paramsts ?A\<close>
     using paramsts_subset Cons.prems(2) by fastforce
 
-  have \<open>\<forall>z' \<in> set (list_prod ?parts (children ?A r z)). (\<tturnstile> pre @ z')\<close>
+  have \<open>\<forall>z' \<in> set (list_prod (parts A r p) (children ?A r z)). (\<tturnstile> pre @ z')\<close>
     using Cons.prems by (metis children.simps(2))
-  then have \<open>\<forall>z' \<in> {hs @ ts |hs ts. hs \<in> set ?parts \<and> ts \<in> set (children ?A r z)}. (\<tturnstile> pre @ z')\<close>
+  then have \<open>\<forall>z' \<in> {hs @ ts |hs ts. hs \<in> set (parts A r p) \<and> ts \<in> set (children ?A r z)}.
+      (\<tturnstile> pre @ z')\<close>
     using list_prod_is_cartesian by blast
-  then have *: \<open>\<forall>hs \<in> set ?parts. \<forall>ts \<in> set (children ?A r z). (\<tturnstile> pre @ hs @ ts)\<close>
+  then have *:
+    \<open>\<forall>hs \<in> set (parts A r p). \<forall>ts \<in> set (children ?A r z). (\<tturnstile> pre @ hs @ ts)\<close>
     by blast
   then show ?case
   proof (cases r p rule: parts_exhaust)
@@ -278,7 +278,7 @@ qed
 
 text \<open>As a special case, the prefix can be empty.\<close>
 corollary SeCaV_children:
-  assumes \<open>\<forall>z' \<in> set (children A r z). (\<tturnstile> z')\<close> \<open>paramss z \<subseteq> paramsts A\<close>
+  assumes \<open>\<forall>z' \<in> set (children A r z). (\<tturnstile> z')\<close> and \<open>paramss z \<subseteq> paramsts A\<close>
   shows \<open>\<tturnstile> z\<close>
   using SeCaV_children_pre assms by (metis append_Nil)
 
@@ -318,7 +318,7 @@ text \<open>Using the result from the abstract soundness framework, we can final
   result: for a finite, well-formed proof tree, the sequent at the root of the tree is provable in
   the SeCaV proof system.\<close>
 theorem prover_soundness_SeCaV:
-  assumes \<open>tfinite t\<close> \<open>wf t\<close>
+  assumes \<open>tfinite t\<close> and \<open>wf t\<close>
   shows \<open>\<tturnstile> rootSequent t\<close>
   using assms soundness by fastforce
 
