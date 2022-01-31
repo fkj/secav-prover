@@ -1,4 +1,4 @@
-ISABELLE := isabelle
+ISABELLE := .
 ISABELLE_EXE := isabelle
 HASKELL := haskell
 EXPORT := $(HASKELL)/prover

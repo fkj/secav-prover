@@ -62,9 +62,9 @@ The generated file can then be opened in Isabelle to verify the proof.
 To do so, the SeCaV theory must be available to Isabelle, e.g. by placing a copy of the `SeCaV.thy` file in the same folder as the generated file.
 
 ## Organisation of the repository
-The implementation of the prover is split into two main parts: the `isabelle` folder contains the implementation of the proof search procedure itself as well as the formal proofs of soundness and completeness, while the `haskell` folder contains implementations of supporting functions such as parsing and code generation.
+The implementation of the prover is split into two main parts: the top folder contains the implementation of the proof search procedure itself as well as the formal proofs of soundness and completeness in Isabelle files (`.thy`), while the `haskell` folder contains implementations of supporting functions such as parsing and code generation.
 
-The `isabelle` folder contains the following theories:
+The top folder contains the following theories:
 * `SeCaV.thy` contains the definition of the Sequent Calculus Verifier system, which is the logic we are working in, and a soundness theorem for the proof system
 * `Sequent1.thy` is a shim theory for linking the AFP theory to the `Sequent_Calculus_Verifier` theory
 * `Sequent_Calculus_Verifier.thy` contains a completeness result for the SeCaV proof system
