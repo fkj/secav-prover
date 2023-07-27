@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM makarius/isabelle
+FROM makarius/isabelle AS builder
 
 USER root
 
@@ -67,4 +67,9 @@ RUN cabal update
 RUN make
 RUN cabal install secav-prover
 
-ENTRYPOINT ["/home/isabelle/.cabal/bin/secav-prover"]
+FROM ubuntu:22.04
+
+WORKDIR /root/
+COPY --from=builder /home/isabelle/.cabal/bin/secav-prover ./
+
+ENTRYPOINT ["./secav-prover"]
