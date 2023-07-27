@@ -23,7 +23,12 @@ Once you have a Docker image with the prover, you can run the prover inside a Do
 ```
 docker run secav-prover "Imp P P"
 ```
-In the usage examples below, simply replace `secav-prover` with `docker run secav-prover` to obtain equivalent results.
+
+If you would like the prover to write Isabelle proof files (using the `--isabelle` option), you will need to give the Docker container access to a directory on your machine.
+You can give the container access to the current working directory and make the prover write an Isabelle proof file to it by running e.g.
+```
+docker run -v .:/outside secav-prover "Imp P P" --isabelle /outside/Proof.thy
+```
 
 #### Building a Docker image
 To build your own Docker image, simply run the following command inside the repository directory:
