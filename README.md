@@ -8,6 +8,7 @@ The prover is implemented and verified in Isabelle, with some supporting functio
 
 ## Installation
 You can download an executable version of the prover (either as a Linux binary or a Docker image) from the [release section](https://github.com/fkj/secav-prover/releases) of the development repository, or you can compile one yourself.
+Please see the [development repository](https://github.com/fkj/secav-prover) for the newest version.
 
 ### Running via Docker
 If you do not want to (or cannot) install the prover directly on your machine, you can run the prover in a [Docker](https://www.docker.com/) container.
